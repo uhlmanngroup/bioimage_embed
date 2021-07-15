@@ -6,6 +6,7 @@ channels:
   - ome
   - conda-forge
   - defaults
+  - torch
 dependencies:
   - cudatoolkit=10.2
   - python=3.8
@@ -45,5 +46,10 @@ dependencies:
   - bokeh
   - holoviews 
   - colorcet 
+  - idr-py
+  - torchvision
+  - pytorch
+  - pip 
   - pip:
     - -e .
+    - nonechucks
