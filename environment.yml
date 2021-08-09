@@ -48,7 +48,9 @@ dependencies:
   - colorcet 
   - idr-py
   - torchvision
+  - tensorboard
   - pytorch
+  - matplotlib
   - pip 
   - pip:
     - -e .
