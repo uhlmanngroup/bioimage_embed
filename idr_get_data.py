@@ -57,7 +57,7 @@ class IDRDataSet(VisionDataset):
             return np.full([2048,2048],np.nan)
         self.index = index
         image_np = np.array(image)
-        print(f"Found image at {index}")
+        # print(f"Found image at {index}")
         if self.transform:
             trans = self.transform(image_np)
             return (trans,trans)
@@ -162,7 +162,8 @@ transform = torch.nn.Sequential()
 
 transform = transforms.Compose([
      transforms.ToTensor(),
-     transforms.RandomCrop((512,512))
+     transforms.RandomCrop((512,512)),
+     transforms.Normalize(0,1)
  ])
 
 dataset = IDRDataSet(transform=transform)
@@ -218,7 +219,7 @@ dataloader = DataLoader(dataset, batch_size=bs, shuffle=shuffle,collate_fn=colla
 #     image_plane = image_wrapped.getPlane(0)
 #     conn.close()
 #     yield image_plane
-plt.imshow(dataset.get_idr_image(4684936))
+# plt.imshow(dataset.get_idr_image(4684936))
 
 
 #  %%
@@ -239,20 +240,30 @@ class UNet(nn.Module):
         self.upconv2 = self.expand_block(64 * 1, 32, 3, 1)
         self.upconv1 = self.expand_block(32 * 1, out_channels, 3, 1)
 
+        self.encoder  = nn.Sequential(self.conv1(),
+                                        self.conv2(),
+                                       self.conv3())
+
+        self.decoder = nn.Sequential(self.upconv3(),
+                                    self.upconv2(),
+                                    self.upconv1())
+
+
     # Call is essentially the same as running "forward"
     def __call__(self, x):
-
+        x = self.encoder(x)
+        x = self.decoder(x)
         # downsampling part
-        conv1 = self.conv1(x)
-        conv2 = self.conv2(conv1)
-        conv3 = self.conv3(conv2)
+        # conv1 = self.conv1(x)
+        # conv2 = self.conv2(conv1)
+        # conv3 = self.conv3(conv2)
 
-        upconv3 = self.upconv3(conv3)
+        # upconv3 = self.upconv3(conv3)
 
-        upconv2 = self.upconv2(upconv3)
-        upconv1 = self.upconv1(upconv2)
+        # upconv2 = self.upconv2(upconv3)
+        # upconv1 = self.upconv1(upconv2)
 
-        return upconv1
+        return x
 
     def contract_block(self, in_channels, out_channels, kernel_size, padding):
 
@@ -308,15 +319,6 @@ class Net(nn.Module):
     def __init__(self, batch_size=16, n_class=1):
         super(Net, self).__init__()
         self.batch_size = batch_size
-        # self.conv1 = nn.Conv2d(1, 32, 3, 3)
-        # self.conv2 = nn.Conv2d(32, 64, 3, 3)
-        # self.dropout1 = nn.Dropout(0.25)
-        # self.dropout2 = nn.Dropout(0.5)
-        # self.fc1 = nn.Linear(9216, 128)
-        # self.fc2 = nn.Linear(128, 10)
-
-        # self.conv1 = nn.Conv2d(1, 1, 1, 1)
-        # self.dp = nn.Dropout(0.5)
 
         self.conv1 = nn.Conv2d(1, 1, 1, 1)
         self.dp = nn.Dropout(0.5)
@@ -328,36 +330,8 @@ class Net(nn.Module):
         self.unet = UNet(1, 1)
 
     def forward(self, x):
-        # x = x.double()
         x = self.unet(x)
-        # x = self.fc2(x)
-        # x = F.relu(x)
-        # x = self.conv1(x)
-        # x = F.relu(x)
-        # x = self.dp(x)
-        # x = F.relu(x)
-        # x = self.conv2(x)
-        # x = F.max_pool2d(x, 2)
-        # x = self.conv3(x)
-        # x = F.relu(x)
-        # # # x = x.view((1,-1))
-        # x = self.fc1(x)
-
-        # x = F.relu(x)
-        # x = self.fc1(x)
-
-        # x = F.relu(x)
-        # x = self.unet(x)
-
-        # x = F.relu(x)
-        # # x = x.view((1,-1))
-        # x = self.fc1(x)
-        # x = self.unet(x)
-        # x = F.relu(x)
-        # x = x.view((self.batch_size,1,14,14))
-        # x = self.conv4(x)
-        # x = torch.sigmoid(x)
-        # x = F.relu(x)
+        
         output = x
         return output
 
@@ -397,9 +371,10 @@ loader = dataloader
 i = 0 
 # Make a run output folder for convenience
 writer = SummaryWriter()
+torch.manual_seed(42)
+
 # %%
 # Always set a manual seed else your runs will be incomparable
-torch.manual_seed(42)
 
 batch_size = 16
 lr = 1e-5 # Low learning rates converge better
@@ -416,52 +391,117 @@ loss_fn = nn.MSELoss() # MSE is fine for this
 # loss_fn = nn.BCEWithLogitsLoss()
 
 
-for epoch in range(0, epochs):
-    for batch_idx, (inputs, outputs) in enumerate(loader):
-        # data, target = data.to(device), target.to(device)
-        # final_position = get_npc()
-        # npc_image = npc_image_from_position(final_position)
-        # distogram = euclidean_distances(final_position)
+# for epoch in range(0, epochs):
+#     for batch_idx, (inputs, outputs) in enumerate(loader):
+  
+#         data = inputs[0].view(1,1,512,512)
+#         target = outputs[0].view(1,1,512,512)
 
-        # inputs = npc_image
-        # outputs = distogram
-        # inputs.shape[-2:0]
-        # data = torch.tensor(inputs).view([-1,1,*(inputs.shape)]).float().to(device)
-        # target = torch.tensor(outputs).view([-1,1,*(outputs.shape)]).float().to(device)
-        # data = inputs.view([-1, 1, 128, 128]).float().to(device)
-        # target = outputs.view([-1, 1, 16, 16]).float().to(device)
+#         optimizer.zero_grad()
 
-        data = inputs
-        target = outputs
-
-        optimizer.zero_grad()
-
-        for dwell in range(0, 100):
-            output = model(data)
-            loss = loss_fn(output, target)
-            # loss = torch.nn.functional.nll_loss( output, target)
-            loss.backward()
-            optimizer.step()
-        i += 1
-        writer.add_scalar("Loss/train", loss, i)
-        writer.add_image("output", output[0])
-        writer.add_image("target", target[0])
-        if batch_idx % log_interval == 0:
-            print(
-                f"Train Epoch: {str(epoch)} {str(batch_idx)} \t Loss: {str(loss.item())}"
-            )
+#         for dwell in range(0, 100):
+#             output = model(data)
+#             loss = loss_fn(output, target)
+#             # loss = torch.nn.functional.nll_loss( output, target)
+#             loss.backward()
+#             optimizer.step()
+#             i += 1
+#             writer.add_scalar("Loss/train", loss, i)
+#             writer.add_image("output", data.view(1,512,512))
+#             writer.add_image("target", target.view(1,512,512))
+#         if batch_idx % log_interval == 0:
+#             print(
+#                 f"Train Epoch: {str(epoch)} {str(batch_idx)} \t Loss: {str(loss.item())}"
+#             )
 # %% 
 torch.save(model.state_dict(), "model")
-#  %%
-plt.imshow(output.cpu().detach()[0, 0, :, :])
-#  %%
-plt.imshow(target.cpu().detach()[0, 0, :, :])
+# #  %%
+# plt.imshow(output.cpu().detach()[0, 0, :, :])
+# #  %%
+# plt.imshow(target.cpu().detach()[0, 0, :, :])
+
+# #  %%
+
+# plt.imshow(inputs.cpu().detach()[0, :, :])
+
+
 
 #  %%
+# import torch
+# from torch import nn
+# from torch.nn import functional as F
+# from torch.utils.data import DataLoader
+# from torch.utils.data import random_split
+# from torchvision.datasets import MNIST
+# from torchvision import transforms
+import pytorch_lightning as pl
 
-plt.imshow(inputs.cpu().detach()[0, :, :])
+class LitAutoEncoder(pl.LightningModule):
+    def __init__(self,batch_size = 1):
+        super().__init__()
+        self.encoder =  Net(batch_size, 1)
+        self.batch_size = batch_size
+
+    def forward(self, x):
+        embedding = self.encoder(x)
+        return embedding
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        return optimizer
+
+    def training_step(self, train_batch, batch_idx):
+        inputs, outputs = train_batch
+        data = inputs[0].view(1,1,512,512)
+        target = outputs[0].view(1,1,512,512)
+        # optimizer.zero_grad()
+        output = self.encoder(data)
+        # x, y = train_batch
+        # x = x.view(x.size(0), -1)
+        loss = loss_fn(output, target)    
+        # x_hat = self.decoder(z)
+        # loss = F.mse_loss(x_hat, x)
+        self.log('train_loss', loss)
+        tensorboard = self.logger.experiment
+        tensorboard.add_scalar("Loss/train", loss, batch_idx)
+        tensorboard.add_image("output", output.view(1,512,512), batch_idx)
+        tensorboard.add_image("target", target.view(1,512,512), batch_idx)
+
+        return loss
+
+    # def backward(self, use_amp, loss, optimizer):
+    #     # if use_amp:
+    #     #     with amp.scale_loss(loss, optimizer) as scaled_loss:
+    #     #         scaled_loss.backward()
+    #     # else:
+    #     # optimizer.zero_grad()
+    #     loss.backward()
+    #     optimizer.step()
+    #     optimizer.zero_grad()
+    # def validation_step(self, val_batch, batch_idx):
+    # 	x, y = val_batch
+    # 	x = x.view(x.size(0), -1)
+    # 	z = self.encoder(x)
+    # 	x_hat = self.decoder(z)
+    # 	loss = F.mse_loss(x_hat, x)
+    # 	self.log('val_loss', loss)
+
+# data
 
 
+model = LitAutoEncoder()
+from pytorch_lightning import loggers as pl_loggers
+
+tb_logger = pl_loggers.TensorBoardLogger('runs/')
+# training
+# tb_logger = pl_loggers.TensorBoardLogger('logs/')
+trainer = pl.Trainer(logger=tb_logger,
+                    default_root_dir="chkpts/",
+                    accumulate_grad_batches=10)
+#  %%
+trainer.fit(model, dataloader)
+    
+#  %%
 # 
 # # %%
 # import torch
@@ -596,3 +636,4 @@ plt.imshow(inputs.cpu().detach()[0, :, :])
 #         save_image(pic, f'./dc_img/image_{str(epoch)}.png')
 
 # torch.save(model.state_dict(), './conv_autoencoder.pth')
+# %%
