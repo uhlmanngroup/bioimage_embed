@@ -1,4 +1,4 @@
-name: mask_vae
+name: torch
 channels:
   - bioconda
   - pytorch
@@ -48,10 +48,18 @@ dependencies:
   - colorcet 
   - idr-py
   - torchvision
-  - tensorboard
+  - cudatoolkit=10.2
   - pytorch
+  - matplotlib
+  - tensorboard
+  - idr-py
   - pytorch-lightning
   - matplotlib
+  - scikit-learn
+  - gsutil
+  - dask-image
+  - gcsfs
+  - imageio
   - pip 
   - pip:
     - -e .
