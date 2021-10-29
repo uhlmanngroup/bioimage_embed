@@ -1,5 +1,34 @@
 # %%
 # import torchvision
+# from omero.ObjectFactoryRegistrar import ExperimentObjectFactory
+
+
+# %%
+
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--gpus", type=int, default=0)
+parser.add_argument("--workers", type=int, default=16)
+parser.add_argument("--batch-size", type=int, default=16)
+parser.add_argument(
+    "--learning_rate", type=float, default=1e-3
+)  # Low learning rates converge better
+parser.add_argument("--epochs", type=int, default=100)
+
+
+args = parser.parse_args()
+# globals().update(args)
+args_dict = vars(parser.parse_args())
+
+gpus = args_dict["gpus"]
+workers = args_dict["workers"]
+batch_size = args_dict["batch_size"]
+learning_rate = args_dict["learning_rate"]
+epochs = args_dict["epochs"]
+
+print(args_dict)
+# %%
 import torch
 import math
 from idr import connection
@@ -14,74 +43,101 @@ import matplotlib.pyplot as plt
 from torchvision.datasets.folder import default_loader
 from PIL import Image
 
+
 def to_img(x):
     x = 0.5 * (x + 1)
     x = x.clamp(0, 1)
     x = x.view(x.size(0), 1, 28, 28)
     return x
 
+
 import numpy as np
 import matplotlib.pyplot as plt
+
 # import NPC8nodes
 import torch
 from torch import nn
 import torch.nn.functional as F
 from scipy.ndimage import convolve
 import seaborn as sns
-
+from torch.utils.data import Dataset, DataLoader
+import os
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset
 # https://pytorch.org/vision/stable/auto_examples/plot_scripted_tensor_transforms.html#sphx-glr-auto-examples-plot-scripted-tensor-transforms-py
 # https://amirakbarnejad.github.io/Tutorial/tutorial_section1.html
+# %%
+# index_num = 4684936
+# conn = connection("idr.openmicroscopy.org",verbose=0)
+#  %%
+root_dir = "/nfs/bioimage/drop/"
+file_list_path = os.path.join(root_dir,"tiff_list.txt")
+file_list = np.loadtxt(file_list_path)
 
-index_num = 4684936
-conn = connection("idr.openmicroscopy.org")
-class IDRDataSet(VisionDataset):
-    def __init__(self,transform=None):
+class IDRDataSet(Dataset):
+    def __init__(self, transform=None,file_list=None):
         super(IDRDataSet).__init__()
         self.transform = transform
+        self.mode = None
+        if file_list == None:
+            self.mode = "http"
         # assert end > start, "this example code only works with end >= start"
         # self.start = start
         # self.end = end
         # self.conn = connection("idr.openmicroscopy.org")
         # self.loader = default_loader
-        self.conn = connection("idr.openmicroscopy.org")
+        # self.conn = connection("idr.openmicroscopy.org")
 
     def __getitem__(self, index):
-        conn = self.conn
-        image = self.get_idr_image(index,conn)
+        # conn = self.conn
+        if (self.mode=="http"):
+            image = self.get_idr_image(index)
+        else:
+            image = self.get_nfs_idr_image(index)
+
         if image == None:
             return None
-            return np.full([2048,2048],np.nan)
+            return np.full([2048, 2048], np.nan)
+        image = make_size(image, size=[2048, 2048])
         self.index = index
         image_np = np.array(image)
         # print(f"Found image at {index}")
         if self.transform:
             trans = self.transform(image_np)
-            return (trans,trans)
+            return (trans, trans)
         return (image_np, image_np)
 
     def __len__(self):
-        return 10000000
+        # return 100
+        if (self.mode=="http"):
+            return 100000
+        else:
+            return len(self.file_list)
 
-    def get_idr_image(self,imageid=171499,conn=None):
-        # conn = connection("idr.openmicroscopy.org")
-        image_wrapped = conn.getObject("Image", imageid)
-        if image_wrapped == None:
+    def get_idr_image(self, imageid=171499):
+        try:
+            conn = connection("idr.openmicroscopy.org", verbose=0)
+            # print(f"Get image {str(imageid)}")
+            image_wrapped = conn.getObject("Image", imageid)
+            if image_wrapped == None:
+                return None
+        except:
             return None
         # image_wrapped.getPrimaryPixels()
         try:
             image_plane = image_wrapped.getPrimaryPixels().getPlane(0)
-            norm_image_plane = ((image_plane/image_plane.max())*255).astype(np.int8)
-            pil_image = Image.fromarray(norm_image_plane,"L")
-            image = make_size(pil_image, size=[2048, 2048])
+            norm_image_plane = ((image_plane / image_plane.max()) * 255).astype(np.int8)
+            pil_image = Image.fromarray(norm_image_plane, "L")
             # if image_plane == None:
-            return image
+            return pil_image
         except:
             return None
-
+    def get_nfs_idr_image(self,file_list,index=0):
+        file_path = file_list[index] 
+        Image.open(file_path)
+    
     # def __iter__(self):
     #     worker_info = torch.utils.data.get_worker_info()
     #     if worker_info is None:  # single-process data loading, return the full iterator
@@ -95,7 +151,8 @@ class IDRDataSet(VisionDataset):
     #         iter_end = min(iter_start + per_worker, self.end)
     #     return iter(range(iter_start, iter_end))
 
-RETURN_NONE = True
+
+# RETURN_NONE = True
 # np.full([2048, 2048], np.nan)
 # def get_idr_image(imageid=171499):
 #     # conn = connection("idr.openmicroscopy.org")
@@ -152,21 +209,24 @@ def crop_to(im, size=[2048, 2048]):
     #     dataset.start = overall_start + worker_id * per_worker
     #     dataset.end = min(dataset.start + per_worker, overall_end)
 
+
 # %%
 
 from torchvision import transforms
+
 # transforms = ToTensor()  # we need this to convert PIL images to Tensor
 shuffle = True
-bs = 5
 transform = torch.nn.Sequential()
 
-transform = transforms.Compose([
-     transforms.ToTensor(),
-     transforms.RandomCrop((512,512)),
-     transforms.Normalize(0,1)
- ])
+transform = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.RandomCrop((512, 512)),
+        transforms.Normalize(0, 1),
+    ]
+)
 
-dataset = IDRDataSet(transform=transform)
+dataset = IDRDataSet(transform=transform,file_list=file_list)
 import nonechucks as nc
 
 # dataset = nc.SafeDataset(dataset)
@@ -175,8 +235,17 @@ def collate_fn(batch):
     batch = list(filter(lambda x: x is not None, batch))
     return torch.utils.data.dataloader.default_collate(batch)
 
-                                           
-dataloader = DataLoader(dataset, batch_size=bs, shuffle=shuffle,collate_fn=collate_fn,num_workers=0)
+
+# def collate_fn(batch):
+#     len_batch = len(batch) # original batch length
+#     batch = list(filter (lambda x:x is not None, batch)) # filter out all the Nones
+#     if len_batch > len(batch): # source all the required samples from the original dataset at random
+#         diff = len_batch - len(batch)
+#         for i in range(diff):
+#             batch.append(dataset[np.random.randint(0, len(dataset))])
+
+#     return torch.utils.data.dataloader.default_collate(batch)
+dataloader = DataLoader(dataset, batch_size=16, shuffle=shuffle, collate_fn=collate_fn)
 
 # dataloader = nc.SafeDataset(dataloader)
 # data = iter(dataloader)
@@ -190,19 +259,25 @@ dataloader = DataLoader(dataset, batch_size=bs, shuffle=shuffle,collate_fn=colla
 for i, (rgb, gt) in enumerate(dataloader):
     print(f"batch {i+1}:")
     # some plots
-    for i in range(bs):
-        plt.figure(figsize=(10, 5))
-        plt.subplot(221)
-        plt.imshow(torch.squeeze(rgb[0]))
-        plt.title(f"RGB img{i+1}")
-        plt.subplot(222)
-        plt.imshow(torch.squeeze(gt[0]))
-        plt.title(f"GT img{i+1}")
-        break
+    # for i in range(bs):
+    plt.figure(figsize=(10, 5))
+    plt.subplot(221)
+    plt.imshow(torch.squeeze(rgb[0, 0]))
+    plt.title(f"RGB img{i+1}")
+    plt.subplot(222)
+    plt.imshow(torch.squeeze(gt[0, 0]))
+    plt.title(f"GT img{i+1}")
     break
-        # plt.show()
-
-dataloader = DataLoader(dataset, batch_size=bs, shuffle=shuffle,collate_fn=collate_fn,num_workers=0)
+    # break
+    # plt.show()
+#  %%
+dataloader = DataLoader(
+    dataset,
+    batch_size=batch_size,
+    shuffle=shuffle,
+    collate_fn=collate_fn,
+    num_workers=16,
+)
 # %%
 # import numpy as np
 # import matplotlib.pyplot as plt
@@ -240,14 +315,9 @@ class UNet(nn.Module):
         self.upconv2 = self.expand_block(64 * 1, 32, 3, 1)
         self.upconv1 = self.expand_block(32 * 1, out_channels, 3, 1)
 
-        self.encoder  = nn.Sequential(self.conv1(),
-                                        self.conv2(),
-                                       self.conv3())
+        self.encoder = nn.Sequential(self.conv1, self.conv2, self.conv3)
 
-        self.decoder = nn.Sequential(self.upconv3(),
-                                    self.upconv2(),
-                                    self.upconv1())
-
+        self.decoder = nn.Sequential(self.upconv3, self.upconv2, self.upconv1)
 
     # Call is essentially the same as running "forward"
     def __call__(self, x):
@@ -315,6 +385,7 @@ class UNet(nn.Module):
         )
         return expand
 
+
 class Net(nn.Module):
     def __init__(self, batch_size=16, n_class=1):
         super(Net, self).__init__()
@@ -331,7 +402,7 @@ class Net(nn.Module):
 
     def forward(self, x):
         x = self.unet(x)
-        
+
         output = x
         return output
 
@@ -358,9 +429,9 @@ output = model(x)
 output.shape
 
 
-samples = 10000 # Number of samples per epoch, any number will do
+samples = 10000  # Number of samples per epoch, any number will do
 # dataset = NPCDataSet(samples) # Generate callable datatset (it's an iterator)
-batch_size = 32 # Publications claim that smaller is better for batch
+batch_size = 32  # Publications claim that smaller is better for batch
 # model = Net(batch_size).to(device)#
 # %% Define model and push to gpu (if availiable)
 from torch.utils.tensorboard import SummaryWriter
@@ -368,7 +439,7 @@ from torch.utils.tensorboard import SummaryWriter
 model = Net(batch_size, 1).to(device)
 
 loader = dataloader
-i = 0 
+i = 0
 # Make a run output folder for convenience
 writer = SummaryWriter()
 torch.manual_seed(42)
@@ -376,16 +447,16 @@ torch.manual_seed(42)
 # %%
 # Always set a manual seed else your runs will be incomparable
 
-batch_size = 16
-lr = 1e-5 # Low learning rates converge better
-log_interval = 10 # Logging interval
-epochs = 100
-optimizer = torch.optim.Adam(model.parameters(), lr=lr) # Adam does better than SGD
-optimizer = torch.optim.SGD(model.parameters(), lr=lr) # Adam does better than SGD
+# batch_size = 16
+log_interval = 10  # Logging interval
+optimizer = torch.optim.Adam(
+    model.parameters(), lr=learning_rate
+)  # Adam does better than SGD
+# optimizer = torch.optim.SGD(model.parameters(), lr=lr) # Adam does better than SGD
 
-model.train() #Set model to training mode (probably deprecated?)
+model.train()  # Set model to training mode (probably deprecated?)
 # loss_fn = nn.MSELoss(reduction='mean')
-loss_fn = nn.MSELoss() # MSE is fine for this
+loss_fn = nn.MSELoss()  # MSE is fine for this
 
 # loss_fn = nn.BCELoss()
 # loss_fn = nn.BCEWithLogitsLoss()
@@ -393,7 +464,7 @@ loss_fn = nn.MSELoss() # MSE is fine for this
 
 # for epoch in range(0, epochs):
 #     for batch_idx, (inputs, outputs) in enumerate(loader):
-  
+
 #         data = inputs[0].view(1,1,512,512)
 #         target = outputs[0].view(1,1,512,512)
 
@@ -413,8 +484,8 @@ loss_fn = nn.MSELoss() # MSE is fine for this
 #             print(
 #                 f"Train Epoch: {str(epoch)} {str(batch_idx)} \t Loss: {str(loss.item())}"
 #             )
-# %% 
-torch.save(model.state_dict(), "model")
+# %%
+# torch.save(model.state_dict(), "model")
 # #  %%
 # plt.imshow(output.cpu().detach()[0, 0, :, :])
 # #  %%
@@ -423,7 +494,6 @@ torch.save(model.state_dict(), "model")
 # #  %%
 
 # plt.imshow(inputs.cpu().detach()[0, :, :])
-
 
 
 #  %%
@@ -436,36 +506,38 @@ torch.save(model.state_dict(), "model")
 # from torchvision import transforms
 import pytorch_lightning as pl
 
+
 class LitAutoEncoder(pl.LightningModule):
-    def __init__(self,batch_size = 1):
+    def __init__(self, batch_size=1, learning_rate=1e-3):
         super().__init__()
-        self.encoder =  Net(batch_size, 1)
+        self.encoder = Net(batch_size, 1)
         self.batch_size = batch_size
+        self.learning_rate = learning_rate
 
     def forward(self, x):
         embedding = self.encoder(x)
         return embedding
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer
 
     def training_step(self, train_batch, batch_idx):
         inputs, outputs = train_batch
-        data = inputs[0].view(1,1,512,512)
-        target = outputs[0].view(1,1,512,512)
+        data = inputs[0].view(1, 1, 512, 512)
+        target = outputs[0].view(1, 1, 512, 512)
         # optimizer.zero_grad()
         output = self.encoder(data)
         # x, y = train_batch
         # x = x.view(x.size(0), -1)
-        loss = loss_fn(output, target)    
+        loss = loss_fn(output, target)
         # x_hat = self.decoder(z)
         # loss = F.mse_loss(x_hat, x)
-        self.log('train_loss', loss)
+        self.log("train_loss", loss)
         tensorboard = self.logger.experiment
         tensorboard.add_scalar("Loss/train", loss, batch_idx)
-        tensorboard.add_image("output", output.view(1,512,512), batch_idx)
-        tensorboard.add_image("target", target.view(1,512,512), batch_idx)
+        tensorboard.add_image("output", output.view(1, 512, 512), batch_idx)
+        tensorboard.add_image("target", target.view(1, 512, 512), batch_idx)
 
         return loss
 
@@ -486,23 +558,32 @@ class LitAutoEncoder(pl.LightningModule):
     # 	loss = F.mse_loss(x_hat, x)
     # 	self.log('val_loss', loss)
 
+
 # data
 
 
-model = LitAutoEncoder()
+model = LitAutoEncoder(batch_size=batch_size, learning_rate=learning_rate)
 from pytorch_lightning import loggers as pl_loggers
 
-tb_logger = pl_loggers.TensorBoardLogger('runs/')
+tb_logger = pl_loggers.TensorBoardLogger("runs/")
 # training
 # tb_logger = pl_loggers.TensorBoardLogger('logs/')
-trainer = pl.Trainer(logger=tb_logger,
-                    default_root_dir="chkpts/",
-                    accumulate_grad_batches=10)
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+
+checkpoint_callback = ModelCheckpoint(every_n_train_steps=100)
+trainer = pl.Trainer(
+    logger=tb_logger,
+    gpus=gpus,
+    accumulate_grad_batches=1,
+    callbacks=[checkpoint_callback],
+)
 #  %%
+import sys
+
 trainer.fit(model, dataloader)
-    
+
 #  %%
-# 
+#
 # # %%
 # import torch
 # import torchvision
