@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "mask_vae"
+name = "idr_vae"
 version = "0.1.0"
 description = ""
 authors = ["Craig  <ctr26@ebi.ac.uk>"]
