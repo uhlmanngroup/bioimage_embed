@@ -115,7 +115,7 @@ class AutoEncoder(nn.Module):
         self.conv2 = self.contract_block(32, 64, 3, 1)
         self.conv3 = self.contract_block(64, 1, 3, 1)
 
-        self.fc1 = nn.AdaptiveMaxPool2d((5,5))
+        self.fc1 = nn.AdaptiveMaxPool2d((25))
         self.fc2 = nn.AdaptiveMaxPool2d((12,12))
 
 
