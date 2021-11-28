@@ -98,7 +98,7 @@ train_dataset[0]
 
 batch_size=32
 
-dataloader = DataLoader(train_dataset, batch_size=batch_size)
+dataloader = DataLoader(train_dataset, batch_size=batch_size,shuffle=True)
 
 #  %%
 
