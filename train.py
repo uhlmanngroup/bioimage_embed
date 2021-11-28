@@ -222,7 +222,7 @@ class LitAutoEncoder(pl.LightningModule):
     def training_step(self, train_batch, batch_idx):
         inputs = train_batch
         output = self.encoder(inputs)
-        loss = self.loss_fn(inputs,output)
+        loss = self.loss_fn(output,inputs)
         self.log("train_loss", loss)
         tensorboard = self.logger.experiment
         tensorboard.add_scalar("Loss/train", loss, batch_idx)
