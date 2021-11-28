@@ -196,8 +196,9 @@ y = model(img)
 z = model.encoder(img)
 print(f"img_dims:{img.shape} y:_dims:{y.shape} z:_dims:{z.shape}")
 #  %%
-
-loss_fn = torch.nn.MSELoss()
+# TODO better loss is needed, outshapes are currently not always full
+# loss_fn = torch.nn.MSELoss()
+# loss_fn = torch.nn.BCEWithLogitsLoss()
 
 class LitAutoEncoder(pl.LightningModule):
     def __init__(self, batch_size=1, learning_rate=1e-3):
@@ -205,7 +206,10 @@ class LitAutoEncoder(pl.LightningModule):
         self.encoder = AutoEncoder(batch_size,1)
         self.batch_size = batch_size
         self.learning_rate = learning_rate
-        # self.loss_fn = torch.nn.MSELoss()
+        self.loss_fn = torch.nn.MSELoss()
+        self.loss_fn = torch.nn.BCEWithLogitsLoss()
+        # self.loss_fn = torch.nn.BCELoss()
+        
 
     def forward(self, x):
         embedding = self.encoder(x)
@@ -218,13 +222,13 @@ class LitAutoEncoder(pl.LightningModule):
     def training_step(self, train_batch, batch_idx):
         inputs = train_batch
         output = self.encoder(inputs)
-        loss = loss_fn(output, inputs)
+        loss = self.loss_fn(inputs,output)
         self.log("train_loss", loss)
         tensorboard = self.logger.experiment
         tensorboard.add_scalar("Loss/train", loss, batch_idx)
         # torchvision.utils.make_grid(output)
         tensorboard.add_image("input", torchvision.utils.make_grid(inputs), batch_idx)
-        tensorboard.add_image("output", torchvision.utils.make_grid(output), batch_idx)
+        tensorboard.add_image("output", torchvision.utils.make_grid(torch.sigmoid(output)), batch_idx)
 
         # tensorboard.add_image("input", transforms.ToPILImage()(output[batch_idx]), batch_idx)
         # tensorboard.add_image("output", transforms.ToPILImage()(output[batch_idx]), batch_idx)
