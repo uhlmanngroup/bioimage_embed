@@ -110,7 +110,8 @@ train_dataset[0]
 
 batch_size = 32
 
-dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+dataloader = DataLoader(train_dataset, batch_size=batch_size,
+                        shuffle=True, num_workers=8, pin_memory=True)
 
 #  %%
 
@@ -217,11 +218,10 @@ print(f"img_dims:{img.shape} y:_dims:{y.shape} z:_dims:{z.shape}")
 
 #  %% VAE
 
-
 class VAE(nn.Module):
     # by default our latent space is 50-dimensional
     # and we use 400 hidden units
-    def __init__(self, h_dim=(1, 5, 5), z_dim=(5, 5), use_cuda=False):
+    def __init__(self, h_dim=(1, 5, 5), z_dim=(1, 5, 5), use_cuda=False):
         super().__init__()
         # create the encoder and decoder networks
         self.autoencoder = AutoEncoder(1, 1)
@@ -236,43 +236,35 @@ class VAE(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
         self.fc1 = nn.Linear(torch.prod(self.h_dim), torch.prod(self.z_dim))
-        self.fc2 = nn.Linear(torch.prod(self.h_dim), torch.prod(self.z_dim))
+        self.fc21 = nn.Linear(torch.prod(self.h_dim), torch.prod(self.z_dim))
+        self.fc22 = nn.Linear(torch.prod(self.h_dim), torch.prod(self.z_dim))
+
+        pyro.module("decoder", self.autoencoder)
+
         # self.fc3 = nn.Linear(torch.prod(self.z_dim), torch.prod(self.h_dim))
-
-    # def reparameterize(self, mu, logvar):
-    #     std = logvar.mul(0.5).exp_()
-    #     # return torch.normal(mu, std)
-    #     esp = torch.randn(*mu.size())
-    #     z = mu + std * esp
-    #     return z
-
-    # def bottleneck(self, h):
-    #     h = self.flatten(h)
-    #     mu =  torch.exp(self.fc1(h))
-    #     # z = self.reparameterize(mu, logvar)
-    #     return h, mu
-    # # define the model p(x|z)p(z)
-
+        self.softplus = nn.Softplus()
+    
     def encode(self, x):
         h = self.encoder(x)
+        # h = self.softplus(h)
         # h = self.flatten(h)
-        z = self.sigmoid(h)
-
+        # z = self.sigmoid(h)
+        
         # No clue if this is actually mu
-        mu = torch.exp(self.fc1(self.flatten(h))).reshape(z.shape)
+        z = self.fc21(self.flatten(h))
+        mu = torch.exp(self.fc22(self.flatten(h)))
         # z, mu = self.bottleneck(h)
-        return z, mu
+        return z.reshape(h.shape), mu.reshape(h.shape)
 
     def decode(self, z):
         # z = self.fc3(z).reshape(-1,*tuple(self.h_dim))
         z = z.reshape(-1, *tuple(self.h_dim))
-        out = self.decoder(z)
-        return out
+        return self.decoder(z)
 
-    # def forward(self, x):
-    #     z = self.encoder(x)
-    #     z = self.decoder(z)
-    #     return z, mu, logvar
+    def forward(self, x):
+        z, mu = self.encode(x)
+        return self.decode(z)
+        
 
     def model(self, x):
         # register PyTorch module `decoder` with Pyro
@@ -305,97 +297,7 @@ class VAE(nn.Module):
         # sample in latent space
         z = dist.Normal(z_loc, z_scale).sample()
         # decode the image (note we don't sample in image space)
-        loc_img = self.decode(z)
-        return loc_img
-
-class VAE(nn.Module):
-    # by default our latent space is 50-dimensional
-    # and we use 400 hidden units
-    def __init__(self, h_dim=(1, 5, 5), z_dim=(5, 5), use_cuda=False):
-        super().__init__()
-        # create the encoder and decoder networks
-        self.autoencoder = AutoEncoder(1, 1)
-        self.encoder = self.autoencoder.encoder
-        self.decoder = self.autoencoder.decoder
-
-        self.z_dim = torch.tensor(z_dim)
-        self.x_dim = (1, window_size, window_size)
-        self.h_dim = torch.tensor(h_dim)
-
-        self.flatten = nn.Flatten()
-        self.sigmoid = nn.Sigmoid()
-
-        self.fc1 = nn.Linear(torch.prod(self.h_dim), torch.prod(self.z_dim))
-        self.fc2 = nn.Linear(torch.prod(self.h_dim), torch.prod(self.z_dim))
-        # self.fc3 = nn.Linear(torch.prod(self.z_dim), torch.prod(self.h_dim))
-
-    # def reparameterize(self, mu, logvar):
-    #     std = logvar.mul(0.5).exp_()
-    #     # return torch.normal(mu, std)
-    #     esp = torch.randn(*mu.size())
-    #     z = mu + std * esp
-    #     return z
-
-    # def bottleneck(self, h):
-    #     h = self.flatten(h)
-    #     mu =  torch.exp(self.fc1(h))
-    #     # z = self.reparameterize(mu, logvar)
-    #     return h, mu
-    # # define the model p(x|z)p(z)
-
-    def encode(self, x):
-        h = self.encoder(x)
-        # h = self.flatten(h)
-        z = self.sigmoid(h)
-
-        # No clue if this is actually mu
-        mu = torch.exp(self.fc1(self.flatten(h))).reshape(z.shape)
-        # z, mu = self.bottleneck(h)
-        return z, mu
-
-    def decode(self, z):
-        # z = self.fc3(z).reshape(-1,*tuple(self.h_dim))
-        z = z.reshape(-1, *tuple(self.h_dim))
-        out = self.decoder(z)
-        return out
-
-    # def forward(self, x):
-    #     z = self.encoder(x)
-    #     z = self.decoder(z)
-    #     return z, mu, logvar
-
-    def model(self, x):
-        # register PyTorch module `decoder` with Pyro
-        pyro.module("decoder", self.decoder)
-        with pyro.plate("data", x.shape[0]):
-            # setup hyperparameters for prior p(z)
-            z_loc = x.new_zeros(torch.Size((x.shape[0], *tuple(self.h_dim))))
-            z_scale = x.new_ones(torch.Size((x.shape[0], *tuple(self.h_dim))))
-            # sample from prior (value will be sampled by guide when computing the ELBO)
-            z = pyro.sample("latent", dist.Normal(z_loc, z_scale).to_event(3))
-            # decode the latent code z
-            loc_img = torch.sigmoid(self.decode(z))
-            # score against actual images
-            pyro.sample("obs", dist.Bernoulli(loc_img).to_event(3), obs=x)
-
-    # define the guide (i.e. variational distribution) q(z|x)
-    def guide(self, x):
-        # register PyTorch module `encoder` with Pyro
-        pyro.module("encoder", self.encoder)
-        with pyro.plate("data", x.shape[0]):
-            # use the encoder to get the parameters used to define q(z|x)
-            z_loc, z_scale = self.encode(x)
-            # sample the latent code z
-            pyro.sample("latent", dist.Normal(z_loc, z_scale).to_event(3))
-
-    # define a helper function for reconstructing images
-    def reconstruct_img(self, x):
-        # encode image x
-        z_loc, z_scale = self.encode(x)
-        # sample in latent space
-        z = dist.Normal(z_loc, z_scale).sample()
-        # decode the image (note we don't sample in image space)
-        loc_img = self.decode(z)
+        loc_img = torch.sigmoid(self.decode(z))
         return loc_img
 
 
@@ -411,7 +313,6 @@ model_check = vae.model(img)
 
 z_loc, z_scale = vae.encode(img)
 out = vae.decode(nn.Flatten()(z))
-
 
 # encode
 # guide_check = vae_model.guide(img)
@@ -420,12 +321,10 @@ out = vae.decode(nn.Flatten()(z))
 optimizer = Adam({"lr": 1.0e-3})
 svi = SVI(vae.model, vae.guide, optimizer, loss=Trace_ELBO())
 
-# for x in dataloader:
-#     # if on GPU put mini-batch into CUDA memory
-#     # do ELBO gradient and accumulate loss
-#     temp = x
-#     epoch_loss = svi.step(x)
-#     print(epoch_loss)
+for x in dataloader:
+    epoch_loss = svi.step(x)
+    print(epoch_loss)
+    break
 #  %%
 # TODO better loss is needed, outshapes are currently not always full
 # loss_fn = torch.nn.MSELoss()
@@ -445,10 +344,7 @@ class LitAutoEncoder(pl.LightningModule):
         # self.loss_fn = torch.nn.BCELoss()
 
     def forward(self, x):
-        embedding = self.autoencoder(x)
-        # if(self.vae_flag):
-            # embedding = self.autoencoder(x)
-        return embedding
+        return self.autoencoder(x)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -456,7 +352,7 @@ class LitAutoEncoder(pl.LightningModule):
 
     def training_step(self, train_batch, batch_idx):
         inputs = train_batch
-        output = self.autoencoder(inputs)
+        output = self.forward(inputs)
         loss = self.loss_fn(output, inputs)
         self.log("train_loss", loss)
         # tensorboard = self.logger.experiment
@@ -472,7 +368,6 @@ class LitAutoEncoder(pl.LightningModule):
         return loss
 
 
-
 class LitVariationalAutoEncoder(pl.LightningModule):
     def __init__(self, batch_size=1, learning_rate=1e-3):
         super().__init__()
@@ -482,19 +377,19 @@ class LitVariationalAutoEncoder(pl.LightningModule):
         self.vae = VAE()
         # self.vae = VAE()
         # self.vae_flag = vae_flag
-        self.loss_fn  = pyro.infer.Trace_ELBO().differentiable_loss
+        self.loss_fn = pyro.infer.Trace_ELBO().differentiable_loss
 
     def forward(self, x):
-        return self.vae.autoencoder(x)
+        return self.vae.forward(x)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer
 
-    def training_step(self, train_batch, batch_idx):
+    def torch_training_step(self, train_batch, batch_idx):
         inputs = train_batch
-        output = self.vae.autoencoder(inputs)
-        loss = self.loss_fn(self.vae.model,self.vae.guide,inputs)
+        output = self.forward(inputs)
+        loss = self.loss_fn(output, inputs)
         self.log("train_loss", loss)
         # tensorboard = self.logger.experiment
         self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
@@ -503,8 +398,24 @@ class LitVariationalAutoEncoder(pl.LightningModule):
             "input", torchvision.utils.make_grid(inputs), batch_idx)
         self.logger.experiment.add_image(
             "output", torchvision.utils.make_grid(torch.sigmoid(output)), batch_idx)
+
+    def pyro_training_step(self, train_batch, batch_idx):
+        inputs = train_batch
+        output = self.vae.reconstruct_img(inputs)
+        loss = self.loss_fn(self.vae.model, self.vae.guide, inputs)
+        self.log("train_loss", loss)
+        self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
+        self.logger.experiment.add_image(
+            "input", torchvision.utils.make_grid(inputs), batch_idx)
+        self.logger.experiment.add_image(
+            "output", torchvision.utils.make_grid(torch.sigmoid(output)), batch_idx)
         return loss
 
+    def training_step(self, train_batch, batch_idx):
+        return self.torch_training_step(train_batch, batch_idx)
+
+    def training_step(self, train_batch, batch_idx):
+        return self.pyro_training_step(train_batch, batch_idx)
 #  %%
 tb_logger = pl_loggers.TensorBoardLogger("runs/")
 
@@ -516,11 +427,11 @@ trainer = pl.Trainer(
     accumulate_grad_batches=1,
     callbacks=[checkpoint_callback],
 )  # .from_argparse_args(args)
-#  %%
+
 #
 # if __name__ = main:
 #
-#  %%
+
 model = LitAutoEncoder()
 model = LitVariationalAutoEncoder()
 trainer.fit(model, dataloader)
