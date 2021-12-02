@@ -23,13 +23,6 @@ import torch
 from torch import nn
 from pytorch_lightning import loggers as pl_loggers
 import torchvision
-# class VAEDataset(Dataset):
-#     def __init__(self,
-#                 data_dir,
-#                 batch_size= 32):
-#         super().__init__()
-
-#     def __getitem__(self, index):
 
 path = os.path.join(os.path.expanduser("~"),
                     "data-science-bowl-2018/stage1_train/*/masks/*.png")
@@ -290,16 +283,17 @@ class VAE(nn.Module):
             # sample the latent code z
             pyro.sample("latent", dist.Normal(z_loc, z_scale).to_event(3))
 
-    # define a helper function for reconstructing images
+    def construct_from_z(self,z):
+        return torch.sigmoid(self.decode(z))
+
     def reconstruct_img(self, x):
         # encode image x
         z_loc, z_scale = self.encode(x)
         # sample in latent space
         z = dist.Normal(z_loc, z_scale).sample()
         # decode the image (note we don't sample in image space)
-        loc_img = torch.sigmoid(self.decode(z))
-        return loc_img
-
+        # loc_img = torch.sigmoid(self.decode(z))
+        return self.construct_from_z(z)
 
 vae = VAE()
 model_check = vae.model(img)
@@ -419,13 +413,21 @@ class LitVariationalAutoEncoder(pl.LightningModule):
 #  %%
 tb_logger = pl_loggers.TensorBoardLogger("runs/")
 
-checkpoint_callback = ModelCheckpoint(every_n_train_steps=100)
+# from pathlib import Path
+# Path("checkpoints/").mkdir(parents=True, exist_ok=True)
+
+checkpoint_callback = ModelCheckpoint(
+            dirpath="checkpoints/",
+            )
 
 trainer = pl.Trainer(
     logger=tb_logger,
+    enable_checkpointing=True,
     gpus=1,
     accumulate_grad_batches=1,
     callbacks=[checkpoint_callback],
+    min_epochs=50,
+    max_epochs=75,
 )  # .from_argparse_args(args)
 
 #
@@ -435,132 +437,18 @@ trainer = pl.Trainer(
 model = LitAutoEncoder()
 model = LitVariationalAutoEncoder()
 trainer.fit(model, dataloader)
+
+#  %%
+a = []
+for data in train_dataset:
+    a.append(model(transform(data)))
+#  %%
+fig,ax = plt.subplots(5,5,figsize=(10,14))
+
+for ax in ax.flat:
+    z_random = torch.normal(torch.zeros_like(z),torch.ones_like(z)/10)
+    generated_image = model.vae.construct_from_z(z_random)
+    ax.imshow(transforms.ToPILImage()(torch.round(generated_image[0])))
+plt.show()
+
 # loss_function = torch.nn.MSELoss()
-#  %%
-# optimizer = torch.optim.Adam(model.parameters())
-# epochs = 20
-# outputs = []
-# losses = []
-# for epoch in range(epochs):
-#     for image in train_dataloader:
-
-#         # Reshaping the image to (-1, 784)
-#     #   image = image.reshape(-1, 28*28)
-
-#         # Output of Autoencoder
-#         reconstructed = model(image)
-
-#         # Calculating the loss function
-#         loss = loss_function(reconstructed, image)
-
-#         # The gradients are set to zero,
-#         # the the gradient is computed and stored.
-#         # .step() performs parameter update
-#         optimizer.zero_grad()
-#         loss.backward()
-#         optimizer.step()
-
-#         # Storing the losses in a list for plotting
-#         losses.append(loss)
-#     outputs.append((epochs, image, reconstructed))
-
-# # Defining the Plot Style
-# plt.style.use('fivethirtyeight')
-# plt.xlabel('Iterations')
-# plt.ylabel('Loss')
-
-# # Plotting the last 100 values
-# plt.plot(losses[-100:])
-# from torchviz import make_dot
-# make_dot(y,params=dict(model.named_parameters()))
-#  %%
-
-
-# class MaskAE(pl.LightningModule):
-#         def __init__(self):
-#         super(MaskAE, self).__init__()
-#         self.batch_size = 4
-#         self.learning_rate = 1e-3
-# #         self.net = torchvision.models.segmentation.fcn_resnet50(pretrained = False, progress = True, num_classes = 19)
-# #         self.net = UNet(num_classes = 19, bilinear = False)
-# #         self.net = torchvision.models.segmentation.deeplabv3_resnet50(pretrained = False, progress = True, num_classes = 19)
-#         self.transform = transforms.Compose([
-#             transforms.ToTensor(),
-#             cropCentroid()
-#         ])
-#         self.trainset = None
-#         self.testset = None
-
-#     def forward(self, x):
-#         return self.net(x)
-
-#     def training_step(self, batch, batch_nb) :
-#         img, mask = batch
-#         img = img.float()
-#         mask = mask.long()
-#         out = self.forward(img)
-#         loss_val = F.cross_entropy(out, mask, ignore_index = 250)
-# #         print(loss.shape)
-#         return {'loss' : loss_val}
-
-#     def configure_optimizers(self):
-#         opt = torch.optim.Adam(self.net.parameters(), lr = self.learning_rate)
-#         sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max = 10)
-#         return [opt], [sch]
-
-#     def train_dataloader(self):
-#         return DataLoader(self.trainset, batch_size = self.batch_size, shuffle = True)
-
-#     def test_dataloader(self):
-#         return DataLoader(self.testset, batch_size = 1, shuffle = True)
-
-
-#  %%
-
-
-# #  %%
-# class SegModel(pl.LightningModule):
-#     def __init__(self):
-#         super(SegModel, self).__init__()
-#         self.batch_size = 4
-#         self.learning_rate = 1e-3
-# #         self.net = torchvision.models.segmentation.fcn_resnet50(pretrained = False, progress = True, num_classes = 19)
-# #         self.net = UNet(num_classes = 19, bilinear = False)
-# #         self.net = torchvision.models.segmentation.deeplabv3_resnet50(pretrained = False, progress = True, num_classes = 19)
-#         self.transform = transforms.Compose([
-#             transforms.ToTensor(),
-#             cropCentroid()
-#         ])
-#         self.trainset = None
-#         self.testset = None
-
-#     def forward(self, x):
-#         return self.net(x)
-
-#     def training_step(self, batch, batch_nb) :
-#         img, mask = batch
-#         img = img.float()
-#         mask = mask.long()
-#         out = self.forward(img)
-#         loss_val = F.cross_entropy(out, mask, ignore_index = 250)
-# #         print(loss.shape)
-#         return {'loss' : loss_val}
-
-#     def configure_optimizers(self):
-#         opt = torch.optim.Adam(self.net.parameters(), lr = self.learning_rate)
-#         sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max = 10)
-#         return [opt], [sch]
-
-#     def train_dataloader(self):
-#         return DataLoader(self.trainset, batch_size = self.batch_size, shuffle = True)
-
-#     def test_dataloader(self):
-#         return DataLoader(self.testset, batch_size = 1, shuffle = True)
-
-
-#  %%
-# test_dataloader_dir="data/stage1_test"
-
-# val_dataloader_dir=
-# test_dataloader_dir=
-# predict_dataloader_dir=
