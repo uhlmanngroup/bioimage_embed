@@ -1,0 +1,37 @@
+name: mask_vae
+channels:
+  - bioconda
+  - pytorch
+  - idr
+  - ome
+  - conda-forge
+  - defaults
+dependencies:
+  - cudatoolkit==11.3
+  - scipy
+  - pytest
+  - tqdm
+  - pandas
+  - tensorboard
+  - flake8
+  - python
+  - future
+  - jupyter
+  - absl-py
+  - pip
+  - torchvision
+  - matplotlib
+  - pyyaml
+  - click
+  - black
+  - rope
+  - autopep8
+  - pytorch
+  - numpy
+  - torchaudio
+  - pytorch-lightning
+  - scikit-image
+  - pytorch-model-summary
+  - pyro-ppl
+  - scikit-learn
+prefix: /home/ctr26/miniconda3/envs/mask_vae
