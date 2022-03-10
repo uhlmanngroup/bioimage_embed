@@ -41,7 +41,7 @@ path
 #  %%
 
 window_size = 128-32
-batch_size = 256
+batch_size = 32
 num_training_updates = 15000
 
 num_hiddens = 64
@@ -783,48 +783,11 @@ print(f"img_dims:{img.shape} x_recon:_dims:{x_recon.shape} z:_dims:{z.shape}")
 # loss_fn = torch.nn.MSELoss()
 # loss_fn = torch.nn.BCEWithLogitsLoss()
 
-
-class LitVQ_VAE(pl.LightningModule):
-    def __init__(self, batch_size=1, learning_rate=1e-3):
-        super().__init__()
-        self.autoencoder = VQ_VAE()
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-        self.loss_fn = torch.nn.MSELoss()
-        # self.loss_fn = torch.nn.BCEWithLogitsLoss()
-        # self.vae = VAE()
-        # self.vae_flag = vae_flag
-        # self.loss_fn = torch.nn.BCELoss()
-
-    def forward(self, x):
-        return self.autoencoder(x)
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-        return optimizer
-
-    def training_step(self, train_batch, batch_idx):
-        inputs = train_batch
-        output = self.forward(inputs)
-        loss = self.loss_fn(output, inputs)
-        self.log("train_loss", loss)
-        # tensorboard = self.logger.experiment
-        self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
-
-        # torchvision.utils.make_grid(output)
-        self.logger.experiment.add_image(
-            "input", torchvision.utils.make_grid(inputs), batch_idx)
-        self.logger.experiment.add_image(
-            "output", torchvision.utils.make_grid(output), batch_idx)
-
-        # tensorboard.add_image("input", transforms.ToPILImage()(output[batch_idx]), batch_idx)
-        # tensorboard.add_image("output", transforms.ToPILImage()(output[batch_idx]), batch_idx)
-        return loss
-
 class LitAutoEncoder(pl.LightningModule):
     def __init__(self, batch_size=1, learning_rate=1e-3):
         super().__init__()
-        self.autoencoder = AutoEncoder(batch_size, 1)
+        # self.autoencoder = AutoEncoder(batch_size, 1)
+        self.autoencoder = VQ_VAE(channels=1)
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.loss_fn = torch.nn.MSELoss()
@@ -842,8 +805,14 @@ class LitAutoEncoder(pl.LightningModule):
 
     def training_step(self, train_batch, batch_idx):
         inputs = train_batch
-        output = self.forward(inputs)
-        loss = self.loss_fn(output, inputs)
+        vq_loss, x_recon, perplexity = self.forward(inputs)
+        output = x_recon
+        # loss = self.loss_fn(output, inputs)
+        
+        # vq_loss, data_recon, perplexity = model(inputs)
+        # recon_error = F.mse_loss(output, inputs)
+        recon_error = self.loss_fn(output, inputs)
+        loss = recon_error + vq_loss # Missing variance bit
         self.log("train_loss", loss)
         # tensorboard = self.logger.experiment
         self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
@@ -911,18 +880,14 @@ class LitVariationalAutoEncoder(pl.LightningModule):
 
 tb_logger = pl_loggers.TensorBoardLogger("runs/")
 
+# from pathlib import Path
+# Path("checkpoints/").mkdir(parents=True, exist_ok=True)
+
 checkpoint_callback = ModelCheckpoint(
             dirpath="checkpoints/",
-            save_last=True,
-            every_n_train_steps=100)
-
-last_checkpoint_path = "checkpoints/last.ckpt"
-
-if not(os.path.isfile(last_checkpoint_path)):
-    last_checkpoint_path = ""
+            )
 
 trainer = pl.Trainer(
-    resume_from_checkpoint=last_checkpoint_path,
     logger=tb_logger,
     enable_checkpointing=True,
     gpus=1,
@@ -932,19 +897,46 @@ trainer = pl.Trainer(
     max_epochs=75,
 )  # .from_argparse_args(args)
 
-#
-# if __name__ = main:
-#
-
-model = LitAutoEncoder(batch_size=batch_size)
-model = LitVQ_VAE(batch_size=batch_size)
+model = LitAutoEncoder()
 # model = LitVariationalAutoEncoder()
 trainer.fit(model, dataloader)
 
+# tb_logger = pl_loggers.TensorBoardLogger("runs/")
+
+# checkpoint_callback = ModelCheckpoint(
+#             dirpath="checkpoints/",
+#             save_last=True,
+#             every_n_train_steps=100)
+
+# last_checkpoint_path = "checkpoints/last.ckpt"
+
+# if not(os.path.isfile(last_checkpoint_path)):
+#     last_checkpoint_path = ""
+
+# trainer = pl.Trainer(
+#     resume_from_checkpoint=last_checkpoint_path,
+#     logger=tb_logger,
+#     enable_checkpointing=True,
+#     gpus=1,
+#     accumulate_grad_batches=1,
+#     callbacks=[checkpoint_callback],
+#     min_epochs=50,
+#     max_epochs=75,
+# )  # .from_argparse_args(args)
+
+# #
+# # if __name__ = main:
+# #
+
+# model = LitAutoEncoder(batch_size=batch_size)
+# # model = LitVariationalAutoEncoder()
+# trainer.fit(model, dataloader)
+
 #  %%
+model
 for i in range(10):
-    z_random = torch.normal(torch.zeros_like(z),torch.ones_like(z))
-    generated_image = model.autoencoder.decoder(z)
+    z_random = torch.normal(torch.zeros_like(z),torch.ones_like(z)).cuda()
+    generated_image = model.autoencoder.decoder(z_random)
     plt.imshow(transforms.ToPILImage()(generated_image[0]))
     plt.show()
 
