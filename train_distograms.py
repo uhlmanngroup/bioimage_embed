@@ -229,6 +229,12 @@ transformer_dist = transforms.Compose(
     ]
 )
 
+transformer_image = transforms.Compose(
+    [
+        DistogramtoImage(window_size)
+    ]
+)
+
 transformer = transformer_dist
 
 
@@ -248,7 +254,7 @@ train_dataset = train_dataset_dist
 
 
 transform_disttoimage = transforms.Compose([
-    DistogramtoImage()
+    DistogramtoImage(window_size)
 ])
 
 
@@ -392,7 +398,6 @@ class AutoEncoder(nn.Module):
             ),
         )
         return expand
-
 
 
 #  %% VAE
@@ -805,6 +810,7 @@ class LitAutoEncoder(pl.LightningModule):
 
     def training_step(self, train_batch, batch_idx):
         inputs = train_batch
+        inputs
         vq_loss, x_recon, perplexity = self.forward(inputs)
         output = x_recon
         # loss = self.loss_fn(output, inputs)
@@ -820,13 +826,19 @@ class LitAutoEncoder(pl.LightningModule):
         # torchvision.utils.make_grid(output)
         self.logger.experiment.add_image(
             "input", torchvision.utils.make_grid(inputs), batch_idx)
+        # self.logger.experiment.add_embedding(
+        #     "input_image", torchvision.utils.make_grid(transformer_image(inputs)), batch_idx)
         self.logger.experiment.add_image(
             "output", torchvision.utils.make_grid(output), batch_idx)
+        # self.logger.experiment.add_embedding(
+        #     "output_image", torchvision.utils.make_grid(transformer_image(output)), batch_idx)
+
 
         # tensorboard.add_image("input", transforms.ToPILImage()(output[batch_idx]), batch_idx)
         # tensorboard.add_image("output", transforms.ToPILImage()(output[batch_idx]), batch_idx)
         return loss
 
+# %%
 class LitVariationalAutoEncoder(pl.LightningModule):
     def __init__(self, batch_size=1, learning_rate=1e-3):
         super().__init__()
@@ -933,7 +945,7 @@ trainer.fit(model, dataloader)
 # trainer.fit(model, dataloader)
 
 #  %%
-model
+# model
 for i in range(10):
     z_random = torch.normal(torch.zeros_like(z),torch.ones_like(z)).cuda()
     generated_image = model.autoencoder.decoder(z_random)
