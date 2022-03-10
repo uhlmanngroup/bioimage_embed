@@ -28,7 +28,11 @@ from sklearn.metrics.pairwise import euclidean_distances
 from scipy.ndimage import convolve,sobel 
 from skimage.measure import find_contours
 from scipy.interpolate import interp1d
-
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader
+import torch.optim as optim
 
 path = os.path.join(os.path.expanduser("~"),
                     "data-science-bowl-2018/stage1_train/*/masks/*.png")
@@ -37,6 +41,21 @@ path
 #  %%
 
 window_size = 128-32
+batch_size = 256
+num_training_updates = 15000
+
+num_hiddens = 64
+num_residual_hiddens = 32
+num_residual_layers = 2
+
+embedding_dim = 64
+num_embeddings = 512
+
+commitment_cost = 0.25
+
+decay = 0.99
+
+learning_rate = 1e-3
 
 class DSB2018(Dataset):
     def __init__(self, path_glob, transform=None):
@@ -203,7 +222,7 @@ transformer_dist = transforms.Compose(
         transformer_crop,
         # transforms.ToPILImage(),
         # transforms.ToTensor(),
-        ImagetoDistogram(96),
+        ImagetoDistogram(window_size),
         # transforms.ToPILImage(),
         # transforms.RandomCrop((512, 512)),
         transforms.ConvertImageDtype(torch.float32)
@@ -273,7 +292,7 @@ plt.scatter(coords[0][:,0],coords[0][:,1])
 
 # plt.plot(X_transform[:,0],X_transform[:,1])
 #  %%
-batch_size = 32
+# batch_size = 32
 
 dataloader = DataLoader(train_dataset, batch_size=batch_size,
                         shuffle=True, num_workers=8, pin_memory=True)
@@ -375,11 +394,6 @@ class AutoEncoder(nn.Module):
         return expand
 
 
-model = AutoEncoder(1, 1)
-img = train_dataset[0].unsqueeze(0)
-y = model(img)
-z = model.encoder(img)
-print(f"img_dims:{img.shape} y:_dims:{y.shape} z:_dims:{z.shape}")
 
 #  %% VAE
 
@@ -470,38 +484,342 @@ class VAE(nn.Module):
         return self.construct_from_z(z)
 
 
-    # define a helper function for reconstructing images
+#  %% VQ-VAE
 
 
-vae = VAE()
-model_check = vae.model(img)
+# https://colab.research.google.com/github/zalandoresearch/pytorch-vq-vae/blob/master/vq-vae.ipynb#scrollTo=fknqLRCvdJ4I
 
-z_loc, z_scale = vae.encode(img)
-out = vae.decode(nn.Flatten()(z))
+
+class VectorQuantizer(nn.Module):
+    def __init__(self, num_embeddings, embedding_dim, commitment_cost):
+        super(VectorQuantizer, self).__init__()
+        
+        self._embedding_dim = embedding_dim
+        self._num_embeddings = num_embeddings
+        
+        self._embedding = nn.Embedding(self._num_embeddings, self._embedding_dim)
+        self._embedding.weight.data.uniform_(-1/self._num_embeddings, 1/self._num_embeddings)
+        self._commitment_cost = commitment_cost
+
+    def forward(self, inputs):
+        # convert inputs from BCHW -> BHWC
+        inputs = inputs.permute(0, 2, 3, 1).contiguous()
+        input_shape = inputs.shape
+        
+        # Flatten input
+        flat_input = inputs.view(-1, self._embedding_dim)
+        
+        # Calculate distances
+        distances = (torch.sum(flat_input**2, dim=1, keepdim=True) 
+                    + torch.sum(self._embedding.weight**2, dim=1)
+                    - 2 * torch.matmul(flat_input, self._embedding.weight.t()))
+            
+        # Encoding
+        encoding_indices = torch.argmin(distances, dim=1).unsqueeze(1)
+        encodings = torch.zeros(encoding_indices.shape[0], self._num_embeddings, device=inputs.device)
+        encodings.scatter_(1, encoding_indices, 1)
+        
+        # Quantize and unflatten
+        quantized = torch.matmul(encodings, self._embedding.weight).view(input_shape)
+        
+        # Loss
+        e_latent_loss = F.mse_loss(quantized.detach(), inputs)
+        q_latent_loss = F.mse_loss(quantized, inputs.detach())
+        loss = q_latent_loss + self._commitment_cost * e_latent_loss
+        
+        quantized = inputs + (quantized - inputs).detach()
+        avg_probs = torch.mean(encodings, dim=0)
+        perplexity = torch.exp(-torch.sum(avg_probs * torch.log(avg_probs + 1e-10)))
+        
+        # convert quantized from BHWC -> BCHW
+        return loss, quantized.permute(0, 3, 1, 2).contiguous(), perplexity, encodings
+class VectorQuantizerEMA(nn.Module):
+    def __init__(self, num_embeddings, embedding_dim, commitment_cost, decay, epsilon=1e-5):
+        super(VectorQuantizerEMA, self).__init__()
+        
+        self._embedding_dim = embedding_dim
+        self._num_embeddings = num_embeddings
+        
+        self._embedding = nn.Embedding(self._num_embeddings, self._embedding_dim)
+        self._embedding.weight.data.normal_()
+        self._commitment_cost = commitment_cost
+        
+        self.register_buffer('_ema_cluster_size', torch.zeros(num_embeddings))
+        self._ema_w = nn.Parameter(torch.Tensor(num_embeddings, self._embedding_dim))
+        self._ema_w.data.normal_()
+        
+        self._decay = decay
+        self._epsilon = epsilon
+
+    def forward(self, inputs):
+        # convert inputs from BCHW -> BHWC
+        inputs = inputs.permute(0, 2, 3, 1).contiguous()
+        input_shape = inputs.shape
+        
+        # Flatten input
+        flat_input = inputs.view(-1, self._embedding_dim)
+        
+        # Calculate distances
+        distances = (torch.sum(flat_input**2, dim=1, keepdim=True) 
+                    + torch.sum(self._embedding.weight**2, dim=1)
+                    - 2 * torch.matmul(flat_input, self._embedding.weight.t()))
+            
+        # Encoding
+        encoding_indices = torch.argmin(distances, dim=1).unsqueeze(1)
+        encodings = torch.zeros(encoding_indices.shape[0], self._num_embeddings, device=inputs.device)
+        encodings.scatter_(1, encoding_indices, 1)
+        
+        # Quantize and unflatten
+        quantized = torch.matmul(encodings, self._embedding.weight).view(input_shape)
+        
+        # Use EMA to update the embedding vectors
+        if self.training:
+            self._ema_cluster_size = self._ema_cluster_size * self._decay + \
+                                     (1 - self._decay) * torch.sum(encodings, 0)
+            
+            # Laplace smoothing of the cluster size
+            n = torch.sum(self._ema_cluster_size.data)
+            self._ema_cluster_size = (
+                (self._ema_cluster_size + self._epsilon)
+                / (n + self._num_embeddings * self._epsilon) * n)
+            
+            dw = torch.matmul(encodings.t(), flat_input)
+            self._ema_w = nn.Parameter(self._ema_w * self._decay + (1 - self._decay) * dw)
+            
+            self._embedding.weight = nn.Parameter(self._ema_w / self._ema_cluster_size.unsqueeze(1))
+        
+        # Loss
+        e_latent_loss = F.mse_loss(quantized.detach(), inputs)
+        loss = self._commitment_cost * e_latent_loss
+        
+        # Straight Through Estimator
+        quantized = inputs + (quantized - inputs).detach()
+        avg_probs = torch.mean(encodings, dim=0)
+        perplexity = torch.exp(-torch.sum(avg_probs * torch.log(avg_probs + 1e-10)))
+        
+        # convert quantized from BHWC -> BCHW
+        return loss, quantized.permute(0, 3, 1, 2).contiguous(), perplexity, encodings
+    
+    
+class Residual(nn.Module):
+    def __init__(self, in_channels, num_hiddens, num_residual_hiddens):
+        super(Residual, self).__init__()
+        self._block = nn.Sequential(
+            nn.ReLU(True),
+            nn.Conv2d(in_channels=in_channels,
+                      out_channels=num_residual_hiddens,
+                      kernel_size=3, stride=1, padding=1, bias=False),
+            nn.ReLU(True),
+            nn.Conv2d(in_channels=num_residual_hiddens,
+                      out_channels=num_hiddens,
+                      kernel_size=1, stride=1, bias=False)
+        )
+    
+    def forward(self, x):
+        return x + self._block(x)
+
+
+class ResidualStack(nn.Module):
+    def __init__(self, in_channels, num_hiddens, num_residual_layers, num_residual_hiddens):
+        super(ResidualStack, self).__init__()
+        self._num_residual_layers = num_residual_layers
+        self._layers = nn.ModuleList([Residual(in_channels, num_hiddens, num_residual_hiddens)
+                             for _ in range(self._num_residual_layers)])
+
+    def forward(self, x):
+        for i in range(self._num_residual_layers):
+            x = self._layers[i](x)
+        return F.relu(x)
+
+class Encoder(nn.Module):
+    def __init__(self, num_hiddens, num_residual_layers, num_residual_hiddens,in_channels):
+        super(Encoder, self).__init__()
+
+        self._conv_1 = nn.Conv2d(in_channels=in_channels,
+                                 out_channels=num_hiddens//2,
+                                 kernel_size=4,
+                                 stride=2, padding=1)
+        self._conv_2 = nn.Conv2d(in_channels=num_hiddens//2,
+                                 out_channels=num_hiddens,
+                                 kernel_size=4,
+                                 stride=2, padding=1)
+        self._conv_3 = nn.Conv2d(in_channels=num_hiddens,
+                                 out_channels=num_hiddens,
+                                 kernel_size=3,
+                                 stride=1, padding=1)
+        self._residual_stack = ResidualStack(in_channels=num_hiddens,
+                                             num_hiddens=num_hiddens,
+                                             num_residual_layers=num_residual_layers,
+                                             num_residual_hiddens=num_residual_hiddens)
+
+    def forward(self, inputs):
+        x = self._conv_1(inputs)
+        x = F.relu(x)
+        
+        x = self._conv_2(x)
+        x = F.relu(x)
+        
+        x = self._conv_3(x)
+        return self._residual_stack(x)
+
+class Decoder(nn.Module):
+    def __init__(self, in_channels, num_hiddens, num_residual_layers, num_residual_hiddens,out_channels):
+        super(Decoder, self).__init__()
+        
+        self._conv_1 = nn.Conv2d(in_channels=in_channels,
+                                 out_channels=num_hiddens,
+                                 kernel_size=3, 
+                                 stride=1, padding=1)
+        
+        self._residual_stack = ResidualStack(in_channels=num_hiddens,
+                                             num_hiddens=num_hiddens,
+                                             num_residual_layers=num_residual_layers,
+                                             num_residual_hiddens=num_residual_hiddens)
+        
+        self._conv_trans_1 = nn.ConvTranspose2d(in_channels=num_hiddens, 
+                                                out_channels=num_hiddens//2,
+                                                kernel_size=4, 
+                                                stride=2, padding=1)
+        
+        self._conv_trans_2 = nn.ConvTranspose2d(in_channels=num_hiddens//2, 
+                                                out_channels=out_channels,
+                                                kernel_size=4, 
+                                                stride=2, padding=1)
+
+    def forward(self, inputs):
+        x = self._conv_1(inputs)
+        
+        x = self._residual_stack(x)
+        
+        x = self._conv_trans_1(x)
+        x = F.relu(x)
+        
+        return self._conv_trans_2(x)
+
+class VQ_VAE(nn.Module):
+    def __init__(self,
+                    num_hiddens = 64, 
+                    num_residual_hiddens = 32, 
+                    num_residual_layers = 2, 
+                    embedding_dim = 64,
+                    num_embeddings = 512, 
+                    commitment_cost = 0.25,
+                    decay = 0.99, channels=1):
+        super(VQ_VAE, self).__init__()
+        
+        self._encoder = Encoder(num_hiddens,
+                                num_residual_layers, 
+                                num_residual_hiddens,
+                                in_channels=channels)
+        self.encoder = self._encoder
+        self._pre_vq_conv = nn.Conv2d(in_channels=num_hiddens, 
+                                      out_channels=embedding_dim,
+                                      kernel_size=1, 
+                                      stride=1)
+        if decay > 0.0:
+            self._vq_vae = VectorQuantizerEMA(num_embeddings, embedding_dim, 
+                                              commitment_cost, decay)
+        else:
+            self._vq_vae = VectorQuantizer(num_embeddings, embedding_dim,
+                                           commitment_cost)
+        self._decoder = Decoder(embedding_dim,
+                                num_hiddens, 
+                                num_residual_layers, 
+                                num_residual_hiddens,
+                                out_channels=channels)
+        self.decoder = self._decoder
+
+    def forward(self, x):
+        z = self._encoder(x)
+        z = self._pre_vq_conv(z)
+        loss, quantized, perplexity, _ = self._vq_vae(z)
+        x_recon = self._decoder(quantized)
+
+        return loss, x_recon, perplexity
+    
+    def model(self,x):
+        return self.forward(x)
+# define a helper function for reconstructing images
+
 #  %%
 
-vae = VAE()
-model_check = vae.model(img)
+# vae = VAE()
+# model_check = vae.model(img)
 
-z_loc, z_scale = vae.encode(img)
-out = vae.decode(nn.Flatten()(z))
+
+# vae = AutoEncoder(1, 1)
+vae = VQ_VAE(channels=1)
+img = train_dataset[0].unsqueeze(0)
+loss, x_recon, perplexity = vae(img)
+z = vae.encoder(img)
+y_prime = vae.decoder(z)
+
+# print(f"img_dims:{img.shape} y:_dims:{x_recon.shape}")
+print(f"img_dims:{img.shape} x_recon:_dims:{x_recon.shape} z:_dims:{z.shape}")
+
+# z_loc, z_scale = vae.encode(img)
+# out = vae.decode(nn.Flatten()(z))
+#  %%
+
+# vae = VAE()
+# model_check = vae.model(img)
+
+# z_loc, z_scale = vae.encode(img)
+# out = vae.decode(nn.Flatten()(z))
 
 # encode
 # guide_check = vae_model.guide(img)
-#  %%
+# #  %%
 
-optimizer = Adam({"lr": 1.0e-3})
-svi = SVI(vae.model, vae.guide, optimizer, loss=Trace_ELBO())
+# optimizer = Adam({"lr": 1.0e-3})
+# svi = SVI(vae.model, vae.guide, optimizer, loss=Trace_ELBO())
 
-for x in dataloader:
-    epoch_loss = svi.step(x)
-    print(epoch_loss)
-    break
+# for x in dataloader:
+#     epoch_loss = svi.step(x)
+#     print(epoch_loss)
+#     break
 #  %%
 # TODO better loss is needed, outshapes are currently not always full
 # loss_fn = torch.nn.MSELoss()
 # loss_fn = torch.nn.BCEWithLogitsLoss()
 
+
+class LitVQ_VAE(pl.LightningModule):
+    def __init__(self, batch_size=1, learning_rate=1e-3):
+        super().__init__()
+        self.autoencoder = VQ_VAE()
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.loss_fn = torch.nn.MSELoss()
+        # self.loss_fn = torch.nn.BCEWithLogitsLoss()
+        # self.vae = VAE()
+        # self.vae_flag = vae_flag
+        # self.loss_fn = torch.nn.BCELoss()
+
+    def forward(self, x):
+        return self.autoencoder(x)
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        return optimizer
+
+    def training_step(self, train_batch, batch_idx):
+        inputs = train_batch
+        output = self.forward(inputs)
+        loss = self.loss_fn(output, inputs)
+        self.log("train_loss", loss)
+        # tensorboard = self.logger.experiment
+        self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
+
+        # torchvision.utils.make_grid(output)
+        self.logger.experiment.add_image(
+            "input", torchvision.utils.make_grid(inputs), batch_idx)
+        self.logger.experiment.add_image(
+            "output", torchvision.utils.make_grid(output), batch_idx)
+
+        # tensorboard.add_image("input", transforms.ToPILImage()(output[batch_idx]), batch_idx)
+        # tensorboard.add_image("output", transforms.ToPILImage()(output[batch_idx]), batch_idx)
+        return loss
 
 class LitAutoEncoder(pl.LightningModule):
     def __init__(self, batch_size=1, learning_rate=1e-3):
@@ -539,7 +857,6 @@ class LitAutoEncoder(pl.LightningModule):
         # tensorboard.add_image("input", transforms.ToPILImage()(output[batch_idx]), batch_idx)
         # tensorboard.add_image("output", transforms.ToPILImage()(output[batch_idx]), batch_idx)
         return loss
-
 
 class LitVariationalAutoEncoder(pl.LightningModule):
     def __init__(self, batch_size=1, learning_rate=1e-3):
@@ -589,7 +906,9 @@ class LitVariationalAutoEncoder(pl.LightningModule):
 
     def training_step(self, train_batch, batch_idx):
         return self.pyro_training_step(train_batch, batch_idx)
-#  %%
+
+# %%
+
 tb_logger = pl_loggers.TensorBoardLogger("runs/")
 
 checkpoint_callback = ModelCheckpoint(
@@ -617,14 +936,15 @@ trainer = pl.Trainer(
 # if __name__ = main:
 #
 
-model = LitAutoEncoder()
-model = LitVariationalAutoEncoder()
+model = LitAutoEncoder(batch_size=batch_size)
+model = LitVQ_VAE(batch_size=batch_size)
+# model = LitVariationalAutoEncoder()
 trainer.fit(model, dataloader)
 
 #  %%
 for i in range(10):
     z_random = torch.normal(torch.zeros_like(z),torch.ones_like(z))
-    generated_image = model.vae.construct_from_z(z)
+    generated_image = model.autoencoder.decoder(z)
     plt.imshow(transforms.ToPILImage()(generated_image[0]))
     plt.show()
 
@@ -757,3 +1077,9 @@ for i in range(10):
 # val_dataloader_dir=
 # test_dataloader_dir=
 # predict_dataloader_dir=
+
+# %%
+
+# %%
+
+# %%
