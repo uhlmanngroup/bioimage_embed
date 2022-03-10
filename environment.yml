@@ -7,7 +7,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - cudatoolkit==11.3
+  - cudatoolkit=10.2
   - scipy
   - pytest
   - tqdm
@@ -27,6 +27,7 @@ dependencies:
   - rope
   - autopep8
   - pytorch
+  - torchvision
   - numpy
   - torchaudio
   - pytorch-lightning
@@ -34,4 +35,3 @@ dependencies:
   - pytorch-model-summary
   - pyro-ppl
   - scikit-learn
-prefix: /home/ctr26/miniconda3/envs/mask_vae
