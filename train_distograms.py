@@ -252,8 +252,6 @@ train_dataset_dist = DSB2018(train_dataset_glob, transform=transformer_dist)
 train_dataset_crop = DSB2018(train_dataset_glob, transform=transformer_crop)
 plt.imshow(train_dataset_crop[0][0])
 plt.show()
-plt.imshow(train_dataset_dist[0][0])
-plt.show()
 
 train_dataset = train_dataset_dist
 #  %%
@@ -267,6 +265,7 @@ transform_disttoimage = transforms.Compose([
 # dist = transformer_dist(train_dataset[0][0])
 coords = transform_disttoimage(train_dataset_dist[0])
 plt.scatter(coords[0][:, 0], coords[0][:, 1])
+plt.show()
 
 # print(out.shape)
 # plt.imshow(transforms.ToPILImage()(transformer(train_dataset[0])))
