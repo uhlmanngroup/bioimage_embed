@@ -913,14 +913,16 @@ class LitVariationalAutoEncoder(pl.LightningModule):
 
 # %%
 
+
 tb_logger = pl_loggers.TensorBoardLogger("runs/")
 
 # from pathlib import Path
 # Path("checkpoints/").mkdir(parents=True, exist_ok=True)
 
 checkpoint_callback = ModelCheckpoint(
-            dirpath="checkpoints/",
-            )
+    dirpath="checkpoints/",
+    save_last=True
+)
 
 trainer = pl.Trainer(
     logger=tb_logger,
@@ -933,9 +935,13 @@ trainer = pl.Trainer(
 )  # .from_argparse_args(args)
 
 model = LitAutoEncoder()
+# model = LitAutoEncoder.load_from_checkpoint("checkpoints/epoch=74-step=69074.ckpt")
 # model = LitVariationalAutoEncoder()
-trainer.fit(model, dataloader)
-
+try:
+    trainer.fit(model, dataloader,
+            ckpt_path="checkpoints/last.ckpt")
+except:
+      trainer.fit(model, dataloader)  
 # tb_logger = pl_loggers.TensorBoardLogger("runs/")
 
 # checkpoint_callback = ModelCheckpoint(
