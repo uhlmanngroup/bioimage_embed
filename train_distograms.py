@@ -1,4 +1,5 @@
 #  %%
+from ast import excepthandler
 import sys
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pyro.optim import Adam
@@ -23,9 +24,9 @@ import torch
 from torch import nn
 from pytorch_lightning import loggers as pl_loggers
 import torchvision
-from sklearn.manifold import MDS  
+from sklearn.manifold import MDS
 from sklearn.metrics.pairwise import euclidean_distances
-from scipy.ndimage import convolve,sobel 
+from scipy.ndimage import convolve, sobel
 from skimage.measure import find_contours
 from scipy.interpolate import interp1d
 import torch
@@ -57,6 +58,7 @@ decay = 0.99
 
 learning_rate = 1e-3
 
+
 class DSB2018(Dataset):
     def __init__(self, path_glob, transform=None):
         self.image_paths = glob.glob(path_glob, recursive=True)
@@ -72,32 +74,6 @@ class DSB2018(Dataset):
     def __len__(self):
         return len(self.image_paths)
 
-class cropCentroid(torch.nn.Module):
-    def __init__(self, size):
-        super().__init__()
-        self.size = size
-
-    def forward(self, img):
-        return self.crop_centroid(img, self.size)
-
-    def __repr__(self):
-        return self.__class__.__name__ + f"(size={self.size})"
-
-    def crop_centroid(self, image, size):
-        np_image = np.array(image)
-        im_height, im_width = np_image.shape
-
-        properties = regionprops(np_image.astype(int),
-                                 np_image.astype(int))
-        center_of_mass = properties[0].centroid
-        # weighted_center_of_mass = properties[0].weighted_centroid
-        top = int(center_of_mass[0]-size/2)
-        left = int(center_of_mass[1]-size/2)
-        height, width = size, size
-        # TODO find bad croppings
-        # if ((top <= 0)  or (top+height >= im_height)  or (left <= 0) or (left+width >= 0) ):
-        # return Image.eval(crop(image,top,left,height,width), (lambda x: 0))
-        return crop(image, top, left, height, width)
 
 class cropCentroid(torch.nn.Module):
     def __init__(self, size):
@@ -126,10 +102,37 @@ class cropCentroid(torch.nn.Module):
         # return Image.eval(crop(image,top,left,height,width), (lambda x: 0))
         return crop(image, top, left, height, width)
 
+
+class cropCentroid(torch.nn.Module):
+    def __init__(self, size):
+        super().__init__()
+        self.size = size
+
+    def forward(self, img):
+        return self.crop_centroid(img, self.size)
+
+    def __repr__(self):
+        return self.__class__.__name__ + f"(size={self.size})"
+
+    def crop_centroid(self, image, size):
+        np_image = np.array(image)
+        im_height, im_width = np_image.shape
+
+        properties = regionprops(np_image.astype(int),
+                                 np_image.astype(int))
+        center_of_mass = properties[0].centroid
+        # weighted_center_of_mass = properties[0].weighted_centroid
+        top = int(center_of_mass[0]-size/2)
+        left = int(center_of_mass[1]-size/2)
+        height, width = size, size
+        # TODO find bad croppings
+        # if ((top <= 0)  or (top+height >= im_height)  or (left <= 0) or (left+width >= 0) ):
+        # return Image.eval(crop(image,top,left,height,width), (lambda x: 0))
+        return crop(image, top, left, height, width)
 
 
 class DistogramtoImage(torch.nn.Module):
-    def __init__(self,size=256+128):
+    def __init__(self, size=256+128):
         super().__init__()
         self.size = size
 
@@ -138,20 +141,21 @@ class DistogramtoImage(torch.nn.Module):
 
     def __repr__(self):
         return self.__class__.__name__
-    
-    def get_points_from_dist(self,image):
+
+    def get_points_from_dist(self, image):
         return MDS(
             n_components=2,
             dissimilarity='precomputed',
             random_state=0).fit_transform(image)
 
-    def get_points_from_dist_C(self,tensor):
+    def get_points_from_dist_C(self, tensor):
         dist_list = []
         np_tensor = np.array(tensor)
         for i in range(np_tensor.shape[0]):
-            image = np_tensor[0,:,:]
+            image = np_tensor[0, :, :]
             dist_list.append(self.get_points_from_dist(image))
         return torch.tensor(np.array(dist_list))
+
 
 class ImagetoDistogram(torch.nn.Module):
     def __init__(self, size):
@@ -165,12 +169,12 @@ class ImagetoDistogram(torch.nn.Module):
     def __repr__(self):
         return self.__class__.__name__ + f"(size={self.size})"
 
-    def get_distogram_C(self,tensor,size):
+    def get_distogram_C(self, tensor, size):
         dist_list = []
         np_tensor = np.array(tensor)
         for i in range(np_tensor.shape[0]):
-            image = np_tensor[0,:,:]
-            dist_list.append(self.get_distogram(image,size))
+            image = np_tensor[0, :, :]
+            dist_list.append(self.get_distogram(image, size))
         return torch.tensor(np.array(dist_list))
 
     def get_distogram(self, image, size):
@@ -182,23 +186,25 @@ class ImagetoDistogram(torch.nn.Module):
         # im_height, im_width = np_image.shape
 
         contour = find_contours(np_image)
-        contour_x,contour_y = contour[0][:,0],contour[0][:,1]
+        contour_x, contour_y = contour[0][:, 0], contour[0][:, 1]
         # plt.scatter(contour_x,contour_y)
         # plt.show()
         #  %%
-        rho,phi = self.cart2pol(contour_x,contour_y)
+        rho, phi = self.cart2pol(contour_x, contour_y)
 
-        rho_interp = interp1d(np.linspace(0,1, len(rho)),rho, kind='cubic')(np.linspace(0,1, size))
-        phi_interp = interp1d(np.linspace(0,1, len(phi)),phi, kind='cubic')(np.linspace(0,1, size))
+        rho_interp = interp1d(np.linspace(0, 1, len(rho)),
+                              rho, kind='cubic')(np.linspace(0, 1, size))
+        phi_interp = interp1d(np.linspace(0, 1, len(phi)),
+                              phi, kind='cubic')(np.linspace(0, 1, size))
 
-        xii,yii = np.divide(self.pol2cart(rho_interp,phi_interp),scaling)
+        xii, yii = np.divide(self.pol2cart(rho_interp, phi_interp), scaling)
         # distograms.append(euclidean_distances(np.array([xii,yii]).T))
-        return euclidean_distances(np.array([xii,yii]).T)
+        return euclidean_distances(np.array([xii, yii]).T)
 
-    def cart2pol(self,x, y):
+    def cart2pol(self, x, y):
         return(np.sqrt(x**2 + y**2), np.arctan2(y, x))
 
-    def pol2cart(self,rho, phi):
+    def pol2cart(self, rho, phi):
         return(rho * np.cos(phi), rho * np.sin(phi))
 
 
@@ -260,7 +266,7 @@ transform_disttoimage = transforms.Compose([
 
 # dist = transformer_dist(train_dataset[0][0])
 coords = transform_disttoimage(train_dataset_dist[0])
-plt.scatter(coords[0][:,0],coords[0][:,1])
+plt.scatter(coords[0][:, 0], coords[0][:, 1])
 
 # print(out.shape)
 # plt.imshow(transforms.ToPILImage()(transformer(train_dataset[0])))
@@ -271,11 +277,9 @@ plt.scatter(coords[0][:,0],coords[0][:,1])
 # out = convolve(x,fil, mode='constant')
 
 
-
 # plt.imshow(cell_image)
 # plt.show()
 #  %%
-
 
 
 # plt.plot(rho)
@@ -427,13 +431,13 @@ class VAE(nn.Module):
 
         # self.fc3 = nn.Linear(torch.prod(self.z_dim), torch.prod(self.h_dim))
         self.softplus = nn.Softplus()
-    
+
     def encode(self, x):
         h = self.encoder(x)
         # h = self.softplus(h)
         # h = self.flatten(h)
         # z = self.sigmoid(h)
-        
+
         # No clue if this is actually mu
         z = self.fc21(self.flatten(h))
         mu = torch.exp(self.fc22(self.flatten(h)))
@@ -448,7 +452,6 @@ class VAE(nn.Module):
     def forward(self, x):
         z, mu = self.encode(x)
         return self.decode(z)
-        
 
     def model(self, x):
         # register PyTorch module `decoder` with Pyro
@@ -464,7 +467,8 @@ class VAE(nn.Module):
             loc_img = torch.sigmoid(img)
             scale = torch.ones_like(loc_img)
             # score against actual images
-            pyro.sample("obs", dist.ContinuousBernoulli(logits=img).to_event(3), obs=x)
+            pyro.sample("obs", dist.ContinuousBernoulli(
+                logits=img).to_event(3), obs=x)
 
     # define the guide (i.e. variational distribution) q(z|x)
     def guide(self, x):
@@ -476,7 +480,7 @@ class VAE(nn.Module):
             # sample the latent code z
             pyro.sample("latent", dist.Normal(z_loc, z_scale).to_event(3))
 
-    def construct_from_z(self,z):
+    def construct_from_z(self, z):
         return torch.sigmoid(self.decode(z))
 
     def reconstruct_img(self, x):
@@ -498,61 +502,70 @@ class VAE(nn.Module):
 class VectorQuantizer(nn.Module):
     def __init__(self, num_embeddings, embedding_dim, commitment_cost):
         super(VectorQuantizer, self).__init__()
-        
+
         self._embedding_dim = embedding_dim
         self._num_embeddings = num_embeddings
-        
-        self._embedding = nn.Embedding(self._num_embeddings, self._embedding_dim)
-        self._embedding.weight.data.uniform_(-1/self._num_embeddings, 1/self._num_embeddings)
+
+        self._embedding = nn.Embedding(
+            self._num_embeddings, self._embedding_dim)
+        self._embedding.weight.data.uniform_(-1 /
+                                             self._num_embeddings, 1/self._num_embeddings)
         self._commitment_cost = commitment_cost
 
     def forward(self, inputs):
         # convert inputs from BCHW -> BHWC
         inputs = inputs.permute(0, 2, 3, 1).contiguous()
         input_shape = inputs.shape
-        
+
         # Flatten input
         flat_input = inputs.view(-1, self._embedding_dim)
-        
+
         # Calculate distances
-        distances = (torch.sum(flat_input**2, dim=1, keepdim=True) 
-                    + torch.sum(self._embedding.weight**2, dim=1)
-                    - 2 * torch.matmul(flat_input, self._embedding.weight.t()))
-            
+        distances = (torch.sum(flat_input**2, dim=1, keepdim=True)
+                     + torch.sum(self._embedding.weight**2, dim=1)
+                     - 2 * torch.matmul(flat_input, self._embedding.weight.t()))
+
         # Encoding
         encoding_indices = torch.argmin(distances, dim=1).unsqueeze(1)
-        encodings = torch.zeros(encoding_indices.shape[0], self._num_embeddings, device=inputs.device)
+        encodings = torch.zeros(
+            encoding_indices.shape[0], self._num_embeddings, device=inputs.device)
         encodings.scatter_(1, encoding_indices, 1)
-        
+
         # Quantize and unflatten
-        quantized = torch.matmul(encodings, self._embedding.weight).view(input_shape)
-        
+        quantized = torch.matmul(
+            encodings, self._embedding.weight).view(input_shape)
+
         # Loss
         e_latent_loss = F.mse_loss(quantized.detach(), inputs)
         q_latent_loss = F.mse_loss(quantized, inputs.detach())
         loss = q_latent_loss + self._commitment_cost * e_latent_loss
-        
+
         quantized = inputs + (quantized - inputs).detach()
         avg_probs = torch.mean(encodings, dim=0)
-        perplexity = torch.exp(-torch.sum(avg_probs * torch.log(avg_probs + 1e-10)))
-        
+        perplexity = torch.exp(-torch.sum(avg_probs *
+                               torch.log(avg_probs + 1e-10)))
+
         # convert quantized from BHWC -> BCHW
         return loss, quantized.permute(0, 3, 1, 2).contiguous(), perplexity, encodings
+
+
 class VectorQuantizerEMA(nn.Module):
     def __init__(self, num_embeddings, embedding_dim, commitment_cost, decay, epsilon=1e-5):
         super(VectorQuantizerEMA, self).__init__()
-        
+
         self._embedding_dim = embedding_dim
         self._num_embeddings = num_embeddings
-        
-        self._embedding = nn.Embedding(self._num_embeddings, self._embedding_dim)
+
+        self._embedding = nn.Embedding(
+            self._num_embeddings, self._embedding_dim)
         self._embedding.weight.data.normal_()
         self._commitment_cost = commitment_cost
-        
+
         self.register_buffer('_ema_cluster_size', torch.zeros(num_embeddings))
-        self._ema_w = nn.Parameter(torch.Tensor(num_embeddings, self._embedding_dim))
+        self._ema_w = nn.Parameter(torch.Tensor(
+            num_embeddings, self._embedding_dim))
         self._ema_w.data.normal_()
-        
+
         self._decay = decay
         self._epsilon = epsilon
 
@@ -560,52 +573,57 @@ class VectorQuantizerEMA(nn.Module):
         # convert inputs from BCHW -> BHWC
         inputs = inputs.permute(0, 2, 3, 1).contiguous()
         input_shape = inputs.shape
-        
+
         # Flatten input
         flat_input = inputs.view(-1, self._embedding_dim)
-        
+
         # Calculate distances
-        distances = (torch.sum(flat_input**2, dim=1, keepdim=True) 
-                    + torch.sum(self._embedding.weight**2, dim=1)
-                    - 2 * torch.matmul(flat_input, self._embedding.weight.t()))
-            
+        distances = (torch.sum(flat_input**2, dim=1, keepdim=True)
+                     + torch.sum(self._embedding.weight**2, dim=1)
+                     - 2 * torch.matmul(flat_input, self._embedding.weight.t()))
+
         # Encoding
         encoding_indices = torch.argmin(distances, dim=1).unsqueeze(1)
-        encodings = torch.zeros(encoding_indices.shape[0], self._num_embeddings, device=inputs.device)
+        encodings = torch.zeros(
+            encoding_indices.shape[0], self._num_embeddings, device=inputs.device)
         encodings.scatter_(1, encoding_indices, 1)
-        
+
         # Quantize and unflatten
-        quantized = torch.matmul(encodings, self._embedding.weight).view(input_shape)
-        
+        quantized = torch.matmul(
+            encodings, self._embedding.weight).view(input_shape)
+
         # Use EMA to update the embedding vectors
         if self.training:
             self._ema_cluster_size = self._ema_cluster_size * self._decay + \
-                                     (1 - self._decay) * torch.sum(encodings, 0)
-            
+                (1 - self._decay) * torch.sum(encodings, 0)
+
             # Laplace smoothing of the cluster size
             n = torch.sum(self._ema_cluster_size.data)
             self._ema_cluster_size = (
                 (self._ema_cluster_size + self._epsilon)
                 / (n + self._num_embeddings * self._epsilon) * n)
-            
+
             dw = torch.matmul(encodings.t(), flat_input)
-            self._ema_w = nn.Parameter(self._ema_w * self._decay + (1 - self._decay) * dw)
-            
-            self._embedding.weight = nn.Parameter(self._ema_w / self._ema_cluster_size.unsqueeze(1))
-        
+            self._ema_w = nn.Parameter(
+                self._ema_w * self._decay + (1 - self._decay) * dw)
+
+            self._embedding.weight = nn.Parameter(
+                self._ema_w / self._ema_cluster_size.unsqueeze(1))
+
         # Loss
         e_latent_loss = F.mse_loss(quantized.detach(), inputs)
         loss = self._commitment_cost * e_latent_loss
-        
+
         # Straight Through Estimator
         quantized = inputs + (quantized - inputs).detach()
         avg_probs = torch.mean(encodings, dim=0)
-        perplexity = torch.exp(-torch.sum(avg_probs * torch.log(avg_probs + 1e-10)))
-        
+        perplexity = torch.exp(-torch.sum(avg_probs *
+                               torch.log(avg_probs + 1e-10)))
+
         # convert quantized from BHWC -> BCHW
         return loss, quantized.permute(0, 3, 1, 2).contiguous(), perplexity, encodings
-    
-    
+
+
 class Residual(nn.Module):
     def __init__(self, in_channels, num_hiddens, num_residual_hiddens):
         super(Residual, self).__init__()
@@ -619,7 +637,7 @@ class Residual(nn.Module):
                       out_channels=num_hiddens,
                       kernel_size=1, stride=1, bias=False)
         )
-    
+
     def forward(self, x):
         return x + self._block(x)
 
@@ -629,15 +647,16 @@ class ResidualStack(nn.Module):
         super(ResidualStack, self).__init__()
         self._num_residual_layers = num_residual_layers
         self._layers = nn.ModuleList([Residual(in_channels, num_hiddens, num_residual_hiddens)
-                             for _ in range(self._num_residual_layers)])
+                                      for _ in range(self._num_residual_layers)])
 
     def forward(self, x):
         for i in range(self._num_residual_layers):
             x = self._layers[i](x)
         return F.relu(x)
 
+
 class Encoder(nn.Module):
-    def __init__(self, num_hiddens, num_residual_layers, num_residual_hiddens,in_channels):
+    def __init__(self, num_hiddens, num_residual_layers, num_residual_hiddens, in_channels):
         super(Encoder, self).__init__()
 
         self._conv_1 = nn.Conv2d(in_channels=in_channels,
@@ -660,76 +679,78 @@ class Encoder(nn.Module):
     def forward(self, inputs):
         x = self._conv_1(inputs)
         x = F.relu(x)
-        
+
         x = self._conv_2(x)
         x = F.relu(x)
-        
+
         x = self._conv_3(x)
         return self._residual_stack(x)
 
+
 class Decoder(nn.Module):
-    def __init__(self, in_channels, num_hiddens, num_residual_layers, num_residual_hiddens,out_channels):
+    def __init__(self, in_channels, num_hiddens, num_residual_layers, num_residual_hiddens, out_channels):
         super(Decoder, self).__init__()
-        
+
         self._conv_1 = nn.Conv2d(in_channels=in_channels,
                                  out_channels=num_hiddens,
-                                 kernel_size=3, 
+                                 kernel_size=3,
                                  stride=1, padding=1)
-        
+
         self._residual_stack = ResidualStack(in_channels=num_hiddens,
                                              num_hiddens=num_hiddens,
                                              num_residual_layers=num_residual_layers,
                                              num_residual_hiddens=num_residual_hiddens)
-        
-        self._conv_trans_1 = nn.ConvTranspose2d(in_channels=num_hiddens, 
+
+        self._conv_trans_1 = nn.ConvTranspose2d(in_channels=num_hiddens,
                                                 out_channels=num_hiddens//2,
-                                                kernel_size=4, 
+                                                kernel_size=4,
                                                 stride=2, padding=1)
-        
-        self._conv_trans_2 = nn.ConvTranspose2d(in_channels=num_hiddens//2, 
+
+        self._conv_trans_2 = nn.ConvTranspose2d(in_channels=num_hiddens//2,
                                                 out_channels=out_channels,
-                                                kernel_size=4, 
+                                                kernel_size=4,
                                                 stride=2, padding=1)
 
     def forward(self, inputs):
         x = self._conv_1(inputs)
-        
+
         x = self._residual_stack(x)
-        
+
         x = self._conv_trans_1(x)
         x = F.relu(x)
-        
+
         return self._conv_trans_2(x)
+
 
 class VQ_VAE(nn.Module):
     def __init__(self,
-                    num_hiddens = 64, 
-                    num_residual_hiddens = 32, 
-                    num_residual_layers = 2, 
-                    embedding_dim = 64,
-                    num_embeddings = 512, 
-                    commitment_cost = 0.25,
-                    decay = 0.99, channels=1):
+                 num_hiddens=64,
+                 num_residual_hiddens=32,
+                 num_residual_layers=2,
+                 embedding_dim=64,
+                 num_embeddings=512,
+                 commitment_cost=0.25,
+                 decay=0.99, channels=1):
         super(VQ_VAE, self).__init__()
-        
+
         self._encoder = Encoder(num_hiddens,
-                                num_residual_layers, 
+                                num_residual_layers,
                                 num_residual_hiddens,
                                 in_channels=channels)
         self.encoder = self._encoder
-        self._pre_vq_conv = nn.Conv2d(in_channels=num_hiddens, 
+        self._pre_vq_conv = nn.Conv2d(in_channels=num_hiddens,
                                       out_channels=embedding_dim,
-                                      kernel_size=1, 
+                                      kernel_size=1,
                                       stride=1)
         if decay > 0.0:
-            self._vq_vae = VectorQuantizerEMA(num_embeddings, embedding_dim, 
+            self._vq_vae = VectorQuantizerEMA(num_embeddings, embedding_dim,
                                               commitment_cost, decay)
         else:
             self._vq_vae = VectorQuantizer(num_embeddings, embedding_dim,
                                            commitment_cost)
         self._decoder = Decoder(embedding_dim,
-                                num_hiddens, 
-                                num_residual_layers, 
+                                num_hiddens,
+                                num_residual_layers,
                                 num_residual_hiddens,
                                 out_channels=channels)
         self.decoder = self._decoder
@@ -741,8 +762,8 @@ class VQ_VAE(nn.Module):
         x_recon = self._decoder(quantized)
 
         return loss, x_recon, perplexity
-    
-    def model(self,x):
+
+    def model(self, x):
         return self.forward(x)
 # define a helper function for reconstructing images
 
@@ -788,6 +809,7 @@ print(f"img_dims:{img.shape} x_recon:_dims:{x_recon.shape} z:_dims:{z.shape}")
 # loss_fn = torch.nn.MSELoss()
 # loss_fn = torch.nn.BCEWithLogitsLoss()
 
+
 class LitAutoEncoder(pl.LightningModule):
     def __init__(self, batch_size=1, learning_rate=1e-3):
         super().__init__()
@@ -814,11 +836,11 @@ class LitAutoEncoder(pl.LightningModule):
         vq_loss, x_recon, perplexity = self.forward(inputs)
         output = x_recon
         # loss = self.loss_fn(output, inputs)
-        
+
         # vq_loss, data_recon, perplexity = model(inputs)
         # recon_error = F.mse_loss(output, inputs)
         recon_error = self.loss_fn(output, inputs)
-        loss = recon_error + vq_loss # Missing variance bit
+        loss = recon_error + vq_loss  # Missing variance bit
         self.log("train_loss", loss)
         # tensorboard = self.logger.experiment
         self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
@@ -833,12 +855,13 @@ class LitAutoEncoder(pl.LightningModule):
         # self.logger.experiment.add_embedding(
         #     "output_image", torchvision.utils.make_grid(transformer_image(output)), batch_idx)
 
-
         # tensorboard.add_image("input", transforms.ToPILImage()(output[batch_idx]), batch_idx)
         # tensorboard.add_image("output", transforms.ToPILImage()(output[batch_idx]), batch_idx)
         return loss
 
 # %%
+
+
 class LitVariationalAutoEncoder(pl.LightningModule):
     def __init__(self, batch_size=1, learning_rate=1e-3):
         super().__init__()
@@ -947,7 +970,7 @@ trainer.fit(model, dataloader)
 #  %%
 # model
 for i in range(10):
-    z_random = torch.normal(torch.zeros_like(z),torch.ones_like(z)).cuda()
+    z_random = torch.normal(torch.zeros_like(z), torch.ones_like(z)).cuda()
     generated_image = model.autoencoder.decoder(z_random)
     plt.imshow(transforms.ToPILImage()(generated_image[0]))
     plt.show()
