@@ -56,11 +56,11 @@ class Mask_VAE(nn.Module):
     def encoder(self,img):
         return self.model.encoder(img)
     
-    def mask_from_latent(self,z):
+    def mask_from_latent(self,z,window_size):
         # This should be class-method based
         # I.e. self.decoder(z)
-        dist = self.decoder(z) 
-        mask = DistogramToMaskPipeline(dist)
+        dist = self.decoder(z).detach().numpy()
+        mask = DistogramToMaskPipeline(window_size)(dist)
         return mask
         
         
