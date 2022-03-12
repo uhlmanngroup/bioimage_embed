@@ -157,4 +157,43 @@ class VerticesToMask(torch.nn.Module):
         return polygon2mask(mask_shape, vertices)
 
 
+class CropCentroidPipeline(torch.nn.Module):
+    def __init__(self, window_size):
+        super().__init__()
+        self.window_size = window_size
+
+    def forward(self, window_size):
+        return transforms.Compose(
+            [
+                # transforms.ToPILImage(),
+                cropCentroid(window_size),
+                transforms.ToTensor(),
+                # transforms.Normalize(0, 1),
+                transforms.ToPILImage(),
+                transforms.Grayscale(num_output_channels=1),
+                transforms.ToTensor()
+                # transforms.RandomCrop((512, 512)),
+                # transforms.ConvertImageDtype(torch.bool)
+
+            ]
+        )
+
+class CropToDistogramPipeline(torch.nn.Module):
+    def __init__(self, window_size):
+        super().__init__()
+        self.window_size = window_size
+
+    def forward(self, window_size):
+        return transforms.Compose(
+    [
+        CropCentroidPipeline(window_size),
+        # transforms.ToPILImage(),
+        # transforms.ToTensor(),
+        ImagetoDistogram(window_size),
+        # transforms.ToPILImage(),
+        # transforms.RandomCrop((512, 512)),
+        transforms.ConvertImageDtype(torch.float32)
+    ]
+)
+
     
