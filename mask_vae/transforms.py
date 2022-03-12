@@ -74,7 +74,7 @@ class DistogramToCoords(torch.nn.Module):
         self.size = size
 
     def forward(self, image):
-        return(self.get_points_from_dist_C(image))
+        return(self.get_points_from_dist_C(image,self.size))
 
     def __repr__(self):
         return self.__class__.__name__
@@ -85,12 +85,14 @@ class DistogramToCoords(torch.nn.Module):
             dissimilarity='precomputed',
             random_state=0).fit_transform(image)
 
-    def get_points_from_dist_C(self, tensor):
+    def get_points_from_dist_C(self, tensor,size):
         dist_list = []
         np_tensor = np.array(tensor)
         for i in range(np_tensor.shape[0]):
             image = np_tensor[0, :, :]
-            dist_list.append(self.get_points_from_dist(image))
+            coords = self.get_points_from_dist(image)
+            coords_scaled = (coords*size)+(size/2) #TODO Check this scaling
+            dist_list.append(coords_scaled)
         return torch.tensor(np.array(dist_list))
 
 
@@ -151,11 +153,14 @@ class VerticesToMask(torch.nn.Module):
         self.size = size
 
     def forward(self, x):
-        return self.vertices_to_mask(x, (self.size, self.size))
+        return self.vertices_to_mask(x, mask_shape=(self.size, self.size))
 
     def vertices_to_mask(self, vertices, mask_shape=(128, 128)):
-        return polygon2mask(mask_shape, vertices)
-
+        mask_list = []
+        for channel in vertices:
+            # channel_scaled = (channel + mask_shape[0]/2) * mask_shape[0]/2
+            mask_list.append(polygon2mask(mask_shape, channel))
+        return torch.tensor(np.array(mask_list))
 
 class CropCentroidPipeline(torch.nn.Module):
     def __init__(self, window_size,num_output_channels=1):
@@ -192,7 +197,7 @@ class MaskToDistogramPipeline(torch.nn.Module):
                 ImagetoDistogram(self.window_size),
                 # transforms.ToPILImage(),
                 # transforms.RandomCrop((512, 512)),
-                transforms.ConvertImageDtype(torch.float32)
+                # transforms.ConvertImageDtype(torch.float32)
             ]
         )
 
@@ -204,6 +209,7 @@ class DistogramToMaskPipeline(torch.nn.Module):
     Placeholder class
     '''
     def __init__(self, window_size):
+        super().__init__()
         self.window_size = window_size
         self.pipeline = transforms.Compose(
             [
