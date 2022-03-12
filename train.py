@@ -1,23 +1,22 @@
 import os
-from torch.utils.data import DataLoader
 from pathlib import Path
 
 #  %%
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
-from torch.utils.data import DataLoader
+
 # Note - you must have torchvision installed for this example
 from torch.utils.data import DataLoader
 import os
 from pytorch_lightning import loggers as pl_loggers
-from torch.utils.data import DataLoader
+
 
 from mask_vae.datasets import DSB2018
 from mask_vae.transforms import CropCentroidPipeline, DistogramToCoords, DistogramToCoords, MaskToDistogramPipeline
 from mask_vae.models import Mask_VAE, VQ_VAE
 from mask_vae.lightning import LitAutoEncoder
 
-interp_size = 128*2
+interp_size = 128*4
 
 window_size = 128-32
 batch_size = 32
@@ -45,22 +44,19 @@ transformer_crop = CropCentroidPipeline(window_size)
 transformer_dist = MaskToDistogramPipeline(window_size, interp_size)
 transformer_coords = DistogramToCoords(window_size)
 
-train_dataset_raw = DSB2018(train_dataset_glob)
-train_dataset_crop = DSB2018(
-    train_dataset_glob, transform=CropCentroidPipeline(window_size))
-train_dataset_dist = DSB2018(train_dataset_glob, transform=transformer_dist)
+# train_dataset_raw = DSB2018(train_dataset_glob)
+# train_dataset_crop = DSB2018(
+#     train_dataset_glob, transform=CropCentroidPipeline(window_size))
+train_dataset = DSB2018(train_dataset_glob, transform=transformer_dist)
 
-img_squeeze = train_dataset_crop[0].unsqueeze(0)
-img_crop = train_dataset_crop[0]
-
-train_dataset = train_dataset_dist
+# img_squeeze = train_dataset_crop[0].unsqueeze(0)
+# img_crop = train_dataset_crop[0]
 
 dataloader = DataLoader(train_dataset, batch_size=batch_size,
                         shuffle=True, num_workers=8, pin_memory=True)
 
 model = Mask_VAE(VQ_VAE(channels=1))
 lit_model = LitAutoEncoder(model)
-
 
 tb_logger = pl_loggers.TensorBoardLogger("runs/")
 
@@ -70,7 +66,6 @@ checkpoint_callback = ModelCheckpoint(
     dirpath="checkpoints/",
     save_last=True
 )
-
 
 trainer = pl.Trainer(
     logger=tb_logger,
