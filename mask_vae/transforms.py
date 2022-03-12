@@ -198,7 +198,7 @@ class MaskToDistogramPipeline(torch.nn.Module):
                 ImagetoDistogram(self.interp_size),
                 # transforms.ToPILImage(),
                 # transforms.RandomCrop((512, 512)),
-                # transforms.ConvertImageDtype(torch.float32)
+                transforms.ConvertImageDtype(torch.float32)
             ]
         )
 
