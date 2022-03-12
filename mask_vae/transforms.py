@@ -68,7 +68,7 @@ class cropCentroid(torch.nn.Module):
         return crop(image, top, left, height, width)
 
 
-class DistogramtoImage(torch.nn.Module):
+class DistogramToCoords(torch.nn.Module):
     def __init__(self, size=256+128):
         super().__init__()
         self.size = size
@@ -158,19 +158,17 @@ class VerticesToMask(torch.nn.Module):
 
 
 class CropCentroidPipeline(torch.nn.Module):
-    def __init__(self, window_size):
+    def __init__(self, window_size,num_output_channels=1):
         super().__init__()
         self.window_size = window_size
-
-    def forward(self, window_size):
-        return transforms.Compose(
+        self.pipeline = transforms.Compose(
             [
                 # transforms.ToPILImage(),
-                cropCentroid(window_size),
+                cropCentroid(self.window_size),
                 transforms.ToTensor(),
                 # transforms.Normalize(0, 1),
                 transforms.ToPILImage(),
-                transforms.Grayscale(num_output_channels=1),
+                transforms.Grayscale(num_output_channels=num_output_channels),
                 transforms.ToTensor()
                 # transforms.RandomCrop((512, 512)),
                 # transforms.ConvertImageDtype(torch.bool)
@@ -178,22 +176,41 @@ class CropCentroidPipeline(torch.nn.Module):
             ]
         )
 
-class CropToDistogramPipeline(torch.nn.Module):
+    def forward(self, x):
+        return self.pipeline(x)
+
+
+class MaskToDistogramPipeline(torch.nn.Module):
     def __init__(self, window_size):
         super().__init__()
         self.window_size = window_size
+        self.pipeline = transforms.Compose(
+            [
+                CropCentroidPipeline(self.window_size),
+                # transforms.ToPILImage(),
+                # transforms.ToTensor(),
+                ImagetoDistogram(self.window_size),
+                # transforms.ToPILImage(),
+                # transforms.RandomCrop((512, 512)),
+                transforms.ConvertImageDtype(torch.float32)
+            ]
+        )
 
-    def forward(self, window_size):
-        return transforms.Compose(
-    [
-        CropCentroidPipeline(window_size),
-        # transforms.ToPILImage(),
-        # transforms.ToTensor(),
-        ImagetoDistogram(window_size),
-        # transforms.ToPILImage(),
-        # transforms.RandomCrop((512, 512)),
-        transforms.ConvertImageDtype(torch.float32)
-    ]
-)
+    def forward(self, x):
+        return self.pipeline(x)
 
-    
+class DistogramToMaskPipeline(torch.nn.Module):
+    '''
+    Placeholder class
+    '''
+    def __init__(self, window_size):
+        self.window_size = window_size
+        self.pipeline = transforms.Compose(
+            [
+                DistogramToCoords(self.window_size),
+                VerticesToMask(self.window_size)
+            ]
+        )
+
+    def forward(self, x):
+        return self.pipeline(x)
