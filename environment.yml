@@ -8,9 +8,11 @@ channels:
   - defaults
 dependencies:
   - cudatoolkit=10.2
+  - python=3.8
   - scipy
   - pytest
   - tqdm
+  - poetry
   - pandas
   - tensorboard
   - flake8
@@ -35,3 +37,5 @@ dependencies:
   - pytorch-model-summary
   - pyro-ppl
   - scikit-learn
+  - pip:
+    - -e .
