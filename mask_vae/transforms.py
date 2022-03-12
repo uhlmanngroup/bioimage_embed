@@ -1,6 +1,10 @@
 
 
 import sys
+import numpy as np
+from skimage.draw import polygon2mask
+import matplotlib.pyplot as plt
+
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pyro.optim import Adam
 from pyro.infer import SVI, Trace_ELBO
@@ -139,6 +143,18 @@ class ImagetoDistogram(torch.nn.Module):
 
     def pol2cart(self, rho, phi):
         return(rho * np.cos(phi), rho * np.sin(phi))
+
+
+class VerticesToMask(torch.nn.Module):
+    def __init__(self, size=256+128):
+        super().__init__()
+        self.size = size
+
+    def forward(self, x):
+        return self.vertices_to_mask(x, (self.size, self.size))
+
+    def vertices_to_mask(self, vertices, mask_shape=(128, 128)):
+        return polygon2mask(mask_shape, vertices)
 
 
     
