@@ -9,18 +9,20 @@ from mask_vae.datasets import DSB2018
 from mask_vae.transforms import ImagetoDistogram, cropCentroid, DistogramToCoords, CropCentroidPipeline, DistogramToCoords, MaskToDistogramPipeline, DistogramToMaskPipeline
 from mask_vae.models import AutoEncoder, VAE, VQ_VAE
 window_size = 96
+interp_size = 128*4
+
 train_dataset_glob = os.path.join(os.path.expanduser("~"),
                                   "data-science-bowl-2018/stage1_train/*/masks/*.png")
 # test_dataloader_glob=os.path.join(os.path.expanduser("~"),
 # "data-science-bowl-2018/stage1_test/*/masks/*.png")
 
 transformer_crop = CropCentroidPipeline(window_size)
-transformer_dist = MaskToDistogramPipeline(window_size)
+transformer_dist = MaskToDistogramPipeline(window_size,interp_size)
 transformer_coords = DistogramToCoords(window_size)
 
 train_dataset_raw = DSB2018(train_dataset_glob)
 train_dataset_crop = DSB2018(train_dataset_glob, transform=CropCentroidPipeline(window_size))
-train_dataset_dist = DSB2018(train_dataset_glob, transform=MaskToDistogramPipeline(window_size))
+train_dataset_dist = DSB2018(train_dataset_glob, transform=transformer_dist)
 
 img_squeeze = train_dataset_crop[0].unsqueeze(0)
 img_crop = train_dataset_crop[0]
@@ -33,6 +35,7 @@ img_crop = train_dataset_crop[0]
 
 def test_dist_to_coord():
     # dist = transformer_dist(train_dataset[0][0])
+    plt.close()
     coords = DistogramToCoords(window_size)(train_dataset_dist[0])
     plt.scatter(coords[0][:, 0], coords[0][:, 1])
     plt.savefig("testss/test_dist_to_coord.png")
@@ -43,6 +46,7 @@ def test_pipeline_forward():
     # plt.imshow(dist)
     # plt.savefig("tests/test_mask_to_dist.png")
     # plt.show()
+    # plt.close()
     dist = train_dataset_dist[0]
     plt.imshow(dist.squeeze())
     plt.savefig("tests/test_pipeline_forward.png")

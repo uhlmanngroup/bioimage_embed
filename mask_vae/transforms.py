@@ -186,15 +186,16 @@ class CropCentroidPipeline(torch.nn.Module):
 
 
 class MaskToDistogramPipeline(torch.nn.Module):
-    def __init__(self, window_size):
+    def __init__(self, window_size,interp_size=128):
         super().__init__()
         self.window_size = window_size
+        self.interp_size = interp_size
         self.pipeline = transforms.Compose(
             [
                 CropCentroidPipeline(self.window_size),
                 # transforms.ToPILImage(),
                 # transforms.ToTensor(),
-                ImagetoDistogram(self.window_size),
+                ImagetoDistogram(self.interp_size),
                 # transforms.ToPILImage(),
                 # transforms.RandomCrop((512, 512)),
                 # transforms.ConvertImageDtype(torch.float32)
