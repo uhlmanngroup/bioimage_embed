@@ -44,7 +44,7 @@ import torch.optim as optim
 
 from mask_vae.datasets import DSB2018
 from mask_vae.transforms import ImagetoDistogram, cropCentroid, DistogramToCoords, CropCentroidPipeline, DistogramToCoords, MaskToDistogramPipeline, DistogramToMaskPipeline
-from mask_vae.models import AutoEncoder, VAE, VQ_VAE
+from mask_vae.models import AutoEncoder, VAE, VQ_VAE,MaskVAE
 from mask_vae.lightning import LitAutoEncoder, LitVariationalAutoEncoder
 
 interp_size = 128*4
@@ -137,7 +137,8 @@ def test_models():
         f"img_dims:{img.shape} x_recon:_dims:{x_recon.shape} z:_dims:{z.shape}")
 
 def test_training():
-    model = LitAutoEncoder(VQ_VAE(channels=1))
+    model = MaskVAE(VQ_VAE(channels=1))
+    lit_model = LitAutoEncoder(model)
     trainer = pl.Trainer(
         max_steps=1,
         # limit_train_batches=1,
@@ -150,4 +151,16 @@ def test_training():
         # min_epochs=1,
         max_epochs=1,
     )  # .from_argparse_args(args)
-    trainer.fit(model, dataloader) 
+    trainer.fit(lit_model, dataloader) 
+
+# @pytest.mark.skipif(sys.version_info < (3,3))
+# def test_model(model):
+#     for i in range(10):
+#         z_random = torch.normal(torch.zeros_like(z), torch.ones_like(z)).cuda()
+#         generated_image = model.autoencoder.decoder(z_random)
+#         plt.imshow(transforms.ToPILImage()(generated_image[0]))
+#         plt.show()
+
+def test_mask_vae():
+    MaskVAE(VQ_VAE(channels=1))
+    
