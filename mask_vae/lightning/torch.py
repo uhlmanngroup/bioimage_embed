@@ -40,7 +40,7 @@ class LitAutoEncoder(pl.LightningModule):
     def __init__(self, model, batch_size=1, learning_rate=1e-3):
         super().__init__()
         # self.autoencoder = AutoEncoder(batch_size, 1)
-        self.autoencoder = model
+        self.model = model
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.loss_fn = torch.nn.MSELoss()
@@ -50,7 +50,7 @@ class LitAutoEncoder(pl.LightningModule):
         # self.loss_fn = torch.nn.BCELoss()
 
     def forward(self, x):
-        return self.autoencoder(x)
+        return self.model(x)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -58,7 +58,6 @@ class LitAutoEncoder(pl.LightningModule):
 
     def training_step(self, train_batch, batch_idx):
         inputs = train_batch
-        inputs
         vq_loss, x_recon, perplexity = self.forward(inputs)
         output = x_recon
         # loss = self.loss_fn(output, inputs)
