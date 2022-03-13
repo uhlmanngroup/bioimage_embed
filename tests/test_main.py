@@ -44,7 +44,7 @@ import torch.optim as optim
 
 from mask_vae.datasets import DSB2018
 from mask_vae.transforms import ImagetoDistogram, cropCentroid, DistogramToCoords, CropCentroidPipeline, DistogramToCoords, MaskToDistogramPipeline, DistogramToMaskPipeline
-from mask_vae.models import AutoEncoder, VAE, VQ_VAE,MaskVAE
+from mask_vae.models import AutoEncoder, VAE, VQ_VAE, Mask_VAE
 from mask_vae.lightning import LitAutoEncoder, LitVariationalAutoEncoder
 
 interp_size = 128*4
@@ -72,21 +72,28 @@ train_dataset_glob = os.path.join(os.path.expanduser("~"),
 # "data-science-bowl-2018/stage1_test/*/masks/*.png")
 
 transformer_crop = CropCentroidPipeline(window_size)
-transformer_dist = MaskToDistogramPipeline(window_size,interp_size)
+transformer_dist = MaskToDistogramPipeline(window_size, interp_size)
 transformer_coords = DistogramToCoords(window_size)
 
 train_dataset_raw = DSB2018(train_dataset_glob)
-train_dataset_crop = DSB2018(train_dataset_glob, transform=CropCentroidPipeline(window_size))
+train_dataset_crop = DSB2018(
+    train_dataset_glob, transform=CropCentroidPipeline(window_size))
 train_dataset_dist = DSB2018(train_dataset_glob, transform=transformer_dist)
 
-img_squeeze = train_dataset_crop[0].unsqueeze(0)
-img_crop = train_dataset_crop[0]
+# img_squeeze = train_dataset_crop[1].unsqueeze(0)
+img_crop = train_dataset_crop[1].unsqueeze(0)
 
 train_dataset = train_dataset_dist
+test_img = train_dataset_dist[1].unsqueeze(0)
+
+
+def my_collate(batch):
+    batch = list(filter(lambda x: x is not None, batch))
+    return torch.utils.data.dataloader.default_collate(batch)
+
 
 dataloader = DataLoader(train_dataset, batch_size=batch_size,
-                        shuffle=True, num_workers=8, pin_memory=True)
-
+                        shuffle=True, num_workers=8, pin_memory=True, collate_fn=my_collate)
 
 # def test_transforms():
 #     dist = np.array(train_dataset_crop[1][0]).astype(float)
@@ -97,29 +104,34 @@ dataloader = DataLoader(train_dataset, batch_size=batch_size,
 def test_dist_to_coord():
     # dist = transformer_dist(train_dataset[0][0])
     plt.close()
-    coords = DistogramToCoords(window_size)(train_dataset_dist[0])
-    plt.scatter(coords[0][:, 0], coords[0][:, 1])
-    plt.savefig("testss/test_dist_to_coord.png")
+    # TODO Faulty?
+    coords = DistogramToCoords(window_size)(test_img)
+    plt.scatter(coords[0][0][:, 0], coords[0][0][:, 1])
+    plt.savefig("tests/test_dist_to_coord.png")
     plt.show()
-    
+
+
 def test_pipeline_forward():
+    plt.close()
     # dist = MaskToDistogramPipeline(window_size)(train_dataset_raw[0])
     # plt.imshow(dist)
     # plt.savefig("tests/test_mask_to_dist.png")
     # plt.show()
     # plt.close()
-    dist = train_dataset_dist[0]
+    dist = test_img
     plt.imshow(dist.squeeze())
     plt.savefig("tests/test_pipeline_forward.png")
     plt.show()
-    mask = DistogramToMaskPipeline(window_size)(dist)    
+    mask = DistogramToMaskPipeline(window_size)(dist)
     plt.imshow(mask.squeeze())
     plt.savefig("tests/test_dist_to_mask.png")
     plt.show()
-    
+
+
 def test_dist_to_coord():
+    plt.close()
     # dist = transformer_dist(train_dataset[0][0])
-    coords = transformer_coords(train_dataset_dist[0])
+    coords = transformer_coords(test_img)
     plt.scatter(coords[0][:, 0], coords[0][:, 1])
     plt.savefig("tests/test_dist_to_coord.png")
     plt.show()
@@ -128,7 +140,7 @@ def test_dist_to_coord():
 def test_models():
     # vae = AutoEncoder(1, 1)
     vae = VQ_VAE(channels=1)
-    img = train_dataset_crop[0].unsqueeze(0)
+    img = img_crop
     loss, x_recon, perplexity = vae(img)
     z = vae.encoder(img)
     y_prime = vae.decoder(z)
@@ -136,8 +148,28 @@ def test_models():
     print(
         f"img_dims:{img.shape} x_recon:_dims:{x_recon.shape} z:_dims:{z.shape}")
 
+
+# @pytest.mark.skipif(sys.version_info < (3,3))
+# def test_model(model):
+#     for i in range(10):
+#         z_random = torch.normal(torch.zeros_like(z), torch.ones_like(z)).cuda()
+#         generated_image = model.autoencoder.decoder(z_random)
+#         plt.imshow(transforms.ToPILImage()(generated_image[0]))
+#         plt.show()
+
+# def test_mask_vae():
+#     MaskVAE(VQ_VAE(channels=1))
+
+def test_forward():
+    model = Mask_VAE(VQ_VAE(channels=1))
+    # test_img = train_dataset[0]
+    z = model.encoder(test_img)
+    y_prime = model.decoder(z)
+    model.forward(test_img)
+
+
 def test_training():
-    model = MaskVAE(VQ_VAE(channels=1))
+    model = Mask_VAE(VQ_VAE(channels=1))
     lit_model = LitAutoEncoder(model)
     trainer = pl.Trainer(
         max_steps=1,
@@ -151,16 +183,4 @@ def test_training():
         # min_epochs=1,
         max_epochs=1,
     )  # .from_argparse_args(args)
-    trainer.fit(lit_model, dataloader) 
-
-# @pytest.mark.skipif(sys.version_info < (3,3))
-# def test_model(model):
-#     for i in range(10):
-#         z_random = torch.normal(torch.zeros_like(z), torch.ones_like(z)).cuda()
-#         generated_image = model.autoencoder.decoder(z_random)
-#         plt.imshow(transforms.ToPILImage()(generated_image[0]))
-#         plt.show()
-
-def test_mask_vae():
-    MaskVAE(VQ_VAE(channels=1))
-    
+    trainer.fit(lit_model, dataloader)

@@ -16,6 +16,7 @@ dependencies:
   - pandas
   - tensorboard
   - flake8
+  - umap-learn
   - python
   - future
   - jupyter

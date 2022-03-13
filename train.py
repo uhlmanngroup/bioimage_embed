@@ -4,7 +4,7 @@ from pathlib import Path
 #  %%
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
-
+import torch
 # Note - you must have torchvision installed for this example
 from torch.utils.data import DataLoader
 import os
@@ -52,8 +52,14 @@ train_dataset = DSB2018(train_dataset_glob, transform=transformer_dist)
 # img_squeeze = train_dataset_crop[0].unsqueeze(0)
 # img_crop = train_dataset_crop[0]
 
+
+def my_collate(batch):
+    batch = list(filter(lambda x: x is not None, batch))
+    return torch.utils.data.dataloader.default_collate(batch)
+
+
 dataloader = DataLoader(train_dataset, batch_size=batch_size,
-                        shuffle=True, num_workers=8, pin_memory=True)
+                        shuffle=True, num_workers=8, pin_memory=True, collate_fn=my_collate)
 
 model = Mask_VAE(VQ_VAE(channels=1))
 lit_model = LitAutoEncoder(model)

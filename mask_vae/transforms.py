@@ -54,14 +54,20 @@ class cropCentroid(torch.nn.Module):
     def crop_centroid(self, image, size):
         np_image = np.array(image)
         im_height, im_width = np_image.shape
+        height, width = size, size
 
         properties = regionprops(np_image.astype(int),
                                  np_image.astype(int))
         center_of_mass = properties[0].centroid
         # weighted_center_of_mass = properties[0].weighted_centroid
         top = int(center_of_mass[0]-size/2)
+        bottom = top + height
         left = int(center_of_mass[1]-size/2)
-        height, width = size, size
+        right = left + width
+
+        if left <= 0 or top <= 0 or right >= im_height or bottom >= im_width:
+            return None
+            # return Image.eval(crop(image,top,left,height,width), (lambda x: 0))
         # TODO find bad croppings
         # if ((top <= 0)  or (top+height >= im_height)  or (left <= 0) or (left+width >= 0) ):
         # return Image.eval(crop(image,top,left,height,width), (lambda x: 0))
@@ -185,13 +191,13 @@ class VerticesToMask(torch.nn.Module):
         return torch.tensor(np.array(mask_list))
 
     def vertices_to_mask_BC(self, vertices, mask_shape=(128, 128)):
-        
-        flat = np.reshape(vertices, (-1, vertices.shape[-2], vertices.shape[-1]))
-        masks = np.stack([polygon2mask(mask_shape,arr)
+
+        flat = np.reshape(
+            vertices, (-1, vertices.shape[-2], vertices.shape[-1]))
+        masks = np.stack([polygon2mask(mask_shape, arr)
                           for arr in flat]).reshape(*vertices.shape[-4:-2], *mask_shape)
         shape = masks.shape
         return masks
-
 
 
 class CropCentroidPipeline(torch.nn.Module):
@@ -214,7 +220,10 @@ class CropCentroidPipeline(torch.nn.Module):
         )
 
     def forward(self, x):
-        return self.pipeline(x)
+        try:
+            return self.pipeline(x)
+        except:
+            return None
 
 
 class MaskToDistogramPipeline(torch.nn.Module):
@@ -235,7 +244,10 @@ class MaskToDistogramPipeline(torch.nn.Module):
         )
 
     def forward(self, x):
-        return self.pipeline(x)
+        try:
+            return self.pipeline(x)
+        except:
+            return None
 
 
 class DistogramToMaskPipeline(torch.nn.Module):
@@ -254,7 +266,10 @@ class DistogramToMaskPipeline(torch.nn.Module):
         )
 
     def forward(self, x):
-        return self.pipeline(x)
+        try:
+            return self.pipeline(x)
+        except:
+            return None
 
 
 class AsymmetricDistogramToMaskPipeline(torch.nn.Module):
@@ -274,8 +289,11 @@ class AsymmetricDistogramToMaskPipeline(torch.nn.Module):
         )
 
     def forward(self, x):
-        return self.pipeline(x)
-
+        # try:
+        #     return self.pipeline(x)
+        # except:
+        #     return None
+         return self.pipeline(x)
 
 class AsymmetricDistogramToSymmetricDistogram(torch.nn.Module):
     def __init__(self):

@@ -74,6 +74,11 @@ learning_rate = 1e-3
 
 train_dataset_glob = os.path.join(os.path.expanduser("~"),
                                   "data-science-bowl-2018/stage1_train/*/masks/*.png")
+
+def my_collate(batch):
+    batch = list(filter(lambda x: x is not None, batch))
+    return torch.utils.data.dataloader.default_collate(batch)
+
 # test_dataloader_glob=os.path.join(os.path.expanduser("~"),
 # "data-science-bowl-2018/stage1_test/*/masks/*.png")
 
@@ -81,17 +86,18 @@ transformer_crop = CropCentroidPipeline(window_size)
 transformer_dist = MaskToDistogramPipeline(window_size, interp_size)
 transformer_coords = DistogramToCoords(window_size)
 
+
 # train_dataset_raw = DSB2018(train_dataset_glob)
 # train_dataset_crop = DSB2018(
 #     train_dataset_glob, transform=CropCentroidPipeline(window_size))
 train_dataset = DSB2018(train_dataset_glob, transform=transformer_dist)
 train_dataset_crop = DSB2018(train_dataset_glob, transform=transformer_crop)
-
+# train_dataset_crop_filtered = [x for x in train_dataset_crop if x is not None]
 # img_squeeze = train_dataset_crop[0].unsqueeze(0)
 # img_crop = train_dataset_crop[0]
-
-dataloader = DataLoader(train_dataset, batch_size=batch_size,
-                        shuffle=True, num_workers=8, pin_memory=True)
+#  %%
+# dataloader = DataLoader(train_dataset, batch_size=batch_size,
+#                         shuffle=True, num_workers=8, pin_memory=True,collate_fn=my_collate)
 
 ckpt_file = "checkpoints/last.ckpt"
 
@@ -111,7 +117,8 @@ model = LitAutoEncoder(model).load_from_checkpoint(
 # model = lit_model.load_from_checkpoint(checkpoint_path="checkpoints/last.ckpt")
 # test_img = torch.tensor(np.zeros((1, 96, 96)), dtype=torch.float32)
 # train_dataset = DSB2018(train_dataset_glob, transform=transformer_dist)
-test_img = train_dataset[0].unsqueeze(0)
+test_mask = train_dataset_crop[1].unsqueeze(0)
+test_img = train_dataset[1].unsqueeze(0)
 plt.imshow(test_img[0][0])
 plt.show()
 loss,y_prime,_, = model.forward(test_img)
@@ -130,9 +137,9 @@ embed = model.get_embedding()
 import umap 
 from sklearn.decomposition import PCA
 proj = PCA().fit_transform(embed)
-proj = umap.UMAP(n_neighbors=3,
-                 min_dist=0.1,
-                 metric='cosine').fit_transform(embed)
+# proj = umap.UMAP(n_neighbors=3,
+#                  min_dist=0.1,
+#                  metric='cosine').fit_transform(embed)
 fit_umap = umap.UMAP(n_neighbors=3,
                  min_dist=0.1,
                  metric='cosine').fit(embed)
@@ -140,10 +147,6 @@ proj = fit_umap.transform(embed)
 
 pc_1 = fit_umap.inverse_transform(np.array([[1,0]]))
 pc_2 = fit_umap.inverse_transform(np.array([[0,1]]))
-
-
-generated_image_dist = model.decoder(pc_1).detach().numpy()
-
 
 plt.scatter(proj[:,0],proj[:,1])
 plt.show()
@@ -190,7 +193,7 @@ for i in range(10):
     # plt.imshow(train_dataset_crop[0][0])
     # plt.show()
     
-    ax[i][0].imshow(train_dataset_crop[0][0])
+    ax[i][0].imshow(test_mask[0][0])
     ax[i][1].imshow(mask[0][0])
 plt.show()
 
