@@ -63,4 +63,5 @@ class Mask_VAE(nn.Module):
         mask = DistogramToMaskPipeline(window_size)(dist)
         return mask
         
-        
+    def get_embedding(self):
+        return self.model.get_embedding()
