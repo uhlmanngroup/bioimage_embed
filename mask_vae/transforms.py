@@ -74,7 +74,8 @@ class DistogramToCoords(torch.nn.Module):
         self.size = size
 
     def forward(self, image):
-        return(self.get_points_from_dist_C(image,self.size))
+        # return(self.get_points_from_dist_C(image,self.size))
+        return(self.get_points_from_dist_BC(image, self.size))
 
     def __repr__(self):
         return self.__class__.__name__
@@ -85,13 +86,33 @@ class DistogramToCoords(torch.nn.Module):
             dissimilarity='precomputed',
             random_state=0).fit_transform(image)
 
-    def get_points_from_dist_C(self, tensor,size):
+    def get_points_from_dist_vec(self):
+        return np.vectorize(self.get_points_from_dist)
+
+    def get_points_from_dist_BC(self, image, size):
+        flat = np.reshape(image, (-1, image.shape[-2], image.shape[-1]))
+        coords = np.stack([self.get_points_from_dist(arr)
+                          for arr in flat]).reshape(*image.shape[-4:-1], -1)
+        coords_scaled = (coords*size)+(size/2)  # TODO Check this scaling
+        return coords_scaled
+    #     # for i in flat:
+
+    #     # flat = torch.flatten(torch.tensor(image), start_dim=0, end_dim=1)
+    #     # np.vectorize(self.get_points_from_dist)(np.array(flat))
+    #     # self.get_points_from_dist_vec(flat)
+    #     # # coords = np.apply_along_axis(self.get_points_from_dist_vec, axis=0, np.array(flat))
+    #     # coords = self.get_points_from_dist(np.vectorize(flat)).reshape(image.shape)
+    #     # # coords = np.apply_over_axes(self.get_points_from_dist, image, [2,3])
+    #     # coords_scaled = (coords*size)+(size/2)  # TODO Check this scaling
+    #     # return coords_scaled
+
+    def get_points_from_dist_C(self, tensor, size):
         dist_list = []
         np_tensor = np.array(tensor)
         for i in range(np_tensor.shape[0]):
             image = np_tensor[0, :, :]
-            coords = self.get_points_from_dist(image)
-            coords_scaled = (coords*size)+(size/2) #TODO Check this scaling
+            coords = self.get_points_from_dist(image.squeeze())
+            coords_scaled = (coords*size)+(size/2)  # TODO Check this scaling
             dist_list.append(coords_scaled)
         return torch.tensor(np.array(dist_list))
 
@@ -153,7 +174,8 @@ class VerticesToMask(torch.nn.Module):
         self.size = size
 
     def forward(self, x):
-        return self.vertices_to_mask(x, mask_shape=(self.size, self.size))
+        # return self.vertices_to_mask(x, mask_shape=(self.size, self.size))
+        return self.vertices_to_mask_BC(x, mask_shape=(self.size, self.size))
 
     def vertices_to_mask(self, vertices, mask_shape=(128, 128)):
         mask_list = []
@@ -162,8 +184,18 @@ class VerticesToMask(torch.nn.Module):
             mask_list.append(polygon2mask(mask_shape, channel))
         return torch.tensor(np.array(mask_list))
 
+    def vertices_to_mask_BC(self, vertices, mask_shape=(128, 128)):
+        
+        flat = np.reshape(vertices, (-1, vertices.shape[-2], vertices.shape[-1]))
+        masks = np.stack([polygon2mask(mask_shape,arr)
+                          for arr in flat]).reshape(*vertices.shape[-4:-2], *mask_shape)
+        shape = masks.shape
+        return masks
+
+
+
 class CropCentroidPipeline(torch.nn.Module):
-    def __init__(self, window_size,num_output_channels=1):
+    def __init__(self, window_size, num_output_channels=1):
         super().__init__()
         self.window_size = window_size
         self.pipeline = transforms.Compose(
@@ -186,7 +218,7 @@ class CropCentroidPipeline(torch.nn.Module):
 
 
 class MaskToDistogramPipeline(torch.nn.Module):
-    def __init__(self, window_size,interp_size=128):
+    def __init__(self, window_size, interp_size=128):
         super().__init__()
         self.window_size = window_size
         self.interp_size = interp_size
@@ -205,10 +237,12 @@ class MaskToDistogramPipeline(torch.nn.Module):
     def forward(self, x):
         return self.pipeline(x)
 
+
 class DistogramToMaskPipeline(torch.nn.Module):
     '''
     Placeholder class
     '''
+
     def __init__(self, window_size):
         super().__init__()
         self.window_size = window_size
@@ -221,3 +255,38 @@ class DistogramToMaskPipeline(torch.nn.Module):
 
     def forward(self, x):
         return self.pipeline(x)
+
+
+class AsymmetricDistogramToMaskPipeline(torch.nn.Module):
+    '''
+    Placeholder class
+    '''
+
+    def __init__(self, window_size):
+        super().__init__()
+        self.window_size = window_size
+        self.pipeline = transforms.Compose(
+            [
+                AsymmetricDistogramToSymmetricDistogram(),
+                DistogramToMaskPipeline(self.window_size),
+
+            ]
+        )
+
+    def forward(self, x):
+        return self.pipeline(x)
+
+
+class AsymmetricDistogramToSymmetricDistogram(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return self.asym_dist_to_sym_dist(x)
+
+    def asym_dist_to_sym_dist(self, asymm_dist):
+        dist_stack = np.stack(
+            [asymm_dist, asymm_dist.transpose(0, 1, 3, 2)], axis=0)
+
+        sym_dist = np.max(dist_stack, axis=0)
+        return torch.tensor(np.array(sym_dist))
