@@ -258,7 +258,6 @@ class VQ_VAE(nn.Module):
                                 num_residual_layers, 
                                 num_residual_hiddens,
                                 in_channels=channels)
-        self.encoder = self._encoder
         self._pre_vq_conv = nn.Conv2d(in_channels=num_hiddens, 
                                       out_channels=embedding_dim,
                                       kernel_size=1, 
@@ -274,17 +273,34 @@ class VQ_VAE(nn.Module):
                                 num_residual_layers, 
                                 num_residual_hiddens,
                                 out_channels=channels)
-        self.decoder = self._decoder
 
     def forward(self, x):
         z = self._encoder(x)
         z = self._pre_vq_conv(z)
         loss, quantized, perplexity, _ = self._vq_vae(z)
         x_recon = self._decoder(quantized)
-
         return loss, x_recon, perplexity
+    
+    def encoder(self,x):
+        z = self._encoder(x)
+        z = self._pre_vq_conv(z)
+        return z
+    
+    def decoder(self,z):
+        loss, quantized, perplexity, _ = self._vq_vae(z)
+        x_recon = self._decoder(quantized)
+        return x_recon
+    
+    # def forward(self, x):
+    #     vq_output_eval = self._pre_vq_conv(self._encoder(x))
+    #     _, quantize, _, _ = self._vq_vae(vq_output_eval)
+    #     reconstructions = self._decoder(quantize)
     
     def model(self,x):
         loss, quantized, perplexity, _ = self.forward(x)
-        return quantized
+        x_recon = self._decoder(quantized)
+        return x_recon
+
+    def get_embedding(self):
+        return self._vq_vae._embedding.weight.data.cpu()
 
