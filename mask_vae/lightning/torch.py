@@ -48,7 +48,13 @@ class LitAutoEncoder(pl.LightningModule):
         # self.vae = VAE()
         # self.vae_flag = vae_flag
         # self.loss_fn = torch.nn.BCELoss()
-
+        
+    def decoder(self,z):
+        return self.model.decoder(z)
+    
+    def encoder(self,img):
+        return self.model.encoder(img)
+    
     def forward(self, x):
         return self.model(x)
 
@@ -82,3 +88,6 @@ class LitAutoEncoder(pl.LightningModule):
         # tensorboard.add_image("input", transforms.ToPILImage()(output[batch_idx]), batch_idx)
         # tensorboard.add_image("output", transforms.ToPILImage()(output[batch_idx]), batch_idx)
         return loss
+
+    def get_embedding(self):
+        return self.model.get_embedding()
