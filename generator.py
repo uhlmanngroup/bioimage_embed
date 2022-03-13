@@ -53,16 +53,26 @@ window_size = 96
 # model = LitAutoEncoder(VQ_VAE(channels=1))
 trainer = pl.Trainer()
 ckpt_file = "checkpoints/last.ckpt"
+
+train_dataset_glob = os.path.join(os.path.expanduser("~"),
+                                  "data-science-bowl-2018/stage1_train/*/masks/*.png")
+interp_size = 128*4
+
 model = LitAutoEncoder.load_from_checkpoint(
     ckpt_file, model=Mask_VAE(VQ_VAE(channels=1)))
+transformer_dist = MaskToDistogramPipeline(window_size, interp_size)
+
 # print(model)
 # trainer.fit(model,
 #             ckpt_path="checkpoints/last.ckpt")
 # model = lit_model.load_from_checkpoint(checkpoint_path="checkpoints/last.ckpt")
 test_img = torch.tensor(np.zeros((1, 96, 96)), dtype=torch.float32)
+train_dataset = DSB2018(train_dataset_glob, transform=transformer_dist)
+test_img = train_dataset[0]
 print(test_img)
 z = model.model.encoder(test_img)
-# print(z)
+
+print(z)
 #  %%
 for i in range(1):
     z_random = torch.normal(torch.zeros_like(z), torch.ones_like(z))
@@ -79,10 +89,18 @@ for i in range(1):
     plt.imshow(symmetric_generated_image_dist[0])
     plt.savefig("test_dist.png")
     plt.show()
-    out = DistogramToMaskPipeline(window_size)(
+    
+    plt.imshow(symmetric_generated_image_dist[0])
+    plt.savefig("test_dist.png")
+    plt.show()
+    
+    coords = DistogramToCoords(window_size)(symmetric_generated_image_dist)
+    plt.scatter(coords[0,:,0],coords[0,:,1])
+    
+    mask = DistogramToMaskPipeline(window_size)(
         symmetric_generated_image_dist)
     # generated_image = model.model.mask_from_latent(z_random,window_size)
-    plt.imshow((out[0]))
+    plt.imshow((mask[0]))
     plt.savefig("test_dist_mask.png")
     plt.show()
 
