@@ -38,5 +38,11 @@ dependencies:
   - pytorch-model-summary
   - pyro-ppl
   - scikit-learn
+  - pandas
+  - matplotlib
+  - datashader
+  - bokeh
+  - holoviews 
+  - colorcet 
   - pip:
     - -e .
