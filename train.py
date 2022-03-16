@@ -13,7 +13,7 @@ from pytorch_lightning import loggers as pl_loggers
 
 from mask_vae.datasets import DSB2018
 from mask_vae.transforms import CropCentroidPipeline, DistogramToCoords, DistogramToCoords, MaskToDistogramPipeline
-from mask_vae.models import Mask_VAE, VQ_VAE
+from mask_vae.models import Mask_VAE, VQ_VAE, VAE
 from mask_vae.lightning import LitAutoEncoder
 
 interp_size = 128*4
@@ -37,9 +37,11 @@ learning_rate = 1e-3
 
 train_dataset_glob = os.path.join(os.path.expanduser("~"),
                                   "data-science-bowl-2018/stage1_train/*/masks/*.png")
+# train_dataset_glob = os.path.join("data/dsb2018/train/masks/*.tif")
 # test_dataloader_glob=os.path.join(os.path.expanduser("~"),
 # "data-science-bowl-2018/stage1_test/*/masks/*.png")
 
+model_dir = "test"
 transformer_crop = CropCentroidPipeline(window_size)
 transformer_dist = MaskToDistogramPipeline(window_size, interp_size)
 transformer_coords = DistogramToCoords(window_size)
@@ -62,14 +64,16 @@ dataloader = DataLoader(train_dataset, batch_size=batch_size,
                         shuffle=True, num_workers=8, pin_memory=True, collate_fn=my_collate)
 
 model = Mask_VAE(VQ_VAE(channels=1))
+# model = Mask_VAE(VAE())
+
 lit_model = LitAutoEncoder(model)
 
 tb_logger = pl_loggers.TensorBoardLogger("runs/")
 
-Path("checkpoints/").mkdir(parents=True, exist_ok=True)
+Path(f'{model_dir}/').mkdir(parents=True, exist_ok=True)
 
 checkpoint_callback = ModelCheckpoint(
-    dirpath="checkpoints/",
+    dirpath=f'{model_dir}/',
     save_last=True
 )
 
@@ -86,6 +90,6 @@ trainer = pl.Trainer(
 
 try:
     trainer.fit(lit_model, dataloader,
-                ckpt_path="checkpoints/last.ckpt")
+                ckpt_path=f'{model_dir}/last.ckpt')
 except:
     trainer.fit(lit_model, dataloader)
