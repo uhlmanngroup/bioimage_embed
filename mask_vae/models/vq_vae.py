@@ -297,17 +297,33 @@ class VQ_VAE(nn.Module):
         x_recon = self._decoder(quantized)
         return loss, x_recon, perplexity
 
-    def encoder(self, x):
+    def encoder_z(self, x):
         # z = self._encoder(x)
         # z = self._pre_vq_conv(z)
-        z = self._pre_vq_conv(self._encoder(x))
+        z = self._encoder(x)
+        z = self._pre_vq_conv(z)
         return z
 
-    def decoder(self, z):
+    def encoder_zq(self, x):
+        # z = self._encoder(x)
+        # z = self._pre_vq_conv(z)
+        z = self.encoder(x)
+        loss, z_q, perplexity, _ = self._vq_vae(z)
+        return loss, z_q, perplexity
+
+    def decoder_z(self, z):
         loss, quantized, perplexity, _ = self._vq_vae(z)
         x_recon = self._decoder(quantized)
         return x_recon
 
+    def decoder_zq(self, quantized):
+        return self._decoder(quantized)
+    
+    def encoder(self,x):
+        return self.encoder_z(x)
+    
+    def decoder(self,z):
+        return self.decoder_z(z)  
     # def forward(self, x):
     #     vq_output_eval = self._pre_vq_conv(self._encoder(x))
     #     _, quantize, _, _ = self._vq_vae(vq_output_eval)
