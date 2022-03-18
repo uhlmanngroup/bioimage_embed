@@ -15,9 +15,8 @@ from torchvision import transforms
 from mask_vae.datasets import DSB2018
 from mask_vae.transforms import CropCentroidPipeline, DistogramToCoords, DistogramToCoords, MaskToDistogramPipeline
 from mask_vae.models import Mask_VAE, VQ_VAE, VAE
-from mask_vae.lightning import LitAutoEncoder
-
-interp_size = 128*4
+from mask_vae.lightning import LitAutoEncoderTorch, LitAutoEncoderPyro
+interp_size = 128*2
 
 max_epochs=150
 
@@ -88,9 +87,11 @@ dataloader = DataLoader(train_dataset, batch_size=batch_size,
                         shuffle=True, num_workers=8, pin_memory=True, collate_fn=my_collate)
 
 model = Mask_VAE(VQ_VAE(channels=1))
+model = Mask_VAE(VAE(1, 64, image_dims=(interp_size, interp_size)))
+
 # model = Mask_VAE(VAE())
 
-lit_model = LitAutoEncoder(model)
+lit_model = LitAutoEncoderTorch(model)
 
 tb_logger = pl_loggers.TensorBoardLogger("runs/")
 
