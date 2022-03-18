@@ -41,15 +41,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
+from torchinfo import summary
 
 from mask_vae.datasets import DSB2018
 from mask_vae.transforms import ImagetoDistogram, cropCentroid, DistogramToCoords, CropCentroidPipeline, DistogramToCoords, MaskToDistogramPipeline, DistogramToMaskPipeline
-from mask_vae.models import AutoEncoder, VAE, VQ_VAE, Mask_VAE
+from mask_vae.models import AutoEncoder, VQ_VAE, Mask_VAE, VAE
 from mask_vae.lightning import LitAutoEncoder, LitVariationalAutoEncoder
 
 interp_size = 128*4
 
-window_size = 128-32
+window_size = 96
 batch_size = 32
 num_training_updates = 15000
 
@@ -101,6 +102,30 @@ dataloader = DataLoader(train_dataset, batch_size=batch_size,
 #     plt.show()
 
 
+class TestVAE():
+
+    def setup(self):
+        # self.model2 = VAE(1, 10)
+        self.model = VAE(3, 10)
+
+    # def test_summary(self):
+    #     print(summary(self.model, (1, 64, 64), device='cpu'))
+    #     # print(summary(self.model2, (3, 64, 64), device='cpu'))
+
+    def test_forward(self):
+        x = torch.randn(16, 3, 64, 64)
+        y = self.model(x)
+        print("Model Output size:", y[0].size())
+        # print("Model2 Output size:", self.model2(x)[0].size())
+
+    def test_loss(self):
+        x = torch.randn(16, 3, 64, 64)
+
+        result = self.model(x)
+        loss = self.model.loss_function(*result, M_N=0.005)
+        print(loss)
+
+
 def test_dist_to_coord():
     # dist = transformer_dist(train_dataset[0][0])
     plt.close()
@@ -137,16 +162,23 @@ def test_dist_to_coord():
     plt.show()
 
 
-def test_models():
+@pytest.mark.parametrize("model", [VQ_VAE(channels=1),
+                                   VAE(1, 64, image_dims=(96, 96)),
+                                   VAE(1, 128,
+                                       hidden_dims=[32, 64],
+                                       image_dims=(96, 96))
+                                   ])
+def test_models(model):
     # vae = AutoEncoder(1, 1)
-    vae = VQ_VAE(channels=1)
+    # vae = VQ_VAE(channels=1)
     img = img_crop
-    loss, x_recon, perplexity = vae(img)
-    z = vae.encoder(img)
-    y_prime = vae.decoder(z)
+    # loss, x_recon, perplexity = model(img)
+    result = model(img)
+    z, log_var = model.encode(img)
+    y_prime = model.decode(z)
     # print(f"img_dims:{img.shape} y:_dims:{x_recon.shape}")
     print(
-        f"img_dims:{img.shape} x_recon:_dims:{x_recon.shape} z:_dims:{z.shape}")
+        f"img_dims:{img.shape}, z:_dims:{z.shape}")
 
 
 # @pytest.mark.skipif(sys.version_info < (3,3))

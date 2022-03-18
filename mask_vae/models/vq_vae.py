@@ -307,9 +307,9 @@ class VQ_VAE(nn.Module):
     def encoder_zq(self, x):
         # z = self._encoder(x)
         # z = self._pre_vq_conv(z)
-        z = self.encoder(x)
+        z = self.encoder_z(x)
         loss, z_q, perplexity, _ = self._vq_vae(z)
-        return loss, z_q, perplexity
+        return z_q
 
     def decoder_z(self, z):
         loss, quantized, perplexity, _ = self._vq_vae(z)
@@ -321,9 +321,12 @@ class VQ_VAE(nn.Module):
     
     def encoder(self,x):
         return self.encoder_z(x)
+        # return self.encoder_zq(x)
     
     def decoder(self,z):
         return self.decoder_z(z)  
+        # return self.decoder_zq(z)
+
     # def forward(self, x):
     #     vq_output_eval = self._pre_vq_conv(self._encoder(x))
     #     _, quantize, _, _ = self._vq_vae(vq_output_eval)
@@ -336,3 +339,9 @@ class VQ_VAE(nn.Module):
 
     def get_embedding(self):
         return self._vq_vae._embedding.weight.data.cpu()
+    
+    def encode(self,x):
+        return (self.encoder(x), None )
+
+    def decode(self,x):
+        return self.decoder(x)

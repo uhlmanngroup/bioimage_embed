@@ -1,123 +1,187 @@
+# https://github.com/AntixK/PyTorch-VAE
 
-import sys
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pyro.optim import Adam
-from pyro.infer import SVI, Trace_ELBO
-import pyro.distributions as dist
-import pyro
-import pytorch_lightning as pl
-from torch.utils.data import random_split, DataLoader
-import glob
-# Note - you must have torchvision installed for this example
-from torchvision import datasets
-from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
-from PIL import Image
-import os
-from skimage.measure import regionprops
-from torchvision.transforms.functional import crop
-from scipy import ndimage
-import matplotlib.pyplot as plt
-import numpy as np
+#                  Apache License
+#            Version 2.0, January 2004
+#         http://www.apache.org/licenses/
+# Copyright Anand Krishnamoorthy Subramanian 2020
+#            anandkrish894@gmail.com
 import torch
+from .utils import BaseVAE
 from torch import nn
-from pytorch_lightning import loggers as pl_loggers
-import torchvision
-from sklearn.manifold import MDS  
-from sklearn.metrics.pairwise import euclidean_distances
-from scipy.ndimage import convolve,sobel 
-from skimage.measure import find_contours
-from scipy.interpolate import interp1d
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-import torch.optim as optim
+from torch.nn import functional as F
+from .types_ import *
+
+
+class VAE(BaseVAE):
+
+
+    def __init__(self,
+                 in_channels: int,
+                 latent_dim: int,
+                 hidden_dims: List = None,
+                 image_dims = (64,64),
+                 **kwargs) -> None:
+        super(VAE, self).__init__()
+
+        self.latent_dim = latent_dim
+
+        modules = []
+        if hidden_dims is None:
+            hidden_dims = [32, 64, 128, 256, 512]
+            
+        self.channels = in_channels
+        self.hidden_dims = hidden_dims
+        # Build Encoder
+        for h_dim in hidden_dims:
+            modules.append(
+                nn.Sequential(
+                    nn.Conv2d(in_channels, out_channels=h_dim,
+                              kernel_size= 3, stride= 2, padding  = 1),
+                    nn.BatchNorm2d(h_dim),
+                    nn.LeakyReLU())
+            )
+            in_channels = h_dim
+
+        self.encoder = nn.Sequential(*modules)
+        self.latent_input_dim = torch.tensor(image_dims)/2**(len(hidden_dims))
+        self.latent_input_dim_len = int(torch.prod(self.latent_input_dim.flatten(),0))
+        input_test = torch.randn((1,self.channels,128,128))
+        self.encoder(input_test)
+        self.fc_mu = nn.Linear(hidden_dims[-1]*self.latent_input_dim_len, latent_dim)
+        self.fc_var = nn.Linear(hidden_dims[-1]*self.latent_input_dim_len, latent_dim)
+
+
+        # Build Decoder
+        modules = []
+
+        self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1] * self.latent_input_dim_len)
+
+        hidden_dims.reverse()
+
+        for i in range(len(hidden_dims) - 1):
+            modules.append(
+                nn.Sequential(
+                    nn.ConvTranspose2d(hidden_dims[i],
+                                       hidden_dims[i + 1],
+                                       kernel_size=3,
+                                       stride = 2,
+                                       padding=1,
+                                       output_padding=1),
+                    nn.BatchNorm2d(hidden_dims[i + 1]),
+                    nn.LeakyReLU())
+            )
 
 
 
-class VAE(nn.Module):
-    # by default our latent space is 50-dimensional
-    # and we use 400 hidden units
-    def __init__(self, h_dim=(1, 5, 5), z_dim=(1, 5, 5), use_cuda=False):
-        super().__init__()
-        # create the encoder and decoder networks
-        self.autoencoder = AutoEncoder(1, 1)
-        self.encoder = self.autoencoder.encoder
-        self.decoder = self.autoencoder.decoder
+        self.decoder = nn.Sequential(*modules)
 
-        self.z_dim = torch.tensor(z_dim)
-        self.x_dim = (1, window_size, window_size)
-        self.h_dim = torch.tensor(h_dim)
+        self.final_layer = nn.Sequential(
+                            nn.ConvTranspose2d(hidden_dims[-1],
+                                               hidden_dims[-1],
+                                               kernel_size=3,
+                                               stride=2,
+                                               padding=1,
+                                               output_padding=1),
+                            nn.BatchNorm2d(hidden_dims[-1]),
+                            nn.LeakyReLU(),
+                            nn.Conv2d(hidden_dims[-1], out_channels= 3,
+                                      kernel_size= 3, padding= 1),
+                            nn.Tanh())
 
-        self.flatten = nn.Flatten()
-        self.sigmoid = nn.Sigmoid()
+    def encode(self, input: Tensor) -> List[Tensor]:
+        """
+        Encodes the input by passing through the encoder network
+        and returns the latent codes.
+        :param input: (Tensor) Input tensor to encoder [N x C x H x W]
+        :return: (Tensor) List of latent codes
+        """
+        result = self.encoder(input)
+        result = torch.flatten(result, start_dim=1)
 
-        self.fc1 = nn.Linear(torch.prod(self.h_dim), torch.prod(self.z_dim))
-        self.fc21 = nn.Linear(torch.prod(self.h_dim), torch.prod(self.z_dim))
-        self.fc22 = nn.Linear(torch.prod(self.h_dim), torch.prod(self.z_dim))
+        # Split the result into mu and var components
+        # of the latent Gaussian distribution
+        mu = self.fc_mu(result)
+        log_var = self.fc_var(result)
 
-        pyro.module("decoder", self.autoencoder)
+        return [mu, log_var]
 
-        # self.fc3 = nn.Linear(torch.prod(self.z_dim), torch.prod(self.h_dim))
-        self.softplus = nn.Softplus()
-    
-    def encode(self, x):
-        h = self.encoder(x)
-        # h = self.softplus(h)
-        # h = self.flatten(h)
-        # z = self.sigmoid(h)
-        
-        # No clue if this is actually mu
-        z = self.fc21(self.flatten(h))
-        mu = torch.exp(self.fc22(self.flatten(h)))
-        # z, mu = self.bottleneck(h)
-        return z.reshape(h.shape), mu.reshape(h.shape)
+    def decode(self, z: Tensor) -> Tensor:
+        """
+        Maps the given latent codes
+        onto the image space.
+        :param z: (Tensor) [B x D]
+        :return: (Tensor) [B x C x H x W]
+        """
+        result = self.decoder_input(z)
+        result = result.view(-1, self.hidden_dims[0], int(self.latent_input_dim[-1]), int(self.latent_input_dim[0]))
+        result = self.decoder(result)
+        result = self.final_layer(result)
+        return result
 
-    def decode(self, z):
-        # z = self.fc3(z).reshape(-1,*tuple(self.h_dim))
-        z = z.reshape(-1, *tuple(self.h_dim))
-        return self.decoder(z)
+    def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
+        """
+        Reparameterization trick to sample from N(mu, var) from
+        N(0,1).
+        :param mu: (Tensor) Mean of the latent Gaussian [B x D]
+        :param logvar: (Tensor) Standard deviation of the latent Gaussian [B x D]
+        :return: (Tensor) [B x D]
+        """
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return eps * std + mu
 
-    def forward(self, x):
-        z, mu = self.encode(x)
-        return self.decode(z)
-        
+    def forward(self, input: Tensor, **kwargs) -> List[Tensor]:
+        mu, log_var = self.encode(input)
+        z = self.reparameterize(mu, log_var)
+        return  [self.decode(z), input, mu, log_var]
 
-    def model(self, x):
-        # register PyTorch module `decoder` with Pyro
-        pyro.module("decoder", self.decoder)
-        with pyro.plate("data", x.shape[0]):
-            # setup hyperparameters for prior p(z)
-            z_loc = x.new_zeros(torch.Size((x.shape[0], *tuple(self.h_dim))))
-            z_scale = x.new_ones(torch.Size((x.shape[0], *tuple(self.h_dim))))
-            # sample from prior (value will be sampled by guide when computing the ELBO)
-            z = pyro.sample("latent", dist.Normal(z_loc, z_scale).to_event(3))
-            # decode the latent code z
-            img = self.decode(z)
-            loc_img = torch.sigmoid(img)
-            scale = torch.ones_like(loc_img)
-            # score against actual images
-            pyro.sample("obs", dist.ContinuousBernoulli(logits=img).to_event(3), obs=x)
+    def loss_function(self,
+                      *args,
+                      **kwargs) -> dict:
+        """
+        Computes the VAE loss function.
+        KL(N(\mu, \sigma), N(0, 1)) = \log \frac{1}{\sigma} + \frac{\sigma^2 + \mu^2}{2} - \frac{1}{2}
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        recons = args[0]
+        input = args[1]
+        mu = args[2]
+        log_var = args[3]
 
-    # define the guide (i.e. variational distribution) q(z|x)
-    def guide(self, x):
-        # register PyTorch module `encoder` with Pyro
-        pyro.module("encoder", self.encoder)
-        with pyro.plate("data", x.shape[0]):
-            # use the encoder to get the parameters used to define q(z|x)
-            z_loc, z_scale = self.encode(x)
-            # sample the latent code z
-            pyro.sample("latent", dist.Normal(z_loc, z_scale).to_event(3))
+        kld_weight = kwargs['M_N'] # Account for the minibatch samples from the dataset
+        recons_loss =F.mse_loss(recons, input)
 
-    def construct_from_z(self,z):
-        return torch.sigmoid(self.decode(z))
 
-    def reconstruct_img(self, x):
-        # encode image x
-        z_loc, z_scale = self.encode(x)
-        # sample in latent space
-        z = dist.Normal(z_loc, z_scale).sample()
-        # decode the image (note we don't sample in image space)
-        # loc_img = torch.sigmoid(self.decode(z))
-        return self.construct_from_z(z)
+        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+
+        loss = recons_loss + kld_weight * kld_loss
+        return {'loss': loss, 'Reconstruction_Loss':recons_loss.detach(), 'KLD':-kld_loss.detach()}
+
+    def sample(self,
+               num_samples:int,
+               current_device: int, **kwargs) -> Tensor:
+        """
+        Samples from the latent space and return the corresponding
+        image space map.
+        :param num_samples: (Int) Number of samples
+        :param current_device: (Int) Device to run the model
+        :return: (Tensor)
+        """
+        z = torch.randn(num_samples,
+                        self.latent_dim)
+
+        z = z.to(current_device)
+
+        samples = self.decode(z)
+        return samples
+
+    def generate(self, x: Tensor, **kwargs) -> Tensor:
+        """
+        Given an input image x, returns the reconstructed image
+        :param x: (Tensor) [B x C x H x W]
+        :return: (Tensor) [B x C x H x W]
+        """
+
+        return self.forward(x)[0]

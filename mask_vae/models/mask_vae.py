@@ -34,8 +34,9 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from mask_vae.transforms import DistogramToMaskPipeline
+from .utils import BaseVAE
 
-class Mask_VAE(nn.Module):
+class Mask_VAE(BaseVAE):
     # by default our latent space is 50-dimensional
     # and we use 400 hidden units
     def __init__(self, model):
