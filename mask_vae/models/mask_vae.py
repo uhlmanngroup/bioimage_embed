@@ -56,6 +56,12 @@ class Mask_VAE(BaseVAE):
     
     def encoder(self,img):
         return self.model.encoder(img)
+
+    def decode(self,z):
+        return self.model.decoder(z)
+    
+    def encode(self,img):
+        return self.model.encoder(img)
     
     def mask_from_latent(self,z,window_size):
         # This should be class-method based

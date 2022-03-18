@@ -166,23 +166,48 @@ def test_dist_to_coord():
 
 @pytest.mark.parametrize("model", [VQ_VAE(channels=1),
                                    VAE(1, 64, image_dims=(
-                                       window_size, window_size)),
-                                   VAE(1, 128,
-                                       hidden_dims=[32, 64],
-                                       image_dims=(window_size, window_size))
-                                   ])
-def test_models(model):
-    # vae = AutoEncoder(1, 1)
-    # vae = VQ_VAE(channels=1)
-    img = img_crop
-    # loss, x_recon, perplexity = model(img)
-    result = model(img)
-    z, log_var = model.encode(img)
-    y_prime = model.decode(z)
-    # print(f"img_dims:{img.shape} y:_dims:{x_recon.shape}")
-    print(
-        f"img_dims:{img.shape}, z:_dims:{z.shape}")
+                                       interp_size, interp_size))])
+class TestModels:
+    def setup(self,model):
+        pass
+        
+    def test_models(self,model):
+        # vae = AutoEncoder(1, 1)
+        # vae = VQ_VAE(channels=1)
+        img = test_img
+        # loss, x_recon, perplexity = model(img)
+        result = model(img)
+        z, log_var = model.encode(img)
+        y_prime = model.decode(z)
+        # print(f"img_dims:{img.shape} y:_dims:{x_recon.shape}")
+        print(
+            f"img_dims:{img.shape}, z:_dims:{z.shape}")
 
+
+    def test_forward(self,model):
+        model = Mask_VAE(model)
+        # test_img = train_dataset[0]
+        z = model.encode(test_img)
+        y_prime = model.decode(z)
+        model.forward(test_img)
+
+
+    def test_training(self,model):
+        model = Mask_VAE(model)
+        lit_model = LitAutoEncoderTorch(model)
+        trainer = pl.Trainer(
+            max_steps=1,
+            # limit_train_batches=1,
+            # limit_val_batches=1
+            # logger=tb_logger,
+            # enable_checkpointing=True,
+            # gpus=1,
+            # accumulate_grad_batches=1,
+            # callbacks=[checkpoint_callback],
+            # min_epochs=1,
+            max_epochs=1,
+        )  # .from_argparse_args(args)
+        trainer.fit(lit_model, dataloader)
 
 # @pytest.mark.skipif(sys.version_info < (3,3))
 # def test_model(model):
@@ -195,27 +220,3 @@ def test_models(model):
 # def test_mask_vae():
 #     MaskVAE(VQ_VAE(channels=1))
 
-def test_forward():
-    model = Mask_VAE(VQ_VAE(channels=1))
-    # test_img = train_dataset[0]
-    z = model.encoder(test_img)
-    y_prime = model.decoder(z)
-    model.forward(test_img)
-
-
-def test_training():
-    model = Mask_VAE(VQ_VAE(channels=1))
-    lit_model = LitAutoEncoderTorch(model)
-    trainer = pl.Trainer(
-        max_steps=1,
-        # limit_train_batches=1,
-        # limit_val_batches=1
-        # logger=tb_logger,
-        # enable_checkpointing=True,
-        # gpus=1,
-        # accumulate_grad_batches=1,
-        # callbacks=[checkpoint_callback],
-        # min_epochs=1,
-        max_epochs=1,
-    )  # .from_argparse_args(args)
-    trainer.fit(lit_model, dataloader)
