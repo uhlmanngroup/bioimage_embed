@@ -75,3 +75,8 @@ class Mask_VAE(BaseVAE):
     
     def loss_function(self,*args,**kwargs):
         return self.model.loss_function(*args,**kwargs)
+    
+    def output_from_results(self,*args,**kwargs):
+        return self.model.output_from_results(*args,**kwargs)
+    
+    

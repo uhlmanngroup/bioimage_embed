@@ -346,6 +346,9 @@ class VQ_VAE(nn.Module):
     def decode(self,x):
         return self.decoder(x)
     
+    def output_from_results(self,loss, x_recon, perplexity):
+        return x_recon
+    
     def loss_function(self,
                       *args,
                       **kwargs) -> dict:

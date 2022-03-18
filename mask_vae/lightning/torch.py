@@ -84,7 +84,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         # self.logger.experiment.add_embedding(
         #     "input_image", torchvision.utils.make_grid(transformer_image(inputs)), batch_idx)
         self.logger.experiment.add_image(
-            "output", torchvision.utils.make_grid(batch), batch_idx)
+            "output", torchvision.utils.make_grid(self.model.output_from_results(*results)), batch_idx)
         # self.logger.experiment.add_embedding(
         #     "output_image", torchvision.utils.make_grid(transformer_image(output)), batch_idx)
 

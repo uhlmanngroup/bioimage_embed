@@ -185,3 +185,11 @@ class VAE(BaseVAE):
         """
 
         return self.forward(x)[0]
+    
+    def output_from_results(self, x_recon, input, mu, log_var):
+        """
+        Given an input image x, returns the reconstructed image
+        :param x: (Tensor) [B x C x H x W]
+        :return: (Tensor) [B x C x H x W]
+        """
+        return x_recon
