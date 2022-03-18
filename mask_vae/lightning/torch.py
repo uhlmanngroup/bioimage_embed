@@ -55,6 +55,12 @@ class LitAutoEncoderTorch(pl.LightningModule):
     
     def encoder(self,img):
         return self.model.encoder(img)
+
+    def decode(self,z):
+        return self.model.decode(z)
+    
+    def encode(self,img):
+        return self.model.encode(img)
     
     def forward(self, x):
         return self.model(x)
@@ -119,3 +125,6 @@ class LitAutoEncoderTorch(pl.LightningModule):
 
     def get_embedding(self):
         return self.model.get_embedding()
+    
+    def sample(self,*args,**kwargs):
+        return self.model.sample(*args,**kwargs)

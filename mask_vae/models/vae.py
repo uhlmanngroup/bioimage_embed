@@ -160,8 +160,7 @@ class VAE(BaseVAE):
         return {'loss': loss, 'Reconstruction_Loss':recons_loss.detach(), 'KLD':-kld_loss.detach()}
 
     def sample(self,
-               num_samples:int,
-               current_device: int, **kwargs) -> Tensor:
+               num_samples:int, **kwargs) -> Tensor:
         """
         Samples from the latent space and return the corresponding
         image space map.
@@ -172,7 +171,7 @@ class VAE(BaseVAE):
         z = torch.randn(num_samples,
                         self.latent_dim)
 
-        z = z.to(current_device)
+        # z = z.to(current_device)
 
         samples = self.decode(z)
         return samples
