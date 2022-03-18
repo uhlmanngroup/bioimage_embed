@@ -45,8 +45,8 @@ class VAE(BaseVAE):
         self.encoder = nn.Sequential(*modules)
         self.latent_input_dim = torch.tensor(image_dims)/2**(len(hidden_dims))
         self.latent_input_dim_len = int(torch.prod(self.latent_input_dim.flatten(),0))
-        input_test = torch.randn((1,self.channels,128,128))
-        self.encoder(input_test)
+        # input_test = torch.randn((1,self.channels,128,128))
+        # self.encoder(input_test)
         self.fc_mu = nn.Linear(hidden_dims[-1]*self.latent_input_dim_len, latent_dim)
         self.fc_var = nn.Linear(hidden_dims[-1]*self.latent_input_dim_len, latent_dim)
 
@@ -84,7 +84,7 @@ class VAE(BaseVAE):
                                                output_padding=1),
                             nn.BatchNorm2d(hidden_dims[-1]),
                             nn.LeakyReLU(),
-                            nn.Conv2d(hidden_dims[-1], out_channels= 3,
+                            nn.Conv2d(hidden_dims[-1], out_channels= self.channels,
                                       kernel_size= 3, padding= 1),
                             nn.Tanh())
 
@@ -150,7 +150,7 @@ class VAE(BaseVAE):
         mu = args[2]
         log_var = args[3]
 
-        kld_weight = kwargs['M_N'] # Account for the minibatch samples from the dataset
+        kld_weight = 0.00025 # Account for the minibatch samples from the dataset
         recons_loss =F.mse_loss(recons, input)
 
 
