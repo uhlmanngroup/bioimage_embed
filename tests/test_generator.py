@@ -52,7 +52,7 @@ from mask_vae.transforms import DistogramToCoords, MaskToDistogramPipeline,Asymm
 from mask_vae.transforms import DistogramToMaskPipeline
 
 from mask_vae.models import AutoEncoder, VAE, VQ_VAE, Mask_VAE
-from mask_vae.lightning import LitAutoEncoder, LitVariationalAutoEncoder
+from mask_vae.lightning import LitAutoEncoderPyro, LitAutoEncoderTorch
 
 interp_size = 128*4
 
@@ -98,7 +98,7 @@ ckpt_file = "checkpoints/last.ckpt"
 
 
 model = Mask_VAE(VQ_VAE(channels=1))
-model = LitAutoEncoder(model).load_from_checkpoint(
+model = LitAutoEncoderTorch(model).load_from_checkpoint(
     ckpt_file, model=model)
 
 test_img = train_dataset[1].unsqueeze(0)

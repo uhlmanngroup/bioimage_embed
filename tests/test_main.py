@@ -44,9 +44,11 @@ import torch.optim as optim
 from torchinfo import summary
 
 from mask_vae.datasets import DSB2018
-from mask_vae.transforms import ImagetoDistogram, cropCentroid, DistogramToCoords, CropCentroidPipeline, DistogramToCoords, MaskToDistogramPipeline, DistogramToMaskPipeline
+from mask_vae.transforms import CropCentroidPipeline, MaskToDistogramPipeline, DistogramToMaskPipeline
+from mask_vae.transforms import ImagetoDistogram, cropCentroid, DistogramToCoords, DistogramToCoords
+
 from mask_vae.models import AutoEncoder, VQ_VAE, Mask_VAE, VAE
-from mask_vae.lightning import LitAutoEncoder, LitVariationalAutoEncoder
+from mask_vae.lightning import LitAutoEncoderTorch, LitAutoEncoderPyro
 
 interp_size = 128*4
 
@@ -163,10 +165,11 @@ def test_dist_to_coord():
 
 
 @pytest.mark.parametrize("model", [VQ_VAE(channels=1),
-                                   VAE(1, 64, image_dims=(96, 96)),
+                                   VAE(1, 64, image_dims=(
+                                       window_size, window_size)),
                                    VAE(1, 128,
                                        hidden_dims=[32, 64],
-                                       image_dims=(96, 96))
+                                       image_dims=(window_size, window_size))
                                    ])
 def test_models(model):
     # vae = AutoEncoder(1, 1)
@@ -202,7 +205,7 @@ def test_forward():
 
 def test_training():
     model = Mask_VAE(VQ_VAE(channels=1))
-    lit_model = LitAutoEncoder(model)
+    lit_model = LitAutoEncoderTorch(model)
     trainer = pl.Trainer(
         max_steps=1,
         # limit_train_batches=1,

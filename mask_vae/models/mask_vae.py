@@ -66,3 +66,6 @@ class Mask_VAE(BaseVAE):
         
     def get_embedding(self):
         return self.model.get_embedding()
+    
+    def loss_function(self,*args,**kwargs):
+        return self.model.loss_function(*args,**kwargs)

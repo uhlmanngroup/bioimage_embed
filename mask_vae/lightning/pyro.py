@@ -36,7 +36,7 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 
 
-class LitVariationalAutoEncoder(pl.LightningModule):
+class LitAutoEncoderPyro(pl.LightningModule):
     def __init__(self, model, batch_size=1, learning_rate=1e-3):
         super().__init__()
         # self.autoencoder = AutoEncoder(batch_size, 1)

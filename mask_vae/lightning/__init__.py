@@ -1,2 +1,2 @@
-from .pyro import LitVariationalAutoEncoder
-from .torch import LitAutoEncoder
+from .pyro import LitAutoEncoderPyro
+from .torch import LitAutoEncoderTorch

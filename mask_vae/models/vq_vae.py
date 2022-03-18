@@ -345,3 +345,29 @@ class VQ_VAE(nn.Module):
 
     def decode(self,x):
         return self.decoder(x)
+    
+    def loss_function(self,
+                      *args,
+                      **kwargs) -> dict:
+        """
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        recons = args[0]
+        input = args[1]
+        vq_loss = args[2]
+        recons_loss = F.mse_loss(recons, input)
+
+        loss = recons_loss + vq_loss
+        return {'loss': loss,
+                'Reconstruction_Loss': recons_loss,
+                'VQ_Loss':vq_loss}
+
+        # vq_loss, output, perplexity = self.forward(inputs)
+        # output = x_recon
+        # loss = self.loss_fn(output, inputs)
+
+        # vq_loss, data_recon, perplexity = model(inputs)
+        # recon_error = F.mse_loss(output, inputs)
+        # recon_error = self.loss_fn(output, inputs)
