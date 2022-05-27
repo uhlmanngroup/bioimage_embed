@@ -65,8 +65,8 @@ class cropCentroid(torch.nn.Module):
         left = int(center_of_mass[1]-size/2)
         right = left + width
 
-        if left <= 0 or top <= 0 or right >= im_height or bottom >= im_width:
-            return None
+        # if left <= 0 or top <= 0 or right >= im_height or bottom >= im_width:
+            # return None
             # return Image.eval(crop(image,top,left,height,width), (lambda x: 0))
         # TODO find bad croppings
         # if ((top <= 0)  or (top+height >= im_height)  or (left <= 0) or (left+width >= 0) ):
@@ -196,7 +196,7 @@ class VerticesToMask(torch.nn.Module):
             vertices, (-1, vertices.shape[-2], vertices.shape[-1]))
         masks = np.stack([polygon2mask(mask_shape, arr)
                           for arr in flat]).reshape(*vertices.shape[-4:-2], *mask_shape)
-        shape = masks.shape
+        # shape = masks.shape
         return masks
 
 
@@ -284,6 +284,29 @@ class AsymmetricDistogramToMaskPipeline(torch.nn.Module):
             [
                 AsymmetricDistogramToSymmetricDistogram(),
                 DistogramToMaskPipeline(self.window_size),
+
+            ]
+        )
+
+    def forward(self, x):
+        # try:
+        #     return self.pipeline(x)
+        # except:
+        #     return None
+         return self.pipeline(x)
+     
+class AsymmetricDistogramToCoordsPipeline(torch.nn.Module):
+    '''
+    Placeholder class
+    '''
+
+    def __init__(self, window_size):
+        super().__init__()
+        self.window_size = window_size
+        self.pipeline = transforms.Compose(
+            [
+                AsymmetricDistogramToSymmetricDistogram(),
+                DistogramToCoords(self.window_size),
 
             ]
         )

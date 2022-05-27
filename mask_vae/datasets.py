@@ -25,13 +25,33 @@ class DSB2018(Dataset):
     def __init__(self, path_glob, transform=None):
         self.image_paths = glob.glob(path_glob, recursive=True)
         self.transform = transform
+        
+    # def make_subset(self, index):
+    #     self.getitem(index)
 
-    def __getitem__(self, index):
+    def is_image_cropped(image):
+        if (np.sum(
+            np.sum(image[:,0]),
+            np.sum(image[:,-1]),
+            np.sum(image[0,:]),
+            np.sum(image[-1,:])
+        ) == 0):
+            return False
+        else:
+            return True
+    
+    def getitem(self, index):
         x = Image.open(self.image_paths[index])
         # if self.transform is not None:
         x = self.transform(x)
-
         return x
+    
+    def __getitem__(self, index):
+        # x = self.getitem(index)
+        # if self.is_image_cropped(x):
+        return self.getitem(index)
+        # else:
+        #     return self.getitem(index+x)
 
     def __len__(self):
         return len(self.image_paths)
