@@ -41,15 +41,26 @@ class DSB2018(Dataset):
             return True
     
     def getitem(self, index):
-        x = Image.open(self.image_paths[index])
-        # if self.transform is not None:
-        x = self.transform(x)
-        return x
+        try:
+            x = Image.open(self.image_paths[index])
+            # if self.transform is not None:
+            x = self.transform(x)
+            return x
+        except:
+            return None
+        
     
     def __getitem__(self, index):
         # x = self.getitem(index)
         # if self.is_image_cropped(x):
-        return self.getitem(index)
+        # return index
+        # if isinstance(index, slice):
+            # return [self.getitem(i) for i in range(*index.indices(10))]
+        # TODO implement indexing/slicing
+        # return self.getitem(index)
+        dummy_list = np.arange(0,self.__len__())
+        return [self.getitem(i) for i in dummy_list[index]]
+
         # else:
         #     return self.getitem(index+x)
 
