@@ -58,8 +58,13 @@ class DSB2018(Dataset):
             # return [self.getitem(i) for i in range(*index.indices(10))]
         # TODO implement indexing/slicing
         # return self.getitem(index)
+
+        # return self.getitem(index)
         dummy_list = np.arange(0,self.__len__())
-        return [self.getitem(i) for i in dummy_list[index]]
+        loop = np.array(dummy_list[index])
+        if isinstance(index, slice):
+            return [self.getitem(i) for i in loop]
+        return self.getitem(index)
 
         # else:
         #     return self.getitem(index+x)
