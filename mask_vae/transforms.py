@@ -86,7 +86,13 @@ class DistogramToCoords(torch.nn.Module):
     def __repr__(self):
         return self.__class__.__name__
 
-    def get_points_from_dist(self, image):
+    def get_points_from_dist(self, image, method="MDS"):
+        if method == "MDS":
+            return self.get_points_from_dist_MDS(image)
+        if method == "Matrix":
+            return self.calculate_positions(image)
+    
+    def get_points_from_dist_MDS(self, image):
         return MDS(
             n_components=2,
             dissimilarity='precomputed',
@@ -101,6 +107,26 @@ class DistogramToCoords(torch.nn.Module):
                           for arr in flat]).reshape(*image.shape[-4:-1], -1)
         coords_scaled = (coords*size)+(size/2)  # TODO Check this scaling
         return coords_scaled
+
+    def x_coord_of_point(self,D, j):
+        return ( D[0,j]**2 + D[0,1]**2 - D[1,j]**2 ) / ( 2*D[0,1] )
+
+    def coords_of_point(self,D, j):
+        x = self.x_coord_of_point(D, j)
+        return np.array([x, np.sqrt( D[0,j]**2 - x**2 )])
+        
+    def calculate_positions(self,D):
+        (m, n) = D.shape
+        P = np.zeros( (n, 2) )
+        tr = ( min(min(D[2,0:2]), min(D[2,3:n])) / 2)**2
+        P[1,0] = D[0,1]
+        P[2,:] = self.coords_of_point(D, 2)
+        for j in range(3,n):
+            P[j,:] = self.coords_of_point(D, j) 
+            if abs( np.dot(P[j,:] - P[2,:], P[j,:] - P[2,:]) - D[2,j]**2 ) > tr:
+                P[j,1] = - P[j,1]
+        return P
+
     #     # for i in flat:
 
     #     # flat = torch.flatten(torch.tensor(image), start_dim=0, end_dim=1)
