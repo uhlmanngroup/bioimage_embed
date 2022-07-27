@@ -111,6 +111,10 @@ train_dataset = DSB2018(train_dataset_glob, transform=transformer_dist)
 train_dataset_crop = DSB2018(train_dataset_glob, transform=transformer_crop)
 train_dataset_dist = DSB2018(train_dataset_glob, transform=transform)
 
+train_dataset[0]
+train_dataset[0:2]
+# %%
+
 # train_dataset_crop_filtered = [x for x in train_dataset_crop if x is not None]
 # img_squeeze = train_dataset_crop[0].unsqueeze(0)
 # img_crop = train_dataset_crop[0]
@@ -198,16 +202,16 @@ plt.show()
 # z = model.model.model._pre_vq_conv(z)
 #  %%
 
-gen = model.sample(1).detach().numpy()
+# gen = model.sample(1).detach().numpy()
 
-mask_gen = AsymmetricDistogramToMaskPipeline(window_size)(gen)
+# mask_gen = AsymmetricDistogramToMaskPipeline(window_size)(gen)
 
-plt.title("gen_1")
-plt.imshow(mask_gen[0][0])
-plt.show()
+# plt.title("gen_1")
+# plt.imshow(mask_gen[0][0])
+# plt.show()
 # %%
 z_list = []
-for data in tqdm(train_dataset[0:500]):
+for data in tqdm(train_dataset):
     if data is not None:
         z,mu = model.encode(data.unsqueeze(0))
         z_list.append(z)
@@ -224,13 +228,15 @@ unfit_umap = umap.UMAP(random_state=42)
 fit_umap = unfit_umap.fit(latent_umap)
 proj = fit_umap.transform(latent_umap)
 
-worm_z = fit_umap.transform(z.detach().numpy())
+worm_z = fit_umap.transform(
+    z.detach().numpy().reshape((1,latent_umap[0].shape[0])))
 
 umap.plot.points(fit_umap)
 plt.show()
 plt.scatter(proj[:, 0], proj[:, 1])
 plt.show()
-#  %%
+#  %% Principle worm components, probably meaningless
+
 pc_1 = fit_umap.inverse_transform(np.array([[1, 0]]))
 pc_2 = fit_umap.inverse_transform(np.array([[0, 1]]))
 
@@ -242,28 +248,56 @@ plt.show()
 coord_1 = np.array([[0, -1]])
 coord_2 = np.array([[-1, 10]])
 
-coord_1 = np.array([[-0.1, 5]])
-coord_2 = np.array([[14, 7.5]])
+coord_1 = np.array([[5, 4]])
+coord_2 = np.array([[-13.8,7.5]])
+coord_2 = np.array([[1,7.5]])
 
-coord_1 = np.array([[-5, 4]])
-coord_2 = np.array([[15, 10]])
-
-coord_1 = np.array([[12.5, 8]])
-coord_2 = np.array([[-2.5, 6.5]])
-
-coord_1 = np.array([[6, 12.5]])
-coord_2 = np.array([[15,0.4]])
-coord_2 = np.array([[-2,7.5]])
-coord_2 = np.array([[-4,2.5]])
-
-
-coord_2 =  np.array([[5.1076117, 8.855541]]) 
 
 plt.scatter(proj[:, 0], proj[:, 1])
 plt.scatter(coord_1[:, 0], coord_1[:, 1], label="coord_1")
 plt.scatter(coord_2[:, 0], coord_2[:, 1], label="coord_2")
 plt.legend()
 plt.show()
+
+# %%
+from scipy.stats import gaussian_kde
+z = gaussian_kde(proj.T)(proj.T)
+
+plt.scatter(proj[:, 0], proj[:, 1],c= gaussian_kde(proj.T)(proj.T))
+plt.scatter(coord_1[:, 0], coord_1[:, 1], label="Sample 1")
+plt.scatter(coord_2[:, 0], coord_2[:, 1], label="Sample 2")
+plt.legend()
+plt.show()
+
+
+# %%
+
+from scipy.spatial import distance
+
+def closest_node(node, nodes):
+    closest_index = distance.cdist([node], nodes).argmin()
+    return nodes[closest_index],closest_index
+
+real_worm_near_1_coord,real_worm_near_1_index = closest_node(coord_1[0],proj)
+real_worm_near_2_coord,real_worm_near_2_index = closest_node(coord_2[0],proj)
+
+
+real_worm_1 = train_dataset_crop[real_worm_near_1_index].unsqueeze(0)
+plt.imshow(real_worm_1[0][0],cmap="binary")
+plt.xlim(0.25*500,0.75*500)
+plt.ylim(0.25*500,0.75*500)
+plt.show()
+
+real_worm_2 = train_dataset_crop[real_worm_near_2_index].unsqueeze(0)
+plt.imshow(real_worm_2[0][0],cmap="binary")
+plt.xlim(0.25*500,0.75*500)
+plt.ylim(0.25*500,0.75*500)
+plt.show()
+
+# %%
+
+
+# %%
 
 cluster_1 = fit_umap.inverse_transform(coord_1)
 cluster_2 = fit_umap.inverse_transform(coord_2)
@@ -281,21 +315,52 @@ contour_1 = AsymmetricDistogramToCoordsPipeline(window_size)(z_cluster_1)
 contour_2= AsymmetricDistogramToCoordsPipeline(window_size)(z_cluster_2)
 
 
-plt.title("contour_")
-plt.scatter(contour_1[0][0][:, 0],contour_1[0][0][:, 1])
+# plt.title("contour_")
+# plt.scatter(contour_1[0][0][:, 0],contour_1[0][0][:, 1])
+# plt.show()
+
+# plt.title("contour_2")
+# plt.scatter(contour_2[0][0][:, 0],contour_2[0][0][:, 1])
+# plt.show()
+
+plt.title("Sample 1")
+plt.imshow(mask_1[0][0],cmap="binary")
+plt.xlim(0.25*500,0.75*500)
+plt.ylim(0.25*500,0.75*500)
+plt.show()
+plt.title("Sample 2")
+plt.imshow(mask_2[0][0],cmap="binary")
+plt.xlim(0.25*500,0.75*500)
+plt.ylim(0.25*500,0.75*500)
 plt.show()
 
-plt.title("contour_2")
-plt.scatter(contour_2[0][0][:, 0],contour_2[0][0][:, 1])
-plt.show()
 
-plt.title("coord_1")
-plt.imshow(mask_1[0][0])
-plt.show()
-plt.title("coord_2")
-plt.imshow(mask_2[0][0])
-plt.show()
+# %%
+import matplotlib
+axd = plt.figure(constrained_layout=True,figsize=(13,7), dpi=600).subplot_mosaic(
+    """
+    AAABC
+    AAADE
+    """
+)
 
+axd['A'].set_title("Latent space")
+axd['A'].scatter(proj[:, 0], proj[:, 1],c= gaussian_kde(proj.T)(proj.T))
+axd['A'].scatter(coord_1[:, 0], coord_1[:, 1], label="Sample A")
+axd['A'].scatter(coord_2[:, 0], coord_2[:, 1], label="Sample B")
+axd['A'].legend(loc='upper left')
+axd['B'].imshow(real_worm_1[0][0],cmap="binary")
+axd['B'].set_title(f"A: Real data at {np.around(real_worm_near_1_coord,3)}")
+axd['C'].imshow(real_worm_2[0][0],cmap="binary")
+axd['C'].set_title(f"B: Real data at {np.around(real_worm_near_2_coord,3)}")
+axd['D'].imshow(mask_1[0][0],cmap=matplotlib.colors.ListedColormap(['white', 'tab:blue']))
+axd['D'].set_title(f"A: Generated data at {np.around(coord_1[0],3)}")
+axd['E'].imshow(mask_2[0][0],cmap=matplotlib.colors.ListedColormap(['white', 'tab:orange']))
+axd['E'].set_title(f"B: Generated data at {np.around(coord_2[0],3)}")
+
+# plt.tight_layout()
+plt.savefig("latentspace.pdf")
+plt.show()
 
 # #  %%
 
@@ -306,7 +371,6 @@ plt.show()
 #  %%
 
 
-kde = gaussian_kde(proj)
 
 #  %%
 
