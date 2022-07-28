@@ -89,6 +89,15 @@ transformer_coords = DistogramToCoords(window_size)
 train_dataset = DSB2018(train_dataset_glob, transform=transformer_dist)
 train_dataset_crop = DSB2018(train_dataset_glob, transform=transformer_crop)
 
+assert(len(train_dataset)>0)
+assert(len(train_dataset_crop)>0)
+
+def test_glob():
+    assert(len(train_dataset)>0)
+    assert(len(train_dataset_crop)>0)
+    plt.imshow(test_img[0][0])
+    plt.show()
+    
 # img_squeeze = train_dataset_crop[0].unsqueeze(0)
 # img_crop = train_dataset_crop[0]
 
@@ -108,6 +117,8 @@ img_crop = train_dataset_crop[1].unsqueeze(0)
 
 # train_dataset = train_dataset_dist
 
+
+    
 def test_img_test():
     plt.close()
     plt.imshow(test_img[0][0])
