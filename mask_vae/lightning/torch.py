@@ -79,11 +79,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         results = self.forward(real_img)
         recon = self.recon(real_img)
 
-        train_loss = self.model.loss_function(*results,
-                                            #   M_N = self.params['kld_weight'], #al_img.shape[0]/ self.num_train_imgs,
-                                            #   optimizer_idx=optimizer_idx,
-                                            #   batch_idx = batch_idx
-                                              )
+        train_loss = self.model.loss_function(*results,recon=recon)
         loss = train_loss['loss']
         self.log("train_loss", loss)
         # tensorboard = self.logger.experiment
