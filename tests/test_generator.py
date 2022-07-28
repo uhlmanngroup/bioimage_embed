@@ -73,8 +73,9 @@ decay = 0.99
 
 learning_rate = 1e-3
 
-train_dataset_glob = os.path.join(os.path.expanduser("~"),
-                                  "data-science-bowl-2018/stage1_train/*/masks/*.png")
+train_dataset_glob = "data/stage1_train/*/masks/*.png"
+train_dataset_glob = "data/BBBC010_v1_foreground_eachworm/*.png"
+
 # test_dataloader_glob=os.path.join(os.path.expanduser("~"),
 # "data-science-bowl-2018/stage1_test/*/masks/*.png")
 
