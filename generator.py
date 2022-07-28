@@ -78,9 +78,9 @@ decay = 0.99
 learning_rate = 1e-3
 
 train_dataset_glob = "data/stage1_train/*/masks/*.png"
-train_dataset_glob = os.path.join("data/BBBC010_v1_foreground_eachworm/*.png")
+train_dataset_glob = "data/BBBC010_v1_foreground_eachworm/*.png"
 
-
+# %%
 # def my_collate(batch):
 #     batch = list(filter(lambda x: x is not None, batch))
 #     return torch.utils.data.dataloader.default_collate(batch)
@@ -159,45 +159,95 @@ for worm_id in range(0,10):
     plt.imshow(test_img[0][0])
     plt.show()
 # %%
-worm_id = 5
-test_img = train_dataset[worm_id].unsqueeze(0)
-plt.imshow(test_img[0][0])
-plt.show()
+
 # loss, y_prime, _, = model.forward(test_img)
 # y_prime = y_prime.detach().numpy()
 # plt.imshow(y_prime[0][0])
 # plt.show()
 
 
-z, log_var = model.encode(test_img)
+worm_id = 5
+test_img_in = train_dataset_crop[worm_id].unsqueeze(0)
+test_img_in_dist = train_dataset[worm_id].unsqueeze(0)
+
+z, log_var = model.encode(test_img_in_dist)
 z_np = z.detach().numpy()
-z_gen = z
 
-y_prime = model.decode(z).detach().numpy()
+z_np.flatten()
+width_z = np.floor(np.sqrt(len(z_np.flatten()))).astype(int)
+height_z = (len(z_np.flatten())/width_z).astype(int)
+
+
+# z_gen = z
+
+test_img_out_dist = model.decode(z).detach().numpy()
 # plt.imshow(y_prime[0][0])
 # plt.show()
-# torch.randn(z_np.shape)/100000
-y_gen = model.decode(z).detach().numpy()
-# plt.imshow(y_prime[0][0])
+
+
+# y_gen = model.decode(z).detach().numpy()
+# plt.imshow(y_gen[0][0])
 # plt.show()
 
 
-mask_reconstruct = AsymmetricDistogramToMaskPipeline(window_size)(y_prime)
-mask_gen_reconstruct = AsymmetricDistogramToMaskPipeline(window_size)(y_gen)
+coords_out_reconstruct = AsymmetricDistogramToCoordsPipeline(window_size)(test_img_out_dist)
 
-contour_reconstruct= AsymmetricDistogramToCoordsPipeline(window_size)(test_img.detach().numpy())
+# coords_in_reconstruct = DistogramToCoords(window_size)(test_img_in_dist)
+coords_in_reconstruct= DistogramToCoords(window_size)(test_img_in_dist.detach().numpy())
 
-plt.imshow(mask_reconstruct[0][0])
+
+test_img_out = AsymmetricDistogramToMaskPipeline(window_size)(test_img_out_dist)
+# test_img_in = AsymmetricDistogramToMaskPipeline(window_size)(test_img_in_dist)
+
+# plt.imshow(mask_reconstruct[0][0])
+# plt.show()
+
+
+
+axd = plt.figure(constrained_layout=True,figsize=(12, 8)).subplot_mosaic(
+    """
+    Aa
+    Bb
+    Cc
+    """,
+)
+
+axd["A"].imshow(test_img_in[0][0])
+axd["A"].set_title("test_img_in")
+
+axd["a"].imshow(test_img_out[0][0])
+axd["a"].set_title("test_img_out")
+
+axd["B"].imshow(test_img_in_dist[0][0])
+axd["B"].set_title("test_img_in_dist")
+
+axd["b"].imshow(test_img_out_dist[0][0])
+axd["b"].set_title("test_img_out_dist")
+
+axd["c"].plot(coords_out_reconstruct[0,0,:,0],
+                 coords_out_reconstruct[0,0,:,1])
+axd["c"].set_aspect("equal")
+axd["c"].set_title("coords_out_reconstruct")
+axd["C"].plot(coords_in_reconstruct[0,0,:,0],
+                 coords_in_reconstruct[0,0,:,1])
+axd["C"].set_aspect('equal')
+axd["C"].set_title("coords_in_reconstruct")
+
+# axd["Z"].imshow(z_np.reshape((width_z,height_z)))
+# axd["Z"].set_title("z_np")
+
+# axd["M"].text(0.5,0.5,"Model")
+# axd["n"].arrow(0, 0, 0, 40)
+# axd["m"].arrow(0, 0, 40, 20)
+# axd["p"].arrow(0, 0, 40, 20)
+# axd["o"].arrow(0, 0, 40, 20)
+
+
+
+# axd["F"].imshow(mask_reconstruct[0][0])
+
 plt.show()
 
-plt.imshow(mask_gen_reconstruct[0][0])
-plt.show()
-
-print(z.shape)
-
-plt.title("contour_reconstruct")
-plt.scatter(contour_reconstruct[0][0][:, 0],contour_reconstruct[0][0][:, 1])
-plt.show()
 # z = model.model.model._encoder(test_img)
 # z = model.model.model._pre_vq_conv(z)
 #  %%
