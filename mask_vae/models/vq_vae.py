@@ -341,7 +341,7 @@ class VQ_VAE(nn.Module):
         return self._vq_vae._embedding.weight.data.cpu()
     
     def encode(self,x):
-        return (self.encoder(x), None )
+        return self.encoder(x)
 
     def decode(self,x):
         return self.decoder(x)
