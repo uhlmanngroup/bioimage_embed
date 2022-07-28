@@ -134,6 +134,10 @@ class VAE(BaseVAE):
         mu, log_var = self.encode(input)
         z = self.reparameterize(mu, log_var)
         return  [self.decode(z), input, mu, log_var]
+    
+    def recon(self,x):
+        x_recon, input, mu, log_var = self.forward(x)
+        return x_recon
 
     def loss_function(self,
                       *args,

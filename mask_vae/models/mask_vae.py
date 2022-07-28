@@ -62,7 +62,10 @@ class Mask_VAE(BaseVAE):
     
     def encode(self,img):
         return self.model.encode(img)
-    
+
+    def recon(self,img):
+        return self.model.recon(img)
+
     def mask_from_latent(self,z,window_size):
         # This should be class-method based
         # I.e. self.decoder(z)
@@ -74,7 +77,19 @@ class Mask_VAE(BaseVAE):
         return self.model.get_embedding()
     
     def loss_function(self,*args,**kwargs):
-        return self.model.loss_function(*args,**kwargs)
+
+        # decode_z, input, mu, log_var = kwargs
+        
+        
+        # diag_loss = F.mse_loss(
+        #     torch.diagonal(recon),
+        #     torch.zeros_like(torch.diagonal(recon))
+        # )
+        # symmetry_loss = F.mse_loss(recon, recon.transpose(3, 2))
+        vae_loss =  self.model.loss_function(*args,**kwargs)
+        # vae_loss["loss"] = vae_loss["loss"] + diag_loss + symmetry_loss
+        
+        return vae_loss
     
     def output_from_results(self,*args,**kwargs):
         return self.model.output_from_results(*args,**kwargs)

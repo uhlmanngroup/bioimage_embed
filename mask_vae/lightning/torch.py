@@ -64,7 +64,10 @@ class LitAutoEncoderTorch(pl.LightningModule):
     
     def forward(self, x):
         return self.model(x)
-
+    
+    def recon(self,x):
+        return self.model.recon(x)
+    
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(),
                                 lr=self.learning_rate)
@@ -74,6 +77,8 @@ class LitAutoEncoderTorch(pl.LightningModule):
         # self.curr_device = real_img.device
 
         results = self.forward(real_img)
+        recon = self.recon(real_img)
+
         train_loss = self.model.loss_function(*results,
                                             #   M_N = self.params['kld_weight'], #al_img.shape[0]/ self.num_train_imgs,
                                             #   optimizer_idx=optimizer_idx,
