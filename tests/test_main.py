@@ -188,7 +188,7 @@ class TestModels:
     def test_forward(self,model):
         model = Mask_VAE(model)
         # test_img = train_dataset[0]
-        z = model.encode(test_img)
+        z,log_var = model.encode(test_img)
         y_prime = model.decode(z)
         model.forward(test_img)
 
