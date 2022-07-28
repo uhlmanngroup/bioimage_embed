@@ -296,7 +296,11 @@ class VQ_VAE(nn.Module):
         loss, quantized, perplexity, _ = self._vq_vae(z)
         x_recon = self._decoder(quantized)
         return loss, x_recon, perplexity
-
+    
+    def recon(self,x):
+        loss, x_recon, perplexity = self.forward(x)
+        return x_recon
+    
     def encoder_z(self, x):
         # z = self._encoder(x)
         # z = self._pre_vq_conv(z)
