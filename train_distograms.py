@@ -35,8 +35,11 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
 
-path = os.path.join(os.path.expanduser("~"),
-                    "data-science-bowl-2018/stage1_train/*/masks/*.png")
+torch.manual_seed(0)
+np.random.seed(0)
+
+
+path = os.path.join("data/stage1_train/*/masks/*.png")
 path
 
 #  %%
@@ -100,7 +103,7 @@ class cropCentroid(torch.nn.Module):
         # TODO find bad croppings
         # if ((top <= 0)  or (top+height >= im_height)  or (left <= 0) or (left+width >= 0) ):
         # return Image.eval(crop(image,top,left,height,width), (lambda x: 0))
-        return crop(image, top, left, height, width)
+        return torchvision.transforms.functional.crop(image, top, left, height, width)
 
 
 class cropCentroid(torch.nn.Module):
@@ -187,8 +190,8 @@ class ImagetoDistogram(torch.nn.Module):
 
         contour = find_contours(np_image)
         contour_x, contour_y = contour[0][:, 0], contour[0][:, 1]
-        # plt.scatter(contour_x,contour_y)
-        # plt.show()
+        plt.scatter(contour_x,contour_y)
+        plt.show()
         #  %%
         rho, phi = self.cart2pol(contour_x, contour_y)
 
@@ -241,21 +244,26 @@ transformer_image = transforms.Compose(
     ]
 )
 
-transformer = transformer_dist
-
-
-train_dataset_glob = os.path.join(os.path.expanduser("~"),
-                                  "data-science-bowl-2018/stage1_train/*/masks/*.png")
-# test_dataloader_glob=os.path.join(os.path.expanduser("~"),
-# "data-science-bowl-2018/stage1_test/*/masks/*.png")
-train_dataset_dist = DSB2018(train_dataset_glob, transform=transformer_dist)
-train_dataset_crop = DSB2018(train_dataset_glob, transform=transformer_crop)
-plt.imshow(train_dataset_crop[0][0])
-plt.show()
-
-train_dataset = train_dataset_dist
 #  %%
 
+transformer = transformer_dist
+
+# train_dataset_glob = os.path.join(os.path.expanduser("~"),
+                                #   "data-science-bowl-2018/stage1_train/*/masks/*.png")
+# test_dataloader_glob=os.path.join(os.path.expanduser("~"),
+# "data-science-bowl-2018/stage1_test/*/masks/*.png")
+train_dataset_crop = DSB2018(path, transform=transformer_crop)
+train_dataset_dist = DSB2018(path, transform=transformer_dist)
+train_dataset = train_dataset_dist
+
+
+dist = np.array(train_dataset_dist[1][0]).astype(float)
+
+plt.imshow(train_dataset_crop[1][0])
+plt.show()
+plt.imshow(dist)
+plt.show()
+# train_dataset = train_dataset_dist
 
 transform_disttoimage = transforms.Compose([
     DistogramtoImage(window_size)
@@ -266,6 +274,10 @@ transform_disttoimage = transforms.Compose([
 coords = transform_disttoimage(train_dataset_dist[0])
 plt.scatter(coords[0][:, 0], coords[0][:, 1])
 plt.show()
+#  %%
+
+
+
 
 # print(out.shape)
 # plt.imshow(transforms.ToPILImage()(transformer(train_dataset[0])))
@@ -771,7 +783,6 @@ class VQ_VAE(nn.Module):
 # vae = VAE()
 # model_check = vae.model(img)
 
-
 # vae = AutoEncoder(1, 1)
 vae = VQ_VAE(channels=1)
 img = train_dataset[0].unsqueeze(0)
@@ -967,18 +978,18 @@ except:
 # #
 # # if __name__ = main:
 # #
-
+torch.save(model.state_dict(), "model")
 # model = LitAutoEncoder(batch_size=batch_size)
 # # model = LitVariationalAutoEncoder()
 # trainer.fit(model, dataloader)
 
 #  %%
 # model
-for i in range(10):
-    z_random = torch.normal(torch.zeros_like(z), torch.ones_like(z)).cuda()
-    generated_image = model.autoencoder.decoder(z_random)
-    plt.imshow(transforms.ToPILImage()(generated_image[0]))
-    plt.show()
+# for i in range(10):
+#     z_random = torch.normal(torch.zeros_like(z), torch.ones_like(z)).cuda()
+#     generated_image = model.autoencoder.decoder(z_random)
+#     plt.imshow(transforms.ToPILImage()(generated_image[0]))
+#     plt.show()
 
 # loss_function = torch.nn.MSELoss()
 #  %%
