@@ -76,7 +76,7 @@ class Mask_VAE(BaseVAE):
     def get_embedding(self):
         return self.model.get_embedding()
     
-    def loss_function(self,*args,recon,**kwargs):
+    def loss_function(self,*args,recon,distance_matrix_loss=False,**kwargs):
 
         # decode_z, input, mu, log_var = kwargs
         
@@ -87,7 +87,10 @@ class Mask_VAE(BaseVAE):
         )
         symmetry_loss = F.mse_loss(recon, recon.transpose(3, 2))
         vae_loss =  self.model.loss_function(*args,**kwargs)
-        vae_loss["loss"] = vae_loss["loss"] + diag_loss + symmetry_loss
+        if distance_matrix_loss:
+            vae_loss["loss"] = (8/10*vae_loss["loss"]
+                                + 1/10*diag_loss
+                                + 1/10*symmetry_loss)
         
         return vae_loss
     
