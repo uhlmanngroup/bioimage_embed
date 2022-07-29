@@ -354,16 +354,17 @@ class VQ_VAE(nn.Module):
         return x_recon
     
     def loss_function(self,
-                      *args,
+                      *args,recons,input,
                       **kwargs) -> dict:
         """
         :param args:
         :param kwargs:
         :return:
         """
-        recons = args[0]
-        input = args[1]
-        vq_loss = args[2]
+        vq_loss, recons, perplexity = args
+        # recons = args[0]
+        # input = args[1]
+        # vq_loss = args[2]
         recons_loss = F.mse_loss(recons, input)
 
         loss = recons_loss + vq_loss
