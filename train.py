@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 import os
 from pytorch_lightning import loggers as pl_loggers
 from torchvision import transforms
-
+from mask_vae.lightning import DatamoduleGlob
 
 from mask_vae.datasets import DatasetGlob
 from mask_vae.transforms import CropCentroidPipeline, DistogramToCoords, DistogramToCoords, MaskToDistogramPipeline
@@ -100,13 +100,15 @@ plt.show()
 # %%
 
 
-def my_collate(batch):
-    batch = list(filter(lambda x: x is not None, batch))
-    return torch.utils.data.dataloader.default_collate(batch)
+# def my_collate(batch):
+#     batch = list(filter(lambda x: x is not None, batch))
+#     return torch.utils.data.dataloader.default_collate(batch)
 
+dataloader = DatamoduleGlob(train_dataset_glob, batch_size=batch_size,
+                        shuffle=True, num_workers=2**4,transform=transformer_dist)
 
-dataloader = DataLoader(train_dataset, batch_size=batch_size,
-                        shuffle=True, num_workers=2**4, pin_memory=True, collate_fn=my_collate)
+# dataloader = DataLoader(train_dataset, batch_size=batch_size,
+#                         shuffle=True, num_workers=2**4, pin_memory=True, collate_fn=my_collate)
 
 model = Mask_VAE("VQ_VAE",channels=1)
 # model = Mask_VAE("VAE", 1, 64,
@@ -138,9 +140,9 @@ trainer = pl.Trainer(
 
 # %%
 try:
-    trainer.fit(lit_model, dataloader,
+    trainer.fit(lit_model,  datamodule=dataloader,
                 ckpt_path=f'{model_dir}/last.ckpt')
 except:
-    trainer.fit(lit_model, dataloader)
+    trainer.fit(lit_model, datamodule=dataloader)
 
 # %%
