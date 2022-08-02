@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 
 interp_size = 128*4
 
-max_epochs = 5000
+max_epochs = 500
 
 window_size = 128*4
 batch_size = 2
@@ -40,11 +40,12 @@ decay = 0.99
 
 learning_rate = 1e-3
 
-
+dataset = "BBBC010_v1_foreground_eachworm"
+mode = "VQ_VAE"
 
 # train_dataset_glob = "data-science-bowl-2018/stage1_train/*/masks/*.png"
 train_dataset_glob = "data/stage1_train/*/masks/*.png"
-train_dataset_glob = "data/BBBC010_v1_foreground_eachworm/*.png"
+train_dataset_glob = f"data/{dataset}/*.png"
 # %%
 # train_dataset_glob = os.path.join("data/BBBC010_v1_foreground_eachworm/*.png")
 
@@ -55,7 +56,7 @@ train_dataset_glob = "data/BBBC010_v1_foreground_eachworm/*.png"
 
 # model_dir = "test"
 # model_dir = "BBBC010_v1_foreground_eachworm"
-model_dir = "models/BBBC010_v1_foreground_eachworm_vq_vae"
+model_dir = f"models/{dataset}_{mode}"
 # %%
 
 transformer_crop = CropCentroidPipeline(window_size)
@@ -107,10 +108,10 @@ def my_collate(batch):
 dataloader = DataLoader(train_dataset, batch_size=batch_size,
                         shuffle=True, num_workers=2**4, pin_memory=True, collate_fn=my_collate)
 
-model = Mask_VAE(VQ_VAE(channels=1))
-# model = Mask_VAE(VAE(1, 64,
+model = Mask_VAE("VQ_VAE",channels=1)
+# model = Mask_VAE("VAE", 1, 64,
 #                      #  hidden_dims=[32, 64],
-#                      image_dims=(interp_size, interp_size)))
+#                      image_dims=(interp_size, interp_size))
 
 # model = Mask_VAE(VAE())
 # %%
