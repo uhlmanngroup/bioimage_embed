@@ -22,7 +22,7 @@ import torch.optim as optim
 
 
 class DatasetGlob(Dataset):
-    def __init__(self, path_glob, transform=None):
+    def __init__(self, path_glob, transform=None,**kwargs):
         self.image_paths = glob.glob(path_glob, recursive=True)
         self.transform = transform
         
