@@ -71,32 +71,45 @@ class LitAutoEncoderTorch(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(),
                                 lr=self.learning_rate)
-
-    def training_step(self, batch, batch_idx, optimizer_idx = 0):
-        real_img = batch
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        return self.recon(batch)
+    
+    def get_loss(self,batch):
         # self.curr_device = real_img.device
 
-        results = self.forward(real_img)
-        recons = self.recon(real_img)
+        results = self.get_results(batch)
+        recons = self.recon(batch)
 
-        train_loss = self.model.loss_function(*results,
+        loss = self.model.loss_function(*results,
                                               recons=recons,
-                                              input=real_img)
-        loss = train_loss['loss']
-        self.log("train_loss", loss)
-        # tensorboard = self.logger.experiment
-        self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
+                                              input=batch)
+        return loss["loss"]
+    
+    def get_results(self,batch):
+        return self.forward(batch)
+    
+    def test_step(self, batch, batch_idx):
+        test_loss = self.get_loss(batch)
+        self.log("test_loss",test_loss,on_epoch=True)
+        return test_loss
+    
+    def validation_step(self, batch, batch_idx):
+        val_loss = self.get_loss(batch)
+        self.log("val_loss",val_loss,on_epoch=True)
+        return val_loss
+    
+    def training_step(self, batch, batch_idx, optimizer_idx = 0):
 
-        # torchvision.utils.make_grid(output)
+        loss = self.get_loss(batch)
+        results = self.get_results(batch)
+        
+        self.log("train_loss", loss)
+        # self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
+
         self.logger.experiment.add_image(
             "input", torchvision.utils.make_grid(batch), batch_idx)
-        # self.logger.experiment.add_embedding(
-        #     "input_image", torchvision.utils.make_grid(transformer_image(inputs)), batch_idx)
         self.logger.experiment.add_image(
             "output", torchvision.utils.make_grid(self.model.output_from_results(*results)), batch_idx)
-        # self.logger.experiment.add_embedding(
-        #     "output_image", torchvision.utils.make_grid(transformer_image(output)), batch_idx)
-
         return loss
 
     def _training_step(self, inputs, batch_idx):
@@ -110,7 +123,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         loss = recon_error + vq_loss  # Missing variance bit
         self.log("train_loss", loss)
         # tensorboard = self.logger.experiment
-        self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
+        # self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
 
         # torchvision.utils.make_grid(output)
         self.logger.experiment.add_image(
