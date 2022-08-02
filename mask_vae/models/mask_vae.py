@@ -35,15 +35,23 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 from mask_vae.transforms import DistogramToMaskPipeline
 from .utils import BaseVAE
+from mask_vae.models import VQ_VAE, VAE
 
 class Mask_VAE(BaseVAE):
+    model_lookup = {"vq_vae":VQ_VAE,
+                    "vae":VAE,
+                    }
+    # model_defaults = {VQ_VAE:{"channels":1},
+    #                   VAE: {}}
     # by default our latent space is 50-dimensional
     # and we use 400 hidden units
-    def __init__(self, model):
+    def __init__(self, model="VQ_VAE",*args,**kwargs):
         super(Mask_VAE, self).__init__()
-        # self.obj = model
-        self.model = model
-        # self.model.__init__()
+        if type(model) is str:
+            self.model = self.model_lookup[model.lower()](*args,**kwargs)
+        else:
+            self.model = model
+
 
     # def __getattr__(self, attr):
     #     return getattr(self.obj, attr)

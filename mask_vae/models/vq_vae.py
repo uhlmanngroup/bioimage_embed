@@ -268,7 +268,8 @@ class VQ_VAE(nn.Module):
                  embedding_dim=64,
                  num_embeddings=512,
                  commitment_cost=0.25,
-                 decay=0.99, channels=1):
+                 decay=0.99, channels=1,
+                 **kwargs):
         super(VQ_VAE, self).__init__()
 
         self._encoder = Encoder(num_hiddens,

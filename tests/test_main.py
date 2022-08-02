@@ -185,7 +185,7 @@ class TestModels:
             f"img_dims:{img.shape}, z:_dims:{z.shape}")
 
 
-    def test_forward(self,model):
+    def test_mask_forward(self,model):
         model = Mask_VAE(model)
         # test_img = train_dataset[0]
         z,log_var = model.encode(test_img)
@@ -193,7 +193,7 @@ class TestModels:
         model.forward(test_img)
 
 
-    def test_training(self,model):
+    def test_mask_training(self,model):
         model = Mask_VAE(model)
         lit_model = LitAutoEncoderTorch(model)
         trainer = pl.Trainer(
