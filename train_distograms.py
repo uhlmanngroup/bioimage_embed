@@ -62,7 +62,7 @@ decay = 0.99
 learning_rate = 1e-3
 
 
-class DSB2018(Dataset):
+class DatasetGlob(Dataset):
     def __init__(self, path_glob, transform=None):
         self.image_paths = glob.glob(path_glob, recursive=True)
         self.transform = transform
@@ -252,8 +252,8 @@ transformer = transformer_dist
                                 #   "data-science-bowl-2018/stage1_train/*/masks/*.png")
 # test_dataloader_glob=os.path.join(os.path.expanduser("~"),
 # "data-science-bowl-2018/stage1_test/*/masks/*.png")
-train_dataset_crop = DSB2018(path, transform=transformer_crop)
-train_dataset_dist = DSB2018(path, transform=transformer_dist)
+train_dataset_crop = DatasetGlob(path, transform=transformer_crop)
+train_dataset_dist = DatasetGlob(path, transform=transformer_dist)
 train_dataset = train_dataset_dist
 
 

@@ -76,7 +76,7 @@ transform = transforms.Compose(
 )
 
 
-class DSB2018(Dataset):
+class DatasetGlob(Dataset):
     def __init__(self, path_glob, transform=None):
         self.image_paths = glob.glob(path_glob, recursive=True)
         self.transform = transform
@@ -96,7 +96,7 @@ train_dataset_glob = os.path.join(os.path.expanduser("~"),
                                   "data-science-bowl-2018/stage1_train/*/masks/*.png")
 # test_dataloader_glob=os.path.join(os.path.expanduser("~"),
 # "data-science-bowl-2018/stage1_test/*/masks/*.png")
-train_dataset = DSB2018(train_dataset_glob, transform=transform)
+train_dataset = DatasetGlob(train_dataset_glob, transform=transform)
 train_dataset[0]
 #  %%
 

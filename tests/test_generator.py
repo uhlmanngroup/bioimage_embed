@@ -46,7 +46,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
 
-from mask_vae.datasets import DSB2018
+from mask_vae.datasets import DatasetGlob
 from mask_vae.transforms import ImagetoDistogram, cropCentroid, DistogramToCoords,CropCentroidPipeline
 from mask_vae.transforms import DistogramToCoords, MaskToDistogramPipeline,AsymmetricDistogramToMaskPipeline
 from mask_vae.transforms import DistogramToMaskPipeline
@@ -83,11 +83,11 @@ transformer_crop = CropCentroidPipeline(window_size)
 transformer_dist = MaskToDistogramPipeline(window_size, interp_size)
 transformer_coords = DistogramToCoords(window_size)
 
-# train_dataset_raw = DSB2018(train_dataset_glob)
-# train_dataset_crop = DSB2018(
+# train_dataset_raw = DatasetGlob(train_dataset_glob)
+# train_dataset_crop = DatasetGlob(
 #     train_dataset_glob, transform=CropCentroidPipeline(window_size))
-train_dataset = DSB2018(train_dataset_glob, transform=transformer_dist)
-train_dataset_crop = DSB2018(train_dataset_glob, transform=transformer_crop)
+train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
+train_dataset_crop = DatasetGlob(train_dataset_glob, transform=transformer_crop)
 
 assert(len(train_dataset)>0)
 assert(len(train_dataset_crop)>0)

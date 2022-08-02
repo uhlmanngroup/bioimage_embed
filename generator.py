@@ -50,7 +50,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
 
-from mask_vae.datasets import DSB2018
+from mask_vae.datasets import DatasetGlob
 from mask_vae.transforms import ImagetoDistogram, cropCentroid, DistogramToCoords, CropCentroidPipeline
 from mask_vae.transforms import DistogramToCoords, MaskToDistogramPipeline, AsymmetricDistogramToMaskPipeline
 from mask_vae.transforms import DistogramToMaskPipeline, AsymmetricDistogramToSymmetricDistogram, AsymmetricDistogramToCoordsPipeline
@@ -104,12 +104,12 @@ transform = transforms.Compose(
 )
 
 
-# train_dataset_raw = DSB2018(train_dataset_glob)
-# train_dataset_crop = DSB2018(
+# train_dataset_raw = DatasetGlob(train_dataset_glob)
+# train_dataset_crop = DatasetGlob(
 #     train_dataset_glob, transform=CropCentroidPipeline(window_size))
-train_dataset = DSB2018(train_dataset_glob, transform=transformer_dist)
-train_dataset_crop = DSB2018(train_dataset_glob, transform=transformer_crop)
-train_dataset_dist = DSB2018(train_dataset_glob, transform=transform)
+train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
+train_dataset_crop = DatasetGlob(train_dataset_glob, transform=transformer_crop)
+train_dataset_dist = DatasetGlob(train_dataset_glob, transform=transform)
 
 train_dataset[0]
 train_dataset[0:2]
@@ -143,7 +143,7 @@ model = LitAutoEncoderTorch(model).load_from_checkpoint(
 #             ckpt_path="checkpoints/last.ckpt")
 # model = lit_model.load_from_checkpoint(checkpoint_path="checkpoints/last.ckpt")
 # test_img = torch.tensor(np.zeros((1, 96, 96)), dtype=torch.float32)
-# train_dataset = DSB2018(train_dataset_glob, transform=transformer_dist)
+# train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
 # %%
 for worm_id in range(0,10):
     print(worm_id)

@@ -13,7 +13,7 @@ from pytorch_lightning import loggers as pl_loggers
 from torchvision import transforms
 
 
-from mask_vae.datasets import DSB2018
+from mask_vae.datasets import DatasetGlob
 from mask_vae.transforms import CropCentroidPipeline, DistogramToCoords, DistogramToCoords, MaskToDistogramPipeline
 from mask_vae.models import Mask_VAE, VQ_VAE, VAE
 from mask_vae.lightning import LitAutoEncoderTorch, LitAutoEncoderPyro
@@ -41,7 +41,7 @@ decay = 0.99
 learning_rate = 1e-3
 
 dataset = "BBBC010_v1_foreground_eachworm"
-mode = "VQ_VAE"
+model_name = "VQ_VAE"
 
 # train_dataset_glob = "data-science-bowl-2018/stage1_train/*/masks/*.png"
 train_dataset_glob = "data/stage1_train/*/masks/*.png"
@@ -50,21 +50,21 @@ train_dataset_glob = f"data/{dataset}/*.png"
 # train_dataset_glob = os.path.join("data/BBBC010_v1_foreground_eachworm/*.png")
 
 
-# train_dataset_glob = os.path.join("data/dsb2018/train/masks/*.tif")
+# train_dataset_glob = os.path.join("data/DatasetGlob/train/masks/*.tif")
 # test_dataloader_glob=os.path.join(os.path.expanduser("~"),
 # "data-science-bowl-2018/stage1_test/*/masks/*.png")
 
 # model_dir = "test"
 # model_dir = "BBBC010_v1_foreground_eachworm"
-model_dir = f"models/{dataset}_{mode}"
+model_dir = f"models/{dataset}_{model_name}"
 # %%
 
 transformer_crop = CropCentroidPipeline(window_size)
 transformer_dist = MaskToDistogramPipeline(window_size, interp_size)
 transformer_coords = DistogramToCoords(window_size)
 
-train_dataset = DSB2018(train_dataset_glob)
-# train_dataset_crop = DSB2018(
+train_dataset = DatasetGlob(train_dataset_glob)
+# train_dataset_crop = DatasetGlob(
 #     train_dataset_glob, transform=CropCentroidPipeline(window_size))
 
 
@@ -76,22 +76,22 @@ transform = transforms.Compose(
     ]
 )
 
-train_dataset = DSB2018(train_dataset_glob, transform=transformer_dist)
+train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
 plt.imshow(train_dataset[0][0],cmap='gray')
 plt.show()
 
-train_dataset = DSB2018(train_dataset_glob, transform=transforms.ToTensor())
+train_dataset = DatasetGlob(train_dataset_glob, transform=transforms.ToTensor())
 plt.imshow(train_dataset[0][0],cmap='gray')
 plt.show()
-train_dataset = DSB2018(train_dataset_glob, transform=transformer_crop)
-plt.imshow(train_dataset[0][0],cmap='gray')
-plt.show()
-
-train_dataset = DSB2018(train_dataset_glob, transform=transformer_crop)
+train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_crop)
 plt.imshow(train_dataset[0][0],cmap='gray')
 plt.show()
 
-train_dataset = DSB2018(train_dataset_glob, transform=transformer_dist)
+train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_crop)
+plt.imshow(train_dataset[0][0],cmap='gray')
+plt.show()
+
+train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
 plt.imshow(train_dataset[0][0],cmap='gray')
 plt.show()
 

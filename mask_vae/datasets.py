@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 
 
-class DSB2018(Dataset):
+class DatasetGlob(Dataset):
     def __init__(self, path_glob, transform=None):
         self.image_paths = glob.glob(path_glob, recursive=True)
         self.transform = transform
