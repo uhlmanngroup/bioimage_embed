@@ -88,7 +88,10 @@ learning_rate = 1e-3
 
 transformer_crop = CropCentroidPipeline(window_size)
 transformer_dist = MaskToDistogramPipeline(window_size, interp_size)
+transformer_dist_norm = MaskToDistogramPipeline(window_size, interp_size,matrix_normalised=True)
+
 transformer_coords = DistogramToCoords(window_size)
+
 
 # train_dataset_raw = DatasetGlob(train_dataset_glob)
 # train_dataset_crop = DatasetGlob(
@@ -218,7 +221,7 @@ class TestModels:
         y_prime = model.decode(z)
         model.forward(test_img)
         
-    @pytest.mark.skip(reason="Crashes github actions")
+    # @pytest.mark.skip(reason="Crashes github actions")
     def test_mask_training(self, model):
         model = Mask_VAE(model)
         lit_model = LitAutoEncoderTorch(model)
@@ -234,6 +237,7 @@ class TestModels:
             # min_epochs=1,
             max_epochs=1,
         )  # .from_argparse_args(args)
+        # trainer.test(lit_model, dataloader)
         trainer.fit(lit_model, dataloader)
 
 
