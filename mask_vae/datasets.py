@@ -146,15 +146,15 @@ class BroadDataset(WebArchiveDataset):
 
     def __init__(
         self,
-        image_set="BBBC010",**kwargs,
+        image_set="BBBC010",
+        **kwargs,
     ):
         super(BroadDataset, self).__init__(
-            **self.lookup_info[image_set],**kwargs,
+            **self.lookup_info[image_set],
+            **kwargs,
         )
 
 
 class BBBC010(BroadDataset):
-    def __init__(self,*args,**kwargs):
-        super(BBBC010).__init__(
-            image_set="BBBC010",*args,**kwargs
-        )
+    def __init__(self, *args, **kwargs):
+        super(BBBC010).__init__(image_set="BBBC010", *args, **kwargs)

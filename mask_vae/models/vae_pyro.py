@@ -1,4 +1,3 @@
-
 import sys
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pyro.optim import Adam
@@ -8,6 +7,7 @@ import pyro
 import pytorch_lightning as pl
 from torch.utils.data import random_split, DataLoader
 import glob
+
 # Note - you must have torchvision installed for this example
 from torchvision import datasets
 from torchvision import transforms
@@ -23,9 +23,9 @@ import torch
 from torch import nn
 from pytorch_lightning import loggers as pl_loggers
 import torchvision
-from sklearn.manifold import MDS  
+from sklearn.manifold import MDS
 from sklearn.metrics.pairwise import euclidean_distances
-from scipy.ndimage import convolve,sobel 
+from scipy.ndimage import convolve, sobel
 from skimage.measure import find_contours
 from scipy.interpolate import interp1d
 import torch
@@ -33,7 +33,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
-
 
 
 class VAE(nn.Module):
@@ -61,13 +60,13 @@ class VAE(nn.Module):
 
         # self.fc3 = nn.Linear(torch.prod(self.z_dim), torch.prod(self.h_dim))
         self.softplus = nn.Softplus()
-    
+
     def encode(self, x):
         h = self.encoder(x)
         # h = self.softplus(h)
         # h = self.flatten(h)
         # z = self.sigmoid(h)
-        
+
         # No clue if this is actually mu
         z = self.fc21(self.flatten(h))
         mu = torch.exp(self.fc22(self.flatten(h)))
@@ -82,7 +81,6 @@ class VAE(nn.Module):
     def forward(self, x):
         z, mu = self.encode(x)
         return self.decode(z)
-        
 
     def model(self, x):
         # register PyTorch module `decoder` with Pyro
@@ -110,7 +108,7 @@ class VAE(nn.Module):
             # sample the latent code z
             pyro.sample("latent", dist.Normal(z_loc, z_scale).to_event(3))
 
-    def construct_from_z(self,z):
+    def construct_from_z(self, z):
         return torch.sigmoid(self.decode(z))
 
     def reconstruct_img(self, x):

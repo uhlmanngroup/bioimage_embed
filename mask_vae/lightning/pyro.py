@@ -1,5 +1,3 @@
-
-
 import sys
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pyro.optim import Adam
@@ -9,6 +7,7 @@ import pyro
 import pytorch_lightning as pl
 from torch.utils.data import random_split, DataLoader
 import glob
+
 # Note - you must have torchvision installed for this example
 from torchvision import datasets
 from torchvision import transforms
@@ -63,9 +62,11 @@ class LitAutoEncoderPyro(pl.LightningModule):
         self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
         # torchvision.utils.make_grid(output)
         self.logger.experiment.add_image(
-            "input", torchvision.utils.make_grid(inputs), batch_idx)
+            "input", torchvision.utils.make_grid(inputs), batch_idx
+        )
         self.logger.experiment.add_image(
-            "output", torchvision.utils.make_grid(torch.sigmoid(output)), batch_idx)
+            "output", torchvision.utils.make_grid(torch.sigmoid(output)), batch_idx
+        )
 
     def pyro_training_step(self, train_batch, batch_idx):
         inputs = train_batch
@@ -74,9 +75,11 @@ class LitAutoEncoderPyro(pl.LightningModule):
         self.log("train_loss", loss)
         self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
         self.logger.experiment.add_image(
-            "input", torchvision.utils.make_grid(inputs), batch_idx)
+            "input", torchvision.utils.make_grid(inputs), batch_idx
+        )
         self.logger.experiment.add_image(
-            "output", torchvision.utils.make_grid(torch.sigmoid(output)), batch_idx)
+            "output", torchvision.utils.make_grid(torch.sigmoid(output)), batch_idx
+        )
         return loss
 
     def training_step(self, train_batch, batch_idx):

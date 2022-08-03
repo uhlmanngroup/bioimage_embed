@@ -5,6 +5,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
+
 #  %%
 from ast import excepthandler
 import sys
@@ -16,6 +17,7 @@ import pyro
 import pytorch_lightning as pl
 from torch.utils.data import random_split, DataLoader
 import glob
+
 # Note - you must have torchvision installed for this example
 from torchvision import datasets
 from torchvision import transforms
@@ -44,13 +46,22 @@ import torch.optim as optim
 from torchinfo import summary
 
 from mask_vae.datasets import DatasetGlob
-from mask_vae.transforms import CropCentroidPipeline, MaskToDistogramPipeline, DistogramToMaskPipeline
-from mask_vae.transforms import ImagetoDistogram, cropCentroid, DistogramToCoords, DistogramToCoords
+from mask_vae.transforms import (
+    CropCentroidPipeline,
+    MaskToDistogramPipeline,
+    DistogramToMaskPipeline,
+)
+from mask_vae.transforms import (
+    ImagetoDistogram,
+    cropCentroid,
+    DistogramToCoords,
+    DistogramToCoords,
+)
 
 from mask_vae.models import AutoEncoder, VQ_VAE, Mask_VAE, VAE
 from mask_vae.lightning import LitAutoEncoderTorch, LitAutoEncoderPyro
 
-interp_size = 128*4
+interp_size = 128 * 4
 
 window_size = 96
 batch_size = 32
@@ -81,7 +92,8 @@ transformer_coords = DistogramToCoords(window_size)
 
 train_dataset_raw = DatasetGlob(train_dataset_glob)
 train_dataset_crop = DatasetGlob(
-    train_dataset_glob, transform=CropCentroidPipeline(window_size))
+    train_dataset_glob, transform=CropCentroidPipeline(window_size)
+)
 train_dataset_dist = DatasetGlob(train_dataset_glob, transform=transformer_dist)
 
 # img_squeeze = train_dataset_crop[1].unsqueeze(0)
@@ -96,8 +108,14 @@ def my_collate(batch):
     return torch.utils.data.dataloader.default_collate(batch)
 
 
-dataloader = DataLoader(train_dataset, batch_size=batch_size,
-                        shuffle=True, num_workers=8, pin_memory=True, collate_fn=my_collate)
+dataloader = DataLoader(
+    train_dataset,
+    batch_size=batch_size,
+    shuffle=True,
+    num_workers=8,
+    pin_memory=True,
+    collate_fn=my_collate,
+)
 
 # def test_transforms():
 #     dist = np.array(train_dataset_crop[1][0]).astype(float)
@@ -105,8 +123,7 @@ dataloader = DataLoader(train_dataset, batch_size=batch_size,
 #     plt.show()
 
 
-class TestVAE():
-
+class TestVAE:
     def setup(self):
         # self.model2 = VAE(1, 10)
         self.model = VAE(3, 10)
@@ -165,14 +182,14 @@ def test_dist_to_coord():
     plt.show()
 
 
-@pytest.mark.parametrize("model", [VQ_VAE(channels=1),
-                                   VAE(1, 64, image_dims=(
-                                       interp_size, interp_size))])
+@pytest.mark.parametrize(
+    "model", [VQ_VAE(channels=1), VAE(1, 64, image_dims=(interp_size, interp_size))]
+)
 class TestModels:
-    def setup(self,model):
+    def setup(self, model):
         pass
-        
-    def test_models(self,model):
+
+    def test_models(self, model):
         # vae = AutoEncoder(1, 1)
         # vae = VQ_VAE(channels=1)
         img = test_img
@@ -181,19 +198,16 @@ class TestModels:
         z, log_var = model.encode(img)
         y_prime = model.decode(z)
         # print(f"img_dims:{img.shape} y:_dims:{x_recon.shape}")
-        print(
-            f"img_dims:{img.shape}, z:_dims:{z.shape}")
+        print(f"img_dims:{img.shape}, z:_dims:{z.shape}")
 
-
-    def test_mask_forward(self,model):
+    def test_mask_forward(self, model):
         model = Mask_VAE(model)
         # test_img = train_dataset[0]
-        z,log_var = model.encode(test_img)
+        z, log_var = model.encode(test_img)
         y_prime = model.decode(z)
         model.forward(test_img)
 
-
-    def test_mask_training(self,model):
+    def test_mask_training(self, model):
         model = Mask_VAE(model)
         lit_model = LitAutoEncoderTorch(model)
         trainer = pl.Trainer(
@@ -210,6 +224,7 @@ class TestModels:
         )  # .from_argparse_args(args)
         trainer.fit(lit_model, dataloader)
 
+
 # @pytest.mark.skipif(sys.version_info < (3,3))
 # def test_model(model):
 #     for i in range(10):
@@ -220,4 +235,3 @@ class TestModels:
 
 # def test_mask_vae():
 #     MaskVAE(VQ_VAE(channels=1))
-

@@ -1,4 +1,3 @@
-
 import sys
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pyro.optim import Adam
@@ -8,6 +7,7 @@ import pyro
 import pytorch_lightning as pl
 from torch.utils.data import random_split, DataLoader
 import glob
+
 # Note - you must have torchvision installed for this example
 from torchvision import datasets
 from torchvision import transforms
@@ -23,9 +23,9 @@ import torch
 from torch import nn
 from pytorch_lightning import loggers as pl_loggers
 import torchvision
-from sklearn.manifold import MDS  
+from sklearn.manifold import MDS
 from sklearn.metrics.pairwise import euclidean_distances
-from scipy.ndimage import convolve,sobel 
+from scipy.ndimage import convolve, sobel
 from skimage.measure import find_contours
 from scipy.interpolate import interp1d
 import torch
@@ -56,10 +56,8 @@ class AutoEncoder(nn.Module):
         self.upconv2 = self.expand_block(64 * 1, 32, 3, 1)
         self.upconv1 = self.expand_block(32 * 1, out_channels, 3, 1)
 
-        self.encoder = nn.Sequential(
-            self.conv1, self.conv2, self.conv3, self.fc1)
-        self.decoder = nn.Sequential(
-            self.fc2, self.upconv3, self.upconv2, self.upconv1)
+        self.encoder = nn.Sequential(self.conv1, self.conv2, self.conv3, self.fc1)
+        self.decoder = nn.Sequential(self.fc2, self.upconv3, self.upconv2, self.upconv1)
 
     # Call is essentially the same as running "forward"
     def __call__(self, x):

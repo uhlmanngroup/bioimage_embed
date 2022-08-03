@@ -1,4 +1,3 @@
-
 import sys
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pyro.optim import Adam
@@ -8,6 +7,7 @@ import pyro
 import pytorch_lightning as pl
 from torch.utils.data import random_split, DataLoader
 import glob
+
 # Note - you must have torchvision installed for this example
 from torchvision import datasets
 from torchvision import transforms
@@ -31,8 +31,8 @@ from .types_ import *
 from torch import nn
 from abc import abstractmethod
 
+
 class BaseVAE(nn.Module):
-    
     def __init__(self) -> None:
         super(BaseVAE, self).__init__()
 
@@ -42,7 +42,7 @@ class BaseVAE(nn.Module):
     def decode(self, input: Tensor) -> Any:
         raise NotImplementedError
 
-    def sample(self, batch_size:int, current_device: int, **kwargs) -> Tensor:
+    def sample(self, batch_size: int, current_device: int, **kwargs) -> Tensor:
         raise NotImplementedError
 
     def generate(self, x: Tensor, **kwargs) -> Tensor:
@@ -55,6 +55,3 @@ class BaseVAE(nn.Module):
     @abstractmethod
     def loss_function(self, *inputs: Any, **kwargs) -> Tensor:
         pass
-
-
-

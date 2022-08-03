@@ -6,6 +6,7 @@ from pathlib import Path
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
 import torch
+
 # Note - you must have torchvision installed for this example
 from torch.utils.data import DataLoader
 import os
@@ -14,16 +15,21 @@ from torchvision import transforms
 from mask_vae.lightning import DatamoduleGlob
 
 from mask_vae.datasets import DatasetGlob
-from mask_vae.transforms import CropCentroidPipeline, DistogramToCoords, DistogramToCoords, MaskToDistogramPipeline
+from mask_vae.transforms import (
+    CropCentroidPipeline,
+    DistogramToCoords,
+    DistogramToCoords,
+    MaskToDistogramPipeline,
+)
 from mask_vae.models import Mask_VAE, VQ_VAE, VAE
 from mask_vae.lightning import LitAutoEncoderTorch, LitAutoEncoderPyro
 import matplotlib.pyplot as plt
 
-interp_size = 128*4
+interp_size = 128 * 4
 
 max_epochs = 500
 
-window_size = 128*4
+window_size = 128 * 4
 batch_size = 2
 num_training_updates = 15000
 
@@ -72,27 +78,26 @@ transform = transforms.Compose(
     [
         transformer_crop,
         transformer_dist,
-
     ]
 )
 
 train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
-plt.imshow(train_dataset[0][0],cmap='gray')
+plt.imshow(train_dataset[0][0], cmap="gray")
 plt.show()
 
 train_dataset = DatasetGlob(train_dataset_glob, transform=transforms.ToTensor())
-plt.imshow(train_dataset[0][0],cmap='gray')
+plt.imshow(train_dataset[0][0], cmap="gray")
 plt.show()
 train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_crop)
-plt.imshow(train_dataset[0][0],cmap='gray')
+plt.imshow(train_dataset[0][0], cmap="gray")
 plt.show()
 
 train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_crop)
-plt.imshow(train_dataset[0][0],cmap='gray')
+plt.imshow(train_dataset[0][0], cmap="gray")
 plt.show()
 
 train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
-plt.imshow(train_dataset[0][0],cmap='gray')
+plt.imshow(train_dataset[0][0], cmap="gray")
 plt.show()
 
 
@@ -104,13 +109,18 @@ plt.show()
 #     batch = list(filter(lambda x: x is not None, batch))
 #     return torch.utils.data.dataloader.default_collate(batch)
 
-dataloader = DatamoduleGlob(train_dataset_glob, batch_size=batch_size,
-                        shuffle=True, num_workers=2**4,transform=transformer_dist)
+dataloader = DatamoduleGlob(
+    train_dataset_glob,
+    batch_size=batch_size,
+    shuffle=True,
+    num_workers=2**4,
+    transform=transformer_dist,
+)
 
 # dataloader = DataLoader(train_dataset, batch_size=batch_size,
 #                         shuffle=True, num_workers=2**4, pin_memory=True, collate_fn=my_collate)
 
-model = Mask_VAE("VQ_VAE",channels=1)
+model = Mask_VAE("VQ_VAE", channels=1)
 # model = Mask_VAE("VAE", 1, 64,
 #                      #  hidden_dims=[32, 64],
 #                      image_dims=(interp_size, interp_size))
@@ -121,12 +131,9 @@ lit_model = LitAutoEncoderTorch(model)
 
 tb_logger = pl_loggers.TensorBoardLogger("{model_dir}/runs/")
 
-Path(f'{model_dir}/').mkdir(parents=True, exist_ok=True)
+Path(f"{model_dir}/").mkdir(parents=True, exist_ok=True)
 
-checkpoint_callback = ModelCheckpoint(
-    dirpath=f'{model_dir}/',
-    save_last=True
-)
+checkpoint_callback = ModelCheckpoint(dirpath=f"{model_dir}/", save_last=True)
 
 trainer = pl.Trainer(
     logger=tb_logger,
@@ -140,8 +147,7 @@ trainer = pl.Trainer(
 
 # %%
 try:
-    trainer.fit(lit_model,  datamodule=dataloader,
-                ckpt_path=f'{model_dir}/last.ckpt')
+    trainer.fit(lit_model, datamodule=dataloader, ckpt_path=f"{model_dir}/last.ckpt")
 except:
     trainer.fit(lit_model, datamodule=dataloader)
 

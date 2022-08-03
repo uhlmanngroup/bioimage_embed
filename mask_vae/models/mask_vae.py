@@ -91,7 +91,7 @@ class Mask_VAE(BaseVAE):
         # # Check to see if distance matrix creates a shape without intersecting edges
         # x_diff = torch.diff(recons,1,-1)-torch.diff(recons,2,-1)
         # y_diff = torch.diff(recons,1,-2)
-        
+
         # Need to invent metric for ensuring that the final shape is a simple polygon
 
         diag_loss = F.mse_loss(
