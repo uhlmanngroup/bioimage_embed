@@ -47,7 +47,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
 
-from mask_vae.datasets import DatasetGlob
+from mask_vae.datasets import DatasetGlob, BroadDataset
 from mask_vae.transforms import (
     ImagetoDistogram,
     cropCentroid,
@@ -83,8 +83,8 @@ decay = 0.99
 
 learning_rate = 1e-3
 
-train_dataset_glob = "data/stage1_train/*/masks/*.png"
-train_dataset_glob = "data/BBBC010_v1_foreground_eachworm/*.png"
+# train_dataset_glob = "data/stage1_train/*/masks/*.png"
+# train_dataset_glob = "data/BBBC010_v1_foreground_eachworm/*.png"
 
 # test_dataloader_glob=os.path.join(os.path.expanduser("~"),
 # "data-science-bowl-2018/stage1_test/*/masks/*.png")
@@ -96,8 +96,13 @@ transformer_coords = DistogramToCoords(window_size)
 # train_dataset_raw = DatasetGlob(train_dataset_glob)
 # train_dataset_crop = DatasetGlob(
 #     train_dataset_glob, transform=CropCentroidPipeline(window_size))
-train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
-train_dataset_crop = DatasetGlob(train_dataset_glob, transform=transformer_crop)
+# train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
+# train_dataset_crop = DatasetGlob(train_dataset_glob, transform=transformer_crop)
+train_dataset = BroadDataset(
+    "BBBC010", download=True, transform=transformer_dist)
+train_dataset_crop = BroadDataset(
+    "BBBC010", download=True, transform=transformer_crop)
+
 
 assert len(train_dataset) > 0
 assert len(train_dataset_crop) > 0
