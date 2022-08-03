@@ -206,6 +206,9 @@ class VerticesToMask(torch.nn.Module):
     # Options if it isn't, error or try to reorder the coords
     # For instance, find https://en.wikipedia.org/wiki/Hamiltonian_path
     # Basically the travelling salesman problem though
+    
+    # Alternative: is to enforce simple polygonality in loss function,
+    # Don't know how though
     def __init__(self, size=256+128):
         super().__init__()
         self.size = size
