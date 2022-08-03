@@ -119,7 +119,7 @@ model = Mask_VAE("VQ_VAE",channels=1)
 # %%
 lit_model = LitAutoEncoderTorch(model)
 
-tb_logger = pl_loggers.TensorBoardLogger("runs/")
+tb_logger = pl_loggers.TensorBoardLogger("{model_dir}/runs/")
 
 Path(f'{model_dir}/').mkdir(parents=True, exist_ok=True)
 
