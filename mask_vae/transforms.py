@@ -155,7 +155,9 @@ class ImagetoDistogram(torch.nn.Module):
 
     def forward(self, img):
         # return self.get_distogram(img, self.size)
-        return self.get_distogram_C(img, self.size, matrix_normalised=self.matrix_normalised)
+        return self.get_distogram_C(
+            img, self.size, matrix_normalised=self.matrix_normalised
+        )
 
     def __repr__(self):
         return self.__class__.__name__ + f"(size={self.size})"
@@ -165,10 +167,12 @@ class ImagetoDistogram(torch.nn.Module):
         np_tensor = np.array(tensor)
         for i in range(np_tensor.shape[0]):
             image = np_tensor[0, :, :]
-            dist_list.append(self.get_distogram(image, size, matrix_normalised=matrix_normalised))
+            dist_list.append(
+                self.get_distogram(image, size, matrix_normalised=matrix_normalised)
+            )
         return torch.tensor(np.array(dist_list))
 
-    def get_distogram(self, image, size, normalised=False):
+    def get_distogram(self, image, size, matrix_normalised=False):
         distograms = []
         np_image = np.array(image)
         scaling = np.linalg.norm(np_image.shape)
@@ -193,14 +197,14 @@ class ImagetoDistogram(torch.nn.Module):
         xii, yii = np.divide(self.pol2cart(rho_interp, phi_interp), scaling)
         # distograms.append(euclidean_distances(np.array([xii,yii]).T))
         distance_matrix = euclidean_distances(np.array([xii, yii]).T)
-        norm = np.linalg.norm(distance_matrix, 'fro')
+        norm = np.linalg.norm(distance_matrix, "fro")
         # Fro norm is the same as the L2 norm, but for positive semi-definite matrices
         # norm = np.linalg.norm(distance_matrix)
-        
-        if not normalised:
+
+        if not matrix_normalised:
             return distance_matrix
-        if normalised:
-            return distance_matrix/norm
+        if matrix_normalised:
+            return distance_matrix / norm
 
     def cart2pol(self, x, y):
         return (np.sqrt(x**2 + y**2), np.arctan2(y, x))
@@ -269,7 +273,7 @@ class CropCentroidPipeline(torch.nn.Module):
 
 
 class MaskToDistogramPipeline(torch.nn.Module):
-    def __init__(self, window_size, interp_size=128,matrix_normalised=False):
+    def __init__(self, window_size, interp_size=128, matrix_normalised=False):
         super().__init__()
         self.window_size = window_size
         self.interp_size = interp_size
@@ -278,7 +282,7 @@ class MaskToDistogramPipeline(torch.nn.Module):
                 CropCentroidPipeline(self.window_size),
                 # transforms.ToPILImage(),
                 # transforms.ToTensor(),
-                ImagetoDistogram(self.interp_size,normalised=matrix_normalised),
+                ImagetoDistogram(self.interp_size, matrix_normalised=matrix_normalised),
                 # transforms.ToPILImage(),
                 # transforms.RandomCrop((512, 512)),
                 transforms.ConvertImageDtype(torch.float32),
