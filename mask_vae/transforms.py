@@ -201,6 +201,11 @@ class ImagetoDistogram(torch.nn.Module):
 
 
 class VerticesToMask(torch.nn.Module):
+    # https://pypi.org/project/bentley-ottmann/
+    # Should check that the shape is a "simple" polygon
+    # Options if it isn't, error or try to reorder the coords
+    # For instance, find https://en.wikipedia.org/wiki/Hamiltonian_path
+    # Basically the travelling salesman problem though
     def __init__(self, size=256+128):
         super().__init__()
         self.size = size
