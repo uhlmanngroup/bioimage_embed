@@ -12,17 +12,17 @@ from torch.utils.data import DataLoader
 import os
 from pytorch_lightning import loggers as pl_loggers
 from torchvision import transforms
-from mask_vae.lightning import DatamoduleGlob
+from vae.lightning import DatamoduleGlob
 
-from mask_vae.datasets import DatasetGlob
-from mask_vae.transforms import (
+from vae.datasets import DatasetGlob
+from vae.transforms import (
     CropCentroidPipeline,
     DistogramToCoords,
     DistogramToCoords,
     MaskToDistogramPipeline,
 )
-from mask_vae.models import Mask_VAE, VQ_VAE, VAE
-from mask_vae.lightning import LitAutoEncoderTorch, LitAutoEncoderPyro
+from vae.models import Mask_VAE, VQ_VAE, VAE
+from vae.lightning import LitAutoEncoderTorch, LitAutoEncoderPyro
 import matplotlib.pyplot as plt
 
 interp_size = 128 * 4

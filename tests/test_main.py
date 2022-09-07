@@ -45,21 +45,21 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 from torchinfo import summary
 
-from mask_vae.datasets import DatasetGlob, BroadDataset
-from mask_vae.transforms import (
+from vae.datasets import DatasetGlob, BroadDataset
+from vae.transforms import (
     CropCentroidPipeline,
     MaskToDistogramPipeline,
     DistogramToMaskPipeline,
 )
-from mask_vae.transforms import (
+from vae.transforms import (
     ImagetoDistogram,
     cropCentroid,
     DistogramToCoords,
     DistogramToCoords,
 )
 
-from mask_vae.models import AutoEncoder, VQ_VAE, Mask_VAE, VAE
-from mask_vae.lightning import LitAutoEncoderTorch, LitAutoEncoderPyro
+from vae.models import AutoEncoder, VQ_VAE, Mask_VAE, VAE
+from vae.lightning import LitAutoEncoderTorch, LitAutoEncoderPyro
 
 interp_size = 128 * 4
 

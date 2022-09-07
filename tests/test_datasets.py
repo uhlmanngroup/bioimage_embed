@@ -1,4 +1,4 @@
-from mask_vae import datasets
+from vae import datasets
 import pytest
 
 
