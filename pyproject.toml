@@ -20,6 +20,7 @@ iteround = "^1.0.4"
 umap-learn = {extras = ["plot"], version = "^0.5.3"}
 ipykernel = "^6.15.1"
 pythae = "^0.0.7"
+nonechucks = "^0.4.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.1"
