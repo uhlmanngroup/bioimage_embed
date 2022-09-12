@@ -1,4 +1,4 @@
-from vae import datasets
+from bio_vae import datasets
 import pytest
 
 

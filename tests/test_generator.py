@@ -47,22 +47,22 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
 
-from vae.datasets import DatasetGlob, BroadDataset
-from vae.transforms import (
+from bio_vae.datasets import DatasetGlob, BroadDataset
+from bio_vae.transforms import (
     ImagetoDistogram,
     cropCentroid,
     DistogramToCoords,
     CropCentroidPipeline,
 )
-from vae.transforms import (
+from bio_vae.transforms import (
     DistogramToCoords,
     MaskToDistogramPipeline,
     AsymmetricDistogramToMaskPipeline,
 )
-from vae.transforms import DistogramToMaskPipeline
+from bio_vae.transforms import DistogramToMaskPipeline
 
-from vae.models import AutoEncoder, VAE, VQ_VAE, Mask_VAE
-from vae.lightning import LitAutoEncoderPyro, LitAutoEncoderTorch
+from bio_vae.models import AutoEncoder, VAE, VQ_VAE, Mask_VAE
+from bio_vae.lightning import LitAutoEncoderPyro, LitAutoEncoderTorch
 
 interp_size = 128 * 4
 

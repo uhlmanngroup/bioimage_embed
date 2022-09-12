@@ -1,6 +1,4 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -300,4 +298,5 @@ cython_debug/
 #.idea/
 =======
 .snakemake/*
->>>>>>> 65bb1ce (adding git ignore for snakemake)
+
+.history
