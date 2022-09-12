@@ -1,6 +1,6 @@
 import torch
 import math
-from idr import connection
+# from idr import connection
 from torchvision.datasets.vision import VisionDataset
 from torchvision.transforms import ToTensor
 import numpy as np
@@ -22,12 +22,12 @@ def to_img(x):
 
 
 class IDRDataSet(Dataset):
-    def __init__(self, transform=None,file_list=None):
+    def __init__(self, file_list, transform=None):
         super(IDRDataSet).__init__()
         self.transform = transform
         self.mode = None
-        if file_list == None:
-            self.mode = "http"
+        # if file_list == None:
+            # self.mode = "http"
         # assert end > start, "this example code only works with end >= start"
         # self.start = start
         # self.end = end
@@ -37,10 +37,10 @@ class IDRDataSet(Dataset):
 
     def __getitem__(self, index):
         # conn = self.conn
-        if (self.mode=="http"):
-            image = self.get_idr_image(index)
-        else:
-            image = self.get_nfs_idr_image(index)
+        # if (self.mode=="http"):
+            # image = self.get_idr_image(index)
+        # else:
+        image = self.get_nfs_idr_image(index)
 
         if image == None:
             return None
@@ -61,24 +61,26 @@ class IDRDataSet(Dataset):
         else:
             return len(self.file_list)
 
-    def get_idr_image(self, imageid=171499):
-        try:
-            conn = connection("idr.openmicroscopy.org", verbose=0)
-            # print(f"Get image {str(imageid)}")
-            image_wrapped = conn.getObject("Image", imageid)
-            if image_wrapped == None:
-                return None
-        except:
-            return None
-        # image_wrapped.getPrimaryPixels()
-        try:
-            image_plane = image_wrapped.getPrimaryPixels().getPlane(0)
-            norm_image_plane = ((image_plane / image_plane.max()) * 255).astype(np.int8)
-            pil_image = Image.fromarray(norm_image_plane, "L")
-            # if image_plane == None:
-            return pil_image
-        except:
-            return None
+    # Deprecated: 
+    # def get_idr_image(self, imageid=171499):
+    #     try:
+    #         conn = connection("idr.openmicroscopy.org", verbose=0)
+    #         # print(f"Get image {str(imageid)}")
+    #         image_wrapped = conn.getObject("Image", imageid)
+    #         if image_wrapped == None:
+    #             return None
+    #     except:
+    #         return None
+    #     # image_wrapped.getPrimaryPixels()
+    #     try:
+    #         image_plane = image_wrapped.getPrimaryPixels().getPlane(0)
+    #         norm_image_plane = ((image_plane / image_plane.max()) * 255).astype(np.int8)
+    #         pil_image = Image.fromarray(norm_image_plane, "L")
+    #         # if image_plane == None:
+    #         return pil_image
+    #     except:
+    #         return None
+        
     def get_nfs_idr_image(self,file_list,index=0):
         file_path = file_list[index] 
         Image.open(file_path)
