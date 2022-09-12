@@ -134,7 +134,7 @@ dataloader = DataLoader(
 # def test_transforms():
 #     dist = np.array(train_dataset_crop[1][0]).astype(float)
 #     plt.imshow(dist)
-#     plt.show()
+#     plt.close()
 
 
 class TestVAE:
@@ -167,7 +167,7 @@ def test_dist_to_coord():
     coords = DistogramToCoords(window_size)(test_img)
     plt.scatter(coords[0][0][:, 0], coords[0][0][:, 1])
     plt.savefig("tests/test_dist_to_coord.png")
-    plt.show()
+    plt.close()
 
 
 def test_pipeline_forward():
@@ -175,16 +175,16 @@ def test_pipeline_forward():
     # dist = MaskToDistogramPipeline(window_size)(train_dataset_raw[0])
     # plt.imshow(dist)
     # plt.savefig("tests/test_mask_to_dist.png")
-    # plt.show()
+    # plt.close()
     # plt.close()
     dist = test_img
     plt.imshow(dist.squeeze())
     plt.savefig("tests/test_pipeline_forward.png")
-    plt.show()
+    plt.close()
     mask = DistogramToMaskPipeline(window_size)(dist)
     plt.imshow(mask.squeeze())
     plt.savefig("tests/test_dist_to_mask.png")
-    plt.show()
+    plt.close()
 
 
 def test_dist_to_coord():
@@ -193,7 +193,7 @@ def test_dist_to_coord():
     coords = transformer_coords(test_img)
     plt.scatter(coords[0][:, 0], coords[0][:, 1])
     plt.savefig("tests/test_dist_to_coord.png")
-    plt.show()
+    plt.close()
 
 
 @pytest.mark.parametrize(
@@ -247,7 +247,7 @@ class TestModels:
 #         z_random = torch.normal(torch.zeros_like(z), torch.ones_like(z)).cuda()
 #         generated_image = model.autoencoder.decoder(z_random)
 #         plt.imshow(transforms.ToPILImage()(generated_image[0]))
-#         plt.show()
+#         plt.close()
 
 # def test_mask_vae():
 #     MaskVAE(VQ_VAE(channels=1))

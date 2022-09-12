@@ -300,3 +300,9 @@ cython_debug/
 .snakemake/*
 
 .history
+lightning_logs/version_0/events.out.tfevents.1662992245.narchie.117971.0
+lightning_logs/version_0/hparams.yaml
+lightning_logs/version_0/checkpoints/epoch=0-step=1.ckpt
+lightning_logs/version_1/events.out.tfevents.1662992279.narchie.117971.1
+lightning_logs/version_1/hparams.yaml
+lightning_logs/version_1/checkpoints/epoch=0-step=1.ckpt
