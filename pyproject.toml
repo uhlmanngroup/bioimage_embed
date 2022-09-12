@@ -6,21 +6,19 @@ authors = ["Craig  <ctr26@ebi.ac.uk>"]
 
 [tool.poetry.dependencies]
 python = "3.8.13"
-pytest = "^7.0.1"
-torchvision = "^0.13.0"
-torch = "^1.12.0"
+pip = "^22.2.2"
+torchvision = "^0.13.1"
+torch = "^1.12.1"
 torchinfo = "^1.7.0"
-matplotlib = "^3.5.2"
-pytorch-lightning = "^1.6.5"
-pip = "^22.2.1"
-pyro-ppl = "^1.8.1"
+matplotlib = "^3.5.3"
+pytorch-lightning = "^1.7.5"
+pyro-ppl = "^1.8.2"
 scikit-image = "^0.19.3"
-scikit-learn = "^1.1.1"
 iteround = "^1.0.4"
-umap-learn = {extras = ["plot"], version = "^0.5.3"}
-ipykernel = "^6.15.1"
-pythae = "^0.0.7"
+ipykernel = "^6.15.2"
 nonechucks = "^0.4.2"
+pythae = "^0.0.8"
+
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.1"
