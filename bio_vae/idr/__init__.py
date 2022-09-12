@@ -1,6 +1,6 @@
 import torch
 import math
-from bio_vae.idr.legacy import connection
+from idr import connection
 from torchvision.datasets.vision import VisionDataset
 from torchvision.transforms import ToTensor
 import numpy as np
