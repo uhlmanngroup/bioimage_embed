@@ -1,65 +1,31 @@
 import pytest
-import os
-from torchvision import transforms
 import torch
-import numpy as np
 import matplotlib.pyplot as plt
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 
-#  %%
-from ast import excepthandler
-import sys
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pyro.optim import Adam
-from pyro.infer import SVI, Trace_ELBO
-import pyro.distributions as dist
-import pyro
 import pytorch_lightning as pl
-from torch.utils.data import random_split, DataLoader
-import glob
+from torch.utils.data import DataLoader
 
 # Note - you must have torchvision installed for this example
-from torchvision import datasets
-from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
-from PIL import Image
-import os
-from skimage.measure import regionprops
-from torchvision.transforms.functional import crop
-from scipy import ndimage
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-from torch import nn
-from pytorch_lightning import loggers as pl_loggers
-import torchvision
-from sklearn.manifold import MDS
-from sklearn.metrics.pairwise import euclidean_distances
-from scipy.ndimage import convolve, sobel
-from skimage.measure import find_contours
-from scipy.interpolate import interp1d
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
-import torch.optim as optim
-from torchinfo import summary
+import matplotlib.pyplot as plt
+import torch
+import torch
+from torch.utils.data import DataLoader
 
-from bio_vae.datasets import DatasetGlob, BroadDataset
+from bio_vae.utils import collate_none
+from bio_vae.datasets import BroadDataset
 from bio_vae.transforms import (
     CropCentroidPipeline,
     MaskToDistogramPipeline,
     DistogramToMaskPipeline,
 )
 from bio_vae.transforms import (
-    ImagetoDistogram,
-    cropCentroid,
-    DistogramToCoords,
     DistogramToCoords,
 )
 
-from bio_vae.models import AutoEncoder, VQ_VAE, Mask_VAE, VAE
-from bio_vae.lightning import LitAutoEncoderTorch, LitAutoEncoderPyro
+from bio_vae.models import VQ_VAE, Mask_VAE, VAE
+from bio_vae.lightning import LitAutoEncoderTorch
 
 interp_size = 128 * 4
 
@@ -88,9 +54,9 @@ learning_rate = 1e-3
 
 transformer_crop = CropCentroidPipeline(window_size)
 transformer_dist = MaskToDistogramPipeline(window_size, interp_size)
-transformer_dist_norm = MaskToDistogramPipeline(window_size, interp_size,matrix_normalised=True)
-
-transformer_coords = DistogramToCoords(window_size)
+transformer_dist_norm = MaskToDistogramPipeline(
+    window_size, interp_size, matrix_normalised=True
+)
 
 
 # train_dataset_raw = DatasetGlob(train_dataset_glob)
@@ -98,38 +64,25 @@ transformer_coords = DistogramToCoords(window_size)
 #     train_dataset_glob, transform=CropCentroidPipeline(window_size)
 # )
 
-train_dataset_raw = BroadDataset(
-    "BBBC010", download=True)
+# train_dataset_raw = BroadDataset(
+#     "BBBC010", download=True)
 
-train_dataset_crop = BroadDataset(
-    "BBBC010", download=True, transform=CropCentroidPipeline(window_size))
+# train_dataset_crop = BroadDataset(
+#     "BBBC010", download=True, transform=CropCentroidPipeline(window_size))
 
-train_dataset_dist = BroadDataset(
-    "BBBC010", download=True, transform=transformer_dist)
+train_dataset_dist = BroadDataset("BBBC010", download=True, transform=transformer_dist)
 
 
 # train_dataset_dist = DatasetGlob(train_dataset_glob, transform=transformer_dist)
 
 # img_squeeze = train_dataset_crop[1].unsqueeze(0)
-img_crop = train_dataset_crop[1].unsqueeze(0)
+# img_crop = train_dataset_crop[1].unsqueeze(0)
 
 train_dataset = train_dataset_dist
 test_img = train_dataset_dist[1].unsqueeze(0)
 
 
-def my_collate(batch):
-    batch = list(filter(lambda x: x is not None, batch))
-    return torch.utils.data.dataloader.default_collate(batch)
 
-
-dataloader = DataLoader(
-    train_dataset,
-    batch_size=batch_size,
-    shuffle=True,
-    num_workers=8,
-    pin_memory=True,
-    collate_fn=my_collate,
-)
 
 # def test_transforms():
 #     dist = np.array(train_dataset_crop[1][0]).astype(float)
@@ -137,26 +90,31 @@ dataloader = DataLoader(
 #     plt.close()
 
 
+@pytest.mark.parametrize("model", VAE(3, 10))
 class TestVAE:
     def setup(self):
-        # self.model2 = VAE(1, 10)
+
         self.model = VAE(3, 10)
+        # self.transform = MaskToDistogramPipeline(window_size, interp_size)
+        # self.dataset = BroadDataset(
+        #     "BBBC010", download=True, transform=transformer_dist
+        # )
 
     # def test_summary(self):
     #     print(summary(self.model, (1, 64, 64), device='cpu'))
     #     # print(summary(self.model2, (3, 64, 64), device='cpu'))
 
-    def test_forward(self):
+    def test_forward(self,model):
         x = torch.randn(16, 3, 64, 64)
-        y = self.model(x)
+        y = model(x)
         print("Model Output size:", y[0].size())
         # print("Model2 Output size:", self.model2(x)[0].size())
 
-    def test_loss(self):
+    def test_loss(self,model):
         x = torch.randn(16, 3, 64, 64)
 
-        result = self.model(x)
-        loss = self.model.loss_function(*result, M_N=0.005)
+        result = model(x)
+        loss = model.loss_function(*result, M_N=0.005)
         print(loss)
 
 
@@ -190,7 +148,7 @@ def test_pipeline_forward():
 def test_dist_to_coord():
     plt.close()
     # dist = transformer_dist(train_dataset[0][0])
-    coords = transformer_coords(test_img)
+    coords = DistogramToCoords(window_size)(test_img)
     plt.scatter(coords[0][:, 0], coords[0][:, 1])
     plt.savefig("tests/test_dist_to_coord.png")
     plt.close()
@@ -199,10 +157,19 @@ def test_dist_to_coord():
 @pytest.mark.parametrize(
     "model", [VQ_VAE(channels=1), VAE(1, 64, image_dims=(interp_size, interp_size))]
 )
+@pytest.mark.parametrize(
+    "dataset", [BroadDataset("BBBC010", download=True, transform=transformer_dist)]
+)
 class TestModels:
-    def setup(self, model):
-        pass
-
+    def setup(self, model,dataset):
+        self.dataloader = DataLoader(
+                    train_dataset,
+                    batch_size=batch_size,
+                    shuffle=True,
+                    num_workers=8,
+                    pin_memory=True,
+                    collate_fn=collate_none,
+                )
     def test_models(self, model):
         # vae = AutoEncoder(1, 1)
         # vae = VQ_VAE(channels=1)
@@ -220,7 +187,7 @@ class TestModels:
         z, log_var = model.encode(test_img)
         y_prime = model.decode(z)
         model.forward(test_img)
-        
+
     # @pytest.mark.skip(reason="Crashes github actions")
     def test_mask_training(self, model):
         model = Mask_VAE(model)
@@ -238,7 +205,7 @@ class TestModels:
             max_epochs=1,
         )  # .from_argparse_args(args)
         # trainer.test(lit_model, dataloader)
-        trainer.fit(lit_model, dataloader)
+        trainer.fit(lit_model, self.dataloader)
 
 
 # @pytest.mark.skipif(sys.version_info < (3,3))
