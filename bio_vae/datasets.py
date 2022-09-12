@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 from urllib.error import URLError
 
-from vae.idr import IDRDataSet
+from bio_vae.idr import IDRDataSet
 
 from torchvision.datasets.utils import (
     check_integrity,

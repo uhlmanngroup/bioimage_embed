@@ -33,9 +33,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
-from vae.transforms import DistogramToMaskPipeline
+from bio_vae.transforms import DistogramToMaskPipeline
 from .utils import BaseVAE
-from vae.models import VQ_VAE, VAE
+from bio_vae.models import VQ_VAE, VAE
 
 
 class Mask_VAE(BaseVAE):

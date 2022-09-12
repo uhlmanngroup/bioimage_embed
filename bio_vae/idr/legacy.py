@@ -31,7 +31,7 @@ print(args_dict)
 # %%
 import torch
 import math
-from vae.idr.legacy import connection
+from bio_vae.idr.legacy import connection
 from torchvision.datasets.vision import VisionDataset
 from torchvision.transforms import ToTensor
 import numpy as np
