@@ -48,23 +48,23 @@ class BaseVAE(nn.Module):
     # def generate(self, x: Tensor, **kwargs) -> Tensor:
     #     raise NotImplementedError
     
-    def forward(self, x):
-        return self.model(x)
+    # def forward(self, x):
+    #     return self.model(x)
 
-    def decoder(self, z):
-        return self.model.decoder(z)
+    # def decoder(self, z):
+    #     return self.model.decoder(z)
 
-    def encoder(self, img):
-        return self.model.encoder(img)
+    # def encoder(self, img):
+    #     return self.model.encoder(img)
 
-    def decode(self, z):
-        return self.model.decode(z)
+    # def decode(self, z):
+    #     return self.model.decode(z)
 
-    def encode(self, img):
-        return self.model.encode(img)
+    # def encode(self, img):
+    #     return self.model.encode(img)
 
-    def recon(self, img):
-        return self.model.recon(img)
+    # def recon(self, img):
+    #     return self.model.recon(img)
 
     # @abstractmethod
     # def forward(self, *inputs: Tensor) -> Tensor:

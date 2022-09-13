@@ -6,7 +6,6 @@ authors = ["Craig  <ctr26@ebi.ac.uk>"]
 
 [tool.poetry.dependencies]
 python = "3.8.13"
-pip = "^22.2.2"
 torchvision = "^0.13.1"
 torch = "^1.12.1"
 torchinfo = "^1.7.0"
@@ -18,7 +17,7 @@ iteround = "^1.0.4"
 ipykernel = "^6.15.2"
 nonechucks = "^0.4.2"
 pythae = "^0.0.8"
-
+pytest = "^7.0.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.1"
