@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from bio_vae.utils import collate_none,get_test_image
-from bio_vae.datasets import BroadDataset
+from bio_vae.datasets import BroadDataset, DatasetGlob
 from bio_vae.transforms import (
     CropCentroidPipeline,
     MaskToDistogramPipeline,
@@ -103,7 +103,7 @@ datasets = [
         transform=MaskToDistogramPipeline(
             window_size, interp_size, matrix_normalised=True
         ),
-    ),
+    )
 ]
 models = [VQ_VAE(channels=channels), VAE(channels, 64, image_dims=(interp_size, interp_size))]
 models = [VAE(channels, 10)]
