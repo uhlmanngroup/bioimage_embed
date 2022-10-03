@@ -3,14 +3,12 @@ include .env
 include secrets.env
 export
 
-<<<<<<< HEAD
 download.data:
 	kaggle competitions download -c data-science-bowl-2018
 
 test:
 	pytest
 	
-=======
 
 GOOGLE_APPLICATION_CREDENTIALS=$(shell pwd)/credentials.json
 BUCKET_NAME=idr-hipsci
@@ -39,7 +37,6 @@ DATA_DIR=gs://${BUCKET_NAME}/${TRAINING_DIR}
 test:
 	@echo $$GOOGLE_APPLICATION_CREDENTIALS $$BUCKET_NAME $$TRAINING_DIR
 
->>>>>>> 4f61d14 (adding gcp to makefile)
 all: get_data_list build
 
 build:
@@ -108,3 +105,5 @@ download.data:
 test:
 	pytest
 	
+download.idr:
+	rsync -avR --progress ctr26@noah-login:/nfs/bioimage/drop/idr0093-mueller-perturbation/ data/idr

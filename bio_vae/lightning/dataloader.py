@@ -7,8 +7,19 @@ import math
 from iteround import saferound
 
 
+class SimpleCustomBatch:
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+    # custom memory pinning method on custom type
+    def pin_memory(self):
+        self.dataset = self.dataset.pin_memory()
+        return self
+
 class DatamoduleGlob(pl.LightningDataModule):
-    def __init__(self, glob_str, batch_size=32, **kwargs):
+    def collate_wrapper(batch):
+        return SimpleCustomBatch(batch)
+    def __init__(self, glob_str, batch_size=32,num_workers=2**8,**kwargs):
         super().__init__()
         self.glob_str = glob_str
         self.batch_size = batch_size
@@ -16,10 +27,11 @@ class DatamoduleGlob(pl.LightningDataModule):
         self.data_loader_settings = {
             "batch_size": batch_size,
             # batch_size:32,
-            "num_workers": 2**4,
+            "num_workers": num_workers,
             "pin_memory": True,
             "shuffle": False,
-            "collate_fn": self.collate_filter_for_none,
+            # "collate_fn": self.collate_wrapper(self.collate_filter_for_none),
+            # "collate_fn": self.collate_filter_for_none,
         }
 
     def get_dataset(self):

@@ -35,6 +35,7 @@ class DatasetGlob(Dataset):
     def __init__(self, path_glob, transform=None, **kwargs):
         self.image_paths = glob.glob(path_glob, recursive=True)
         self.transform = transform
+        assert len(self.image_paths)>0
 
     # def make_subset(self, index):
     #     self.getitem(index)
@@ -61,6 +62,7 @@ class DatasetGlob(Dataset):
             return x
         except:
             return None
+        # return self.transform(Image.open(self.image_paths[index]))
 
     def __getitem__(self, index):
         # x = self.getitem(index)
@@ -83,7 +85,6 @@ class DatasetGlob(Dataset):
 
     def __len__(self):
         return len(self.image_paths)
-
 
 class WebArchiveDataset(DatasetGlob):
     def __init__(
