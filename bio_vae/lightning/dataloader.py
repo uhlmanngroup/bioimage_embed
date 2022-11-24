@@ -19,7 +19,7 @@ class SimpleCustomBatch:
 class DatamoduleGlob(pl.LightningDataModule):
     def collate_wrapper(batch):
         return SimpleCustomBatch(batch)
-    def __init__(self, glob_str, batch_size=32,num_workers=2**8,**kwargs):
+    def __init__(self, glob_str, batch_size=32,num_workers=2**8,sampler=None,**kwargs):
         super().__init__()
         self.glob_str = glob_str
         self.batch_size = batch_size
@@ -30,6 +30,7 @@ class DatamoduleGlob(pl.LightningDataModule):
             "num_workers": num_workers,
             "pin_memory": True,
             "shuffle": False,
+            "sampler":sampler,
             # "collate_fn": self.collate_wrapper(self.collate_filter_for_none),
             # "collate_fn": self.collate_filter_for_none,
         }
@@ -38,6 +39,8 @@ class DatamoduleGlob(pl.LightningDataModule):
         return self.dataset
 
     def splitting(self, dataset, split=0.8, seed=42):
+        if len(dataset) < 4:
+            return dataset,dataset,dataset,dataset
         spliting_shares = [
             len(dataset) * split * split,  # train
             len(dataset) * split * (1 - split),  # test
@@ -79,21 +82,3 @@ class DatamoduleGlob(pl.LightningDataModule):
     def collate_filter_for_none(self, batch):
         batch = list(filter(lambda x: x is not None, batch))
         return torch.utils.data.dataloader.default_collate(batch)
-
-    # def get_dataloader(
-    #     self,
-    #     dataset,
-    #     batch_size=32,
-    #     num_workers=2**4,
-    #     pin_memory=True,
-    #     shuffle=True,
-    #     collate_fn=collate_filter_for_none,
-    # ):
-    #     return DataLoader(
-    #         dataset,
-    #         batch_size=batch_size,
-    #         shuffle=shuffle,
-    #         num_workers=num_workers,
-    #         pin_memory=pin_memory,
-    #         collate_fn=collate_fn,
-    #     )
