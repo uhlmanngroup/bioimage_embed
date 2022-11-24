@@ -147,3 +147,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
 
     def sample(self, *args, **kwargs):
         return self.model.sample(*args, **kwargs)
+
+    @property
+    def num_training_steps(self) -> int:
+        return 100
