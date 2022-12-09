@@ -109,7 +109,7 @@ plt.close()
 # %%
 z_list = []
 z_dict = {}
-for i,data in enumerate(tqdm(train_dataset)):
+for i, data in enumerate(tqdm(train_dataset)):
     if data is not None:
         z, mu = model.encode(data.unsqueeze(0))
         z_list.append(z)
@@ -138,6 +138,21 @@ plt.close()
 # %%
 # Sorted images
 
+
+fig = plt.figure(figsize=(4.0, 4.0))
+grid = ImageGrid(
+    fig,
+    111,  # similar to subplot(111)
+    nrows_ncols=(10, 10),  # creates 2x2 grid of axes
+    axes_pad=0.1,  # pad between axes in inch.
+)
+
+indices = np.argsort(proj[:,0])
+
+for i, ax in enumerate(grid):
+    ax.imshow(train_dataset[indices[i]][0])
+plt.show()
+plt.close()
 
 #  %% Principle worm components, probably meaningless
 
