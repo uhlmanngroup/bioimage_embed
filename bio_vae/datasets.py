@@ -23,6 +23,7 @@ import torch.optim as optim
 from urllib.error import URLError
 
 from bio_vae.idr import IDRDataSet
+from PIL import Image, ImageSequence
 
 from torchvision.datasets.utils import (
     check_integrity,
@@ -37,6 +38,15 @@ class DatasetGlob(Dataset):
         self.transform = transform
         assert len(self.image_paths)>0
 
+    def getitem(self, index):
+        try:
+            x = Image.open(self.image_paths[index])
+            x = ImageSequence.Iterator(x)
+            if self.transform is not None:
+                x = self.transform(x[0])
+            return x
+        except:
+            return None
     # def make_subset(self, index):
     #     self.getitem(index)
 
@@ -54,14 +64,7 @@ class DatasetGlob(Dataset):
         else:
             return True
 
-    def getitem(self, index):
-        try:
-            x = Image.open(self.image_paths[index])
-            if self.transform is not None:
-                x = self.transform(x)
-            return x
-        except:
-            return None
+
         # return self.transform(Image.open(self.image_paths[index]))
 
     def __getitem__(self, index):
