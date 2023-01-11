@@ -1,3 +1,20 @@
+bio_vae is a Python package that provides a convenient way to train and use autoencoders on biological image data. It includes functions for loading and preprocessing images from common sources such as microscopy, and tools for visualizing the results of the autoencoder's encoding and decoding process.
+
+Installation
+To install bio_vae, use pip:
+
+Copy code
+pip install bio_vae
+Usage
+Loading and Preprocessing Images
+bio_vae includes functions for loading and preprocessing images from microscopy datasets, such as those in the BioImage Data Resource and Cell Image Library.
+
+# Installation
+
+    pip install git+https://github.com/ctr26/bio_vae
+    
+   
+
 # Mask-VAE
 
 This project attempts to using modern auto-encoding CNNs to access the latent shape space of a given dataset.
