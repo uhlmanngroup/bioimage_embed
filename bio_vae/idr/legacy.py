@@ -5,29 +5,29 @@
 
 # %%
 
-import argparse
+# import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--gpus", type=int, default=0)
-parser.add_argument("--workers", type=int, default=16)
-parser.add_argument("--batch-size", type=int, default=16)
-parser.add_argument(
-    "--learning_rate", type=float, default=1e-3
-)  # Low learning rates converge better
-parser.add_argument("--epochs", type=int, default=100)
+# parser = argparse.ArgumentParser()
+# parser.add_argument("--gpus", type=int, default=0)
+# parser.add_argument("--workers", type=int, default=16)
+# parser.add_argument("--batch-size", type=int, default=16)
+# parser.add_argument(
+#     "--learning_rate", type=float, default=1e-3
+# )  # Low learning rates converge better
+# parser.add_argument("--epochs", type=int, default=100)
 
 
-args = parser.parse_args()
-# globals().update(args)
-args_dict = vars(parser.parse_args())
+# args = parser.parse_args()
+# # globals().update(args)
+# args_dict = vars(parser.parse_args())
 
-gpus = args_dict["gpus"]
-workers = args_dict["workers"]
-batch_size = args_dict["batch_size"]
-learning_rate = args_dict["learning_rate"]
-epochs = args_dict["epochs"]
+# gpus = args_dict["gpus"]
+# workers = args_dict["workers"]
+# batch_size = args_dict["batch_size"]
+# learning_rate = args_dict["learning_rate"]
+# epochs = args_dict["epochs"]
 
-print(args_dict)
+# print(args_dict)
 # %%
 import torch
 import math
