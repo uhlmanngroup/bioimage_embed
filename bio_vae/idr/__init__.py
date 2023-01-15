@@ -1,6 +1,6 @@
 import torch
 import math
-from idr import connection
+# from idr import connection
 from torchvision.datasets.vision import VisionDataset
 from torchvision.transforms import ToTensor
 import numpy as np
@@ -101,21 +101,21 @@ class IDRDataSet(Dataset):
 
 # RETURN_NONE = True
 # np.full([2048, 2048], np.nan)
-def get_idr_image(imageid=171499):
-    conn = connection("idr.openmicroscopy.org")
-    image_wrapped = conn.getObject("Image", imageid)
-    if image_wrapped == None:
-        return None
-    # image_wrapped.getPrimaryPixels()
-    try:
-        image_plane = image_wrapped.getPrimaryPixels().getPlane(0)
-        norm_image_plane = ((image_plane/image_plane.max())*255).astype(np.int8)
-        pil_image = Image.fromarray(norm_image_plane,"L")
-        image = make_size(pil_image, size=[2048, 2048])
-        # if image_plane == None:
-        return image
-    except:
-        return None
+# def get_idr_image(imageid=171499):
+#     conn = connection("idr.openmicroscopy.org")
+#     image_wrapped = conn.getObject("Image", imageid)
+#     if image_wrapped == None:
+#         return None
+#     # image_wrapped.getPrimaryPixels()
+#     try:
+#         image_plane = image_wrapped.getPrimaryPixels().getPlane(0)
+#         norm_image_plane = ((image_plane/image_plane.max())*255).astype(np.int8)
+#         pil_image = Image.fromarray(norm_image_plane,"L")
+#         image = make_size(pil_image, size=[2048, 2048])
+#         # if image_plane == None:
+#         return image
+#     except:
+#         return None
 
 
 def make_size(im, size=[2048, 2048]):
