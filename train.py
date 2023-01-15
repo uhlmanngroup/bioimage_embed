@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 max_epochs = 500
 
-window_size = 128 * 4
+window_size = 128 * 2
 batch_size = 16
 num_training_updates = 15000
 
@@ -35,6 +35,7 @@ decay = 0.99
 
 learning_rate = 1e-3
 num_workers = 2**4
+data_samples = 16  # Set to -1 for all images
 model_name = "VQ_VAE"
 dataset = "idr0093"
 data_dir = "data"
@@ -49,7 +50,7 @@ model_dir = f"models/{dataset}_{model_name}"
 # transformer_dist = MaskToDistogramPipeline(window_size, interp_size)
 # transformer_coords = DistogramToCoords(window_size)
 
-train_dataset = DatasetGlob(train_dataset_glob)
+train_dataset = DatasetGlob(train_dataset_glob, samples=data_samples)
 # train_dataset_crop = DatasetGlob(
 #     train_dataset_glob, transform=CropCentroidPipeline(window_size))
 
@@ -59,8 +60,8 @@ transform = transforms.Compose(
         transforms.Grayscale(),
         transforms.RandomVerticalFlip(),
         transforms.RandomHorizontalFlip(),
-        transforms.RandomAffine((0,360)),
-        transforms.RandomResizedCrop(size=256),
+        transforms.RandomAffine((0, 360)),
+        transforms.RandomResizedCrop(size=512),
         # transforms.RandomCrop(size=(512,512)),
         # transforms.GaussianBlur(5),
         transforms.ToTensor(),
@@ -69,10 +70,10 @@ transform = transforms.Compose(
 )
 
 
-train_dataset = DatasetGlob(train_dataset_glob,transform=transform)
+train_dataset = DatasetGlob(train_dataset_glob, transform=transform)
 # train_dataset = DatasetGlob(train_dataset_glob, transform=transform)
 
-# plt.imshow(train_dataset[10][0], cmap="gray")
+plt.imshow(train_dataset[10][0], cmap="gray")
 # plt.show()
 # print(train_dataset[0][0])
 
@@ -96,9 +97,7 @@ dataloader = DatamoduleGlob(
 # dataloader = DataLoader(train_dataset, batch_size=batch_size,
 #                         shuffle=True, num_workers=2**4, pin_memory=True, collate_fn=my_collate)
 
-model = Bio_VAE("VQ_VAE", channels=1,
-                    num_residual_layers=8,
-                    num_residual_hiddens=64)
+model = Bio_VAE("VQ_VAE", channels=1, num_residual_layers=8, num_residual_hiddens=64)
 
 model = Bio_VAE("VQ_VAE", channels=1)
 
