@@ -2,6 +2,7 @@
 import sys
 from torch.utils.data import random_split, DataLoader
 import glob
+import random
 
 # Note - you must have torchvision installed for this example
 from torch.utils.data import Dataset, DataLoader
@@ -33,11 +34,19 @@ from torchvision.datasets.utils import (
 )
 
 class DatasetGlob(Dataset):
-    def __init__(self, path_glob, transform=None, **kwargs):
+    def __init__(self, path_glob, transform=None, samples=-1, shuffle=True,**kwargs):
         self.image_paths = glob.glob(path_glob, recursive=True)
+        if shuffle:
+            random.shuffle(self.image_paths)
+        if samples > 0 and samples <len(self.image_paths):
+            self.image_paths = self.image_paths[0:samples]
         self.transform = transform
+        self.samples = samples
         assert len(self.image_paths)>0
-
+    
+    def __len__(self):
+        return len(self.image_paths)
+    
     def getitem(self, index):
         try:
             x = Image.open(self.image_paths[index])
