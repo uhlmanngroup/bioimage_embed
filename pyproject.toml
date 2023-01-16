@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "bio_vae"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
-authors = ["Craig  <ctr26@ebi.ac.uk>"]
+authors = ["Craig <ctr26@ebi.ac.uk>"]
 
 [tool.poetry.dependencies]
-python = "3.9.15"
+python = "^3.9"
 torchvision = "^0.13.1"
 torch = "^1.12.1"
 torchinfo = "^1.7.0"
@@ -24,7 +24,7 @@ bokeh = "^2.4.0"
 umap-learn = {extras = ["plot"], version = "^0.5.3"}
 colorcet = "^3.0.1"
 holoviews = "^1.15.2"
-idr-py = "^0.4.2"
+# idr-py = "^0.4.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.1"
