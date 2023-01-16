@@ -1,4 +1,4 @@
-name: torch
+name: base
 channels:
   - bioconda
   - pytorch
@@ -9,9 +9,10 @@ channels:
   - torch
 dependencies:
   - cudatoolkit=10.2
-  - python=3.9.15
+  - python=3.9
   - pytest
   - poetry
+  - gcc
   - tensorboard
   - umap-learn
   - jupyter
