@@ -25,14 +25,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Detect and tag new version
-        id: check-version
-        uses: salsify/action-detect-and-tag-new-version@v2.0.3
-        with:
-          create-tag: false # Do not create new tag
-          version-command: |
-            bash -o pipefail -c "cat hypha/VERSION | jq -r '.version'"
-
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v4.3.0
