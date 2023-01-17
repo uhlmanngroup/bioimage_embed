@@ -70,7 +70,7 @@ transform = transforms.Compose(
 )
 
 
-train_dataset = DatasetGlob(train_dataset_glob, transform=transform)
+train_dataset = DatasetGlob(train_dataset_glob, transform=transform, samples=data_samples)
 # train_dataset = DatasetGlob(train_dataset_glob, transform=transform)
 
 plt.imshow(train_dataset[10][0], cmap="gray")
