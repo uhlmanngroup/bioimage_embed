@@ -26,12 +26,22 @@ class Bio_VAE(BaseVAE):
     #                   VAE: {}}
     # by default our latent space is 50-dimensional
     # and we use 400 hidden units
-    def __init__(self, model="VQ_VAE", *args, **kwargs):
-        super(Bio_VAE, self).__init__()
+    
+    def init_model(self,model,*args,**kwargs):
         if type(model) is str:
-            self.model = self.model_lookup[model.lower()](*args, **kwargs)
+            return self.model_lookup[model.lower()](*args, **kwargs)
         else:
-            self.model = model
+            return model
+        
+    # def init_pythae_model(self,model,*args,**kwargs):
+        # return model
+              
+    def __init__(self, model="VQ_VAE", backend="", *args, **kwargs):
+        super(Bio_VAE, self).__init__()
+        # if backend=="":
+        self.model = self.init_model(model,*args,**kwargs)
+        # if backend=="pythae":
+            # self.model = self.init_pythae_model(model,*args,**kwargs)
 
     # def __getattr__(self, attr):
     #     return getattr(self.obj, attr)
