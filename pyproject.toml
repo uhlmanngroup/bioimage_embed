@@ -27,6 +27,7 @@ holoviews = "^1.15.2"
 # idr-py = "^0.4.2"
 llvmlite = "^0.39.1"
 torchmetrics = "^0.11.0"
+tensorboard = "^2.11.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.1"
