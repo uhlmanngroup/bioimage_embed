@@ -1,11 +1,11 @@
-name: torch
+# name: torch
 channels:
   - bioconda
   - pytorch
   - idr
   - ome
   - conda-forge
-  - defaults
+  # - defaults
   - torch
 dependencies:
   - cudatoolkit=10.2
@@ -18,7 +18,6 @@ dependencies:
   - tensorboard
   - umap-learn
   - jupyter
-  - pip
   - black
   - autopep8
   - pytorch
@@ -28,6 +27,7 @@ dependencies:
   - matplotlib
   - torchvision
   - gsutil
+  - pip
   - pip:
-    - -e .
+    - .
     - nonechucks
