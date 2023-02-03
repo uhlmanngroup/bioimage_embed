@@ -35,7 +35,7 @@ commitment_cost = 0.25
 decay = 0.99
 
 learning_rate = 1e-3
-num_workers = 16
+num_workers = 8
 data_samples = 128  # Set to -1 for all images
 # model_name = "VQ_VAE"
 dataset = "idr0093"
@@ -99,6 +99,7 @@ dataloader = DatamoduleGlob(
     num_workers=num_workers,
     transform=transform,
     pin_memory=True,
+    persistent_workers=True,
 )
 
 # dataloader = DataLoader(train_dataset, batch_size=batch_size,
