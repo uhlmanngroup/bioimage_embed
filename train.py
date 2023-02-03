@@ -92,6 +92,7 @@ dataloader = DatamoduleGlob(
     num_workers=num_workers,
     transform=transform,
     pin_memory=True,
+    persistent_workers=True,
 )
 
 # dataloader = DataLoader(train_dataset, batch_size=batch_size,
