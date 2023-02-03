@@ -1,3 +1,4 @@
-FROM continuumio/miniconda3
+FROM mambaorg/micromamba
 COPY . .
-RUN conda env update -f environment.yml --name base
+RUN micromamba install -f environment.yml -n base --yes
+
