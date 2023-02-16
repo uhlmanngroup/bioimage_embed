@@ -28,7 +28,7 @@ from bio_vae.transforms import (
     AsymmetricDistogramToMaskPipeline,
 )
 
-from bio_vae.models import VQ_VAE, Mask_VAE
+from bio_vae.models import VQ_VAE,Bio_VAE
 from bio_vae.lightning import LitAutoEncoderTorch
 
 interp_size = 128 * 4
@@ -92,8 +92,12 @@ dataloader = DataLoader(
 ckpt_file = "checkpoints/last.ckpt"
 
 
-model = Mask_VAE(VQ_VAE(channels=1))
-model = LitAutoEncoderTorch(model).load_from_checkpoint(ckpt_file, model=model)
+# model = Mask_VAE()m
+model = Bio_VAE(VQ_VAE(channels=1))
+if os.path.exists(ckpt_file):
+    model = LitAutoEncoderTorch(model).load_from_checkpoint(ckpt_file, model=model)
+else:
+    model = LitAutoEncoderTorch(model)
 
 test_img = train_dataset[1].unsqueeze(0)
 # img_squeeze = train_dataset_crop[1].unsqueeze(0)
@@ -110,14 +114,10 @@ def test_img_test():
 
 def test_forward_test():
     plt.close()
-    (
-        loss,
-        y_prime,
-        _,
-    ) = model.forward(test_img)
-    y_prime = y_prime.detach().numpy()
-    plt.imshow(y_prime[0][0])
-    plt.close()
+    results = model.forward(test_img)
+    # y_prime = y_prime.detach().numpy()
+    # plt.imshow(y_prime[0][0])
+    # plt.close()
 
 
 def test_encoder_decoder():
