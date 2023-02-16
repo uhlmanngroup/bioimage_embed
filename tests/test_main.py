@@ -13,7 +13,7 @@ import torch
 import torch
 from torch.utils.data import DataLoader
 
-from bio_vae.utils import collate_none,get_test_image
+from bio_vae.utils import collate_none, get_test_image
 from bio_vae.datasets import BroadDataset, DatasetGlob
 from bio_vae.transforms import (
     CropCentroidPipeline,
@@ -24,7 +24,7 @@ from bio_vae.transforms import (
     DistogramToCoords,
 )
 
-from bio_vae.models import VQ_VAE, Mask_VAE, VAE, Image_VAE
+from bio_vae.models import VQ_VAE, Bio_VAE, VAE
 from bio_vae.lightning import LitAutoEncoderTorch
 
 interp_size = 128 * 4
@@ -49,7 +49,6 @@ learning_rate = 1e-3
 channels = 1
 
 
-    
 # train_dataset_glob = "data/stage1_train/*/masks/*.png"
 # train_dataset_glob = "data/BBBC010_v1_foreground_eachworm/*.png"
 
@@ -103,12 +102,26 @@ datasets = [
         transform=MaskToDistogramPipeline(
             window_size, interp_size, matrix_normalised=True
         ),
-    )
+    ),
 ]
-models = [VQ_VAE(channels=channels), VAE(channels, 64, image_dims=(interp_size, interp_size))]
-models = [VAE(channels, 10)]
-models = [VQ_VAE(channels=channels)]
+models = [
+    VQ_VAE(channels=channels),
+    VAE(channels, 64, image_dims=(interp_size, interp_size)),
+]
 
+import pythae
+
+
+models = [VQ_VAE(channels=channels)]
+models = [
+    VQ_VAE(channels=channels),
+    VAE(channels, 10),
+    pythae.models.VAE(
+        model_config=pythae.models.VAEConfig(
+            input_dim=(channels, window_size, window_size), latent_dim=10
+        ),
+    ),
+]
 
 
 @pytest.mark.parametrize("model", models)
@@ -133,7 +146,7 @@ class TestVAE:
 
     # Loss check buggy and inconsistent
     # def test_loss(self, model):
-        # print("good")
+    # print("good")
     #     x = torch.randn(16, channels, 64, 64)
 
     #     result = model(x)
@@ -145,7 +158,7 @@ class TestVAE:
 @pytest.mark.parametrize("model", models)
 class TestMask:
     def test_mask_forward(self, model, dataset):
-        model = Mask_VAE(model)
+        model = Bio_VAE(model)
         test_img = get_test_image(dataset)
         z, log_var = model.encode(test_img)
         y_prime = model.decode(z)
@@ -170,7 +183,6 @@ class TestMask:
 @pytest.mark.parametrize("model", models)
 @pytest.mark.parametrize("dataset", datasets)
 class TestModels:
-
     def test_dist_to_coord(self, model, dataset):
         # dist = transformer_dist(train_dataset[0][0])
         # TODO Faulty?
@@ -181,7 +193,7 @@ class TestModels:
         plt.close()
 
     def test_dist_to_coord(self, model, dataset):
-        test_img =  get_test_image(dataset)
+        test_img = get_test_image(dataset)
         # dist = transformer_dist(train_dataset[0][0])
         coords = DistogramToCoords(window_size)(test_img)
         plt.scatter(coords[0][:, 0], coords[0][:, 1])
@@ -201,7 +213,7 @@ class TestModels:
         print(f"img_dims:{test_img.shape}, z:_dims:{z.shape}")
 
     # @pytest.mark.skip(reason="Crashes github actions")
-    @pytest.mark.parametrize("wrapper", [Mask_VAE, Image_VAE])
+    @pytest.mark.parametrize("wrapper", [Bio_VAE])
     def test_mask_training(self, model, dataset, wrapper):
         model = wrapper(model)
         dataloader = DataLoader(
