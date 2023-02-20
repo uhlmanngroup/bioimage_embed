@@ -47,7 +47,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         self.loss_fn = torch.nn.MSELoss()
         self.params = params
         self.model = model
-        self.PYTHAE_FLAG = isinstance(self.model.__class__, pythae.models.BaseAE)
+        self.PYTHAE_FLAG = issubclass(self.model.__class__, pythae.models.BaseAE)
         if self.PYTHAE_FLAG:
             self.pythae_flag()
         # self.loss_fn = torch.nn.BCEWithLogitsLoss()
