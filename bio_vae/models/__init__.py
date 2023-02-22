@@ -40,12 +40,16 @@ class Bio_VAE(BaseVAE):
         super(Bio_VAE, self).__init__()
         # if backend=="":
         self.model = self.init_model(model,*args,**kwargs)
+        self.model_name = self.model._get_name()
         # if backend=="pythae":
             # self.model = self.init_pythae_model(model,*args,**kwargs)
 
     # def __getattr__(self, attr):
     #     return getattr(self.obj, attr)
-
+    
+    def update(self):
+        pass
+    
     def forward(self, x):
         return self.model(x)
 
