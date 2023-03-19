@@ -137,13 +137,13 @@ class LitAutoEncoderTorch(pl.LightningModule):
     #     return self.model.encode(img)
 
     def forward(self, x):
-        if self.PYTHAE_FLAG:
-            return self.model.forward({"data": x})["recon_x"]
-        return self.model.forward(x)
+        # if self.PYTHAE_FLAG:
+        return self.model.forward({"data": x})["recon_x"]
+        # return self.model.forward(x)
 
     def recon(self, x):
         if self.PYTHAE_FLAG:
-            return self.forward(x)
+            return self.forward({"data": x})
         return self.model.recon(x)
 
     def configure_optimizers(self):
@@ -168,9 +168,9 @@ class LitAutoEncoderTorch(pl.LightningModule):
         return loss["loss"]
 
     def get_results(self, batch):
-        if self.PYTHAE_FLAG:   
-            return self.model.forward({"data": batch})
-        return self.model.forward(batch)
+        # if self.PYTHAE_FLAG:   
+        return self.model.forward({"data": batch})
+        # return self.model.forward(batch)
         
 
     def test_step(self, batch, batch_idx):

@@ -66,7 +66,7 @@ class Bio_VAE(BaseVAE):
         return self.model.encode(img)
 
     def recon(self, img):
-        return self.model.recon(img)
+        return self.model.recon({"data":img})
 
     def mask_from_latent(self, z, window_size):
         # This should be class-method based
