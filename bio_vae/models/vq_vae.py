@@ -1,13 +1,11 @@
-from torch.utils.data import DataLoader
-import torch
-from torch import nn
+import pythae
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from pythae.models.nn import BaseEncoder, BaseDecoder
 from pythae.models.base.base_utils import ModelOutput
-import pythae
+from pythae.models.nn import BaseDecoder, BaseEncoder
+from torch import nn
+from torch.utils.data import DataLoader
 
 # https://colab.research.google.com/github/zalandoresearch/pytorch-vq-vae/blob/master/vq-vae.ipynb#scrollTo=fknqLRCvdJ4I
 
@@ -210,6 +208,7 @@ class ResidualStack(nn.Module):
 # decay=0.99
 # channels=1
 
+
 class Encoder(BaseEncoder):
     def __init__(
         self,
@@ -226,7 +225,7 @@ class Encoder(BaseEncoder):
             num_hiddens = model_config.num_embeddings
             in_channels = model_config.input_dim[0]
             image_dims = model_config.input_dim[1:]
-            
+
         self._conv_1 = nn.Conv2d(
             in_channels=in_channels,
             out_channels=num_hiddens // 2,
@@ -275,8 +274,6 @@ class Encoder(BaseEncoder):
         return output
 
 
-
-
 # import pythae
 class Decoder(BaseDecoder):
     def __init__(
@@ -295,7 +292,7 @@ class Decoder(BaseDecoder):
             in_channels = model_config.latent_dim
             out_channels = model_config.input_dim[0]
             image_dims = model_config.input_dim[1:]
-            
+
         self._conv_1 = nn.Conv2d(
             in_channels=in_channels,
             out_channels=num_hiddens,
@@ -357,7 +354,11 @@ class VQ_VAE(nn.Module):
 
         self._encoder = Encoder(
             None,
-            num_hiddens, num_residual_layers, num_residual_hiddens, in_channels=channels,embedding_dim=embedding_dim
+            num_hiddens,
+            num_residual_layers,
+            num_residual_hiddens,
+            in_channels=channels,
+            embedding_dim=embedding_dim,
         )
         self._pre_vq_conv = nn.Conv2d(
             in_channels=num_hiddens, out_channels=embedding_dim, kernel_size=1, stride=1
