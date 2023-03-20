@@ -1,32 +1,20 @@
 #  %%
-from scipy.stats import gaussian_kde
-from tqdm import tqdm
-from torchvision import transforms
-import torch
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 import umap
 import umap.plot
+from scipy.stats import gaussian_kde
 from sklearn.decomposition import PCA
-
 #  %%
-from torch.utils.data import DataLoader
-
+from torch.utils.data import DataLoader, Dataset
 # Note - you must have torchvision installed for this example
 from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-import torch
-from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from bio_vae.datasets import DatasetGlob
-
-
 from bio_vae.lightning import LitAutoEncoderTorch
 from bio_vae.models import Bio_VAE
-
 
 batch_size = 32
 num_training_updates = 15000
