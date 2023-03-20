@@ -16,10 +16,14 @@ class SimpleCustomBatch:
         self.dataset = self.dataset.pin_memory()
         return self
 
+
 class DatamoduleGlob(pl.LightningDataModule):
     def collate_wrapper(batch):
         return SimpleCustomBatch(batch)
-    def __init__(self, glob_str, batch_size=32,num_workers=2**8,sampler=None,**kwargs):
+
+    def __init__(
+        self, glob_str, batch_size=32, num_workers=2**8, sampler=None, **kwargs
+    ):
         super().__init__()
         self.glob_str = glob_str
         self.batch_size = batch_size
@@ -30,7 +34,7 @@ class DatamoduleGlob(pl.LightningDataModule):
             "num_workers": num_workers,
             "pin_memory": True,
             "shuffle": False,
-            "sampler":sampler,
+            "sampler": sampler,
             # "collate_fn": self.collate_wrapper(self.collate_filter_for_none),
             # "collate_fn": self.collate_filter_for_none,
         }
@@ -40,7 +44,7 @@ class DatamoduleGlob(pl.LightningDataModule):
 
     def splitting(self, dataset, split=0.8, seed=42):
         if len(dataset) < 4:
-            return dataset,dataset,dataset,dataset
+            return dataset, dataset, dataset, dataset
         spliting_shares = [
             len(dataset) * split * split,  # train
             len(dataset) * split * (1 - split),  # test
