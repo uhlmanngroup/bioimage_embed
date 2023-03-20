@@ -1,41 +1,30 @@
 # %%
 from pathlib import Path
-from bio_vae.models import vae, vq_vae
 
+import matplotlib.pyplot as plt
 import pythae
-
-#  %%
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
-
+import torch
+from PIL import Image
+from pythae import models
+from pythae.data.datasets import DatasetOutput
+from pythae.models import VAE, VAEConfig
+from pythae.models.nn.benchmarks import celeba
+from pythae.models.nn.benchmarks.cifar import (Decoder_ResNet_AE_CIFAR,
+                                               Encoder_ResNet_VAE_CIFAR)
+from pythae.pipelines import TrainingPipeline
+from pythae.trainers import BaseTrainerConfig
 # Note - you must have torchvision installed for this example
 from pytorch_lightning import loggers as pl_loggers
-from torchvision import transforms
-from bio_vae.lightning import DatamoduleGlob
-
-from bio_vae.datasets import DatasetGlob
-from bio_vae.models import Bio_VAE
-from bio_vae.lightning import LitAutoEncoderTorch
-import matplotlib.pyplot as plt
-from PIL import Image
-import torch
-from pythae import models
-from pythae.models.nn.benchmarks.cifar import (
-    Encoder_ResNet_VAE_CIFAR,
-    Decoder_ResNet_AE_CIFAR,
-)
-from pythae.models.nn.benchmarks import celeba
-
-from pythae.data.datasets import DatasetOutput
+#  %%
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
-from pythae.data.datasets import DatasetOutput
-from torch.utils.data import Dataset, DataLoader
 from torchvision.datasets import VisionDataset
 
-from pythae.pipelines import TrainingPipeline
-from pythae.models import VAE, VAEConfig
-from pythae.trainers import BaseTrainerConfig
-
+from bio_vae.datasets import DatasetGlob
+from bio_vae.lightning import DatamoduleGlob, LitAutoEncoderTorch
+from bio_vae.models import Bio_VAE, vae, vq_vae
 
 Image.MAX_IMAGE_PIXELS = None
 
