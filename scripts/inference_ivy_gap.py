@@ -1,9 +1,13 @@
 #  %%
 import matplotlib.pyplot as plt
 import numpy as np
+import pythae
 import torch
 import umap
 import umap.plot
+from pythae.models import VAE, VAEConfig
+from pythae.pipelines import TrainingPipeline
+from pythae.trainers import BaseTrainerConfig
 from scipy.stats import gaussian_kde
 from sklearn.decomposition import PCA
 #  %%
@@ -15,6 +19,9 @@ from tqdm import tqdm
 from bio_vae.datasets import DatasetGlob
 from bio_vae.lightning import LitAutoEncoderTorch
 from bio_vae.models import Bio_VAE
+
+latent_dim = 64
+window_size = 64 * 2
 
 batch_size = 32
 num_training_updates = 15000
@@ -33,13 +40,18 @@ decay = 0.99
 learning_rate = 1e-3
 dataset = "ivy_gap"
 data_dir = "data"
+channels = 3
+
+input_dim = (channels, window_size, window_size)
 model_name = "VQ_VAE"
 train_dataset_glob = f"{data_dir}/{dataset}/random/*png"
 model_dir = f"models/{dataset}_{model_name}"
 ckpt_file = "models/ivy_gap_VQ_VAE/last.ckpt"
 
-
-model = Bio_VAE("VQ_VAE", channels=3)
+model_config_vqvae = pythae.models.VQVAEConfig(
+    input_dim=input_dim, latent_dim=latent_dim, num_embeddings=num_embeddings
+)
+model = Bio_VAE("VQ_VAE", model_config=model_config_vqvae, channels=channels)
 # model = Mask_VAE(VAE(1, 64, image_dims=(interp_size, interp_size)))
 
 lit_model = LitAutoEncoderTorch(model)
@@ -71,11 +83,6 @@ test_img_in = train_dataset[image_index].unsqueeze(0)
 z, log_var = model.encode(test_img_in)
 z_np = z.detach().numpy()
 
-width_z = np.floor(np.sqrt(len(z_np.flatten()))).astype(int)
-height_z = (len(z_np.flatten()) / width_z).astype(int)
-
-
-test_img_out = model.decode(z).detach().numpy()
 
 axd = plt.figure(constrained_layout=True, figsize=(12, 8)).subplot_mosaic(
     """
@@ -88,8 +95,8 @@ axd = plt.figure(constrained_layout=True, figsize=(12, 8)).subplot_mosaic(
 axd["A"].imshow(test_img_in[0][0])
 axd["A"].set_title("test_img_in")
 
-axd["a"].imshow(test_img_out[0][0])
-axd["a"].set_title("test_img_out")
+# axd["a"].imshow(test_img_out[0][0])
+# axd["a"].set_title("test_img_out")
 
 
 plt.show()
@@ -135,7 +142,7 @@ grid = ImageGrid(
     axes_pad=0.1,  # pad between axes in inch.
 )
 
-indices = np.argsort(proj[:,0])
+indices = np.argsort(proj[:, 0])
 
 for i, ax in enumerate(grid):
     ax.imshow(train_dataset[indices[i]][0])
