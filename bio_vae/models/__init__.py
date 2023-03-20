@@ -1,20 +1,16 @@
-from .ae import AutoEncoder
-from .vae import VAE
-from .vq_vae import VQ_VAE
-
-# from .vae_bio import Mask_VAE, Image_VAE
-from .utils import BaseVAE
-
-
-# Note - you must have torchvision installed for this example
-from torch.utils.data import DataLoader
-import torch
 import torch
 import torch.nn.functional as F
+# Note - you must have torchvision installed for this example
 from torch.utils.data import DataLoader
+
+from bio_vae.models import VAE, VQ_VAE
 from bio_vae.transforms import DistogramToMaskPipeline
+
+from .ae import AutoEncoder
+# from .vae_bio import Mask_VAE, Image_VAE
 from .utils import BaseVAE
-from bio_vae.models import VQ_VAE, VAE
+from .vae import VAE
+from .vq_vae import VQ_VAE
 
 
 class Bio_VAE(BaseVAE):
@@ -49,6 +45,14 @@ class Bio_VAE(BaseVAE):
     
     def update(self):
         pass
+    
+    def img_to_latent(self,img):   
+        vq = self.get_model().model._vq_vae
+        embedding_torch = vq._embedding
+        embedding_tensor_in = self.get_model().model.encoder_z(img)
+        embedding_tensor_out = vq(embedding_tensor_in)
+        latent = embedding_torch(embedding_tensor_out[-1].argmax(axis=1))
+        return latent
     
     def forward(self, x):
         return self.model(x)
