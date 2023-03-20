@@ -303,4 +303,4 @@ cython_debug/
 lightning_logs/*
 tests/*.png
 checkpoints
-models
+./models
