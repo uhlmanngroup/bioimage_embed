@@ -33,20 +33,21 @@ from torchvision.datasets.utils import (
     verify_str_arg,
 )
 
+
 class DatasetGlob(Dataset):
-    def __init__(self, path_glob, transform=None, samples=-1, shuffle=True,**kwargs):
+    def __init__(self, path_glob, transform=None, samples=-1, shuffle=True, **kwargs):
         self.image_paths = glob.glob(path_glob, recursive=True)
         if shuffle:
             random.shuffle(self.image_paths)
-        if samples > 0 and samples <len(self.image_paths):
+        if samples > 0 and samples < len(self.image_paths):
             self.image_paths = self.image_paths[0:samples]
         self.transform = transform
         self.samples = samples
-        assert len(self.image_paths)>0
-    
+        assert len(self.image_paths) > 0
+
     def __len__(self):
         return len(self.image_paths)
-    
+
     def getitem(self, index):
         try:
             x = Image.open(self.image_paths[index])
@@ -56,6 +57,7 @@ class DatasetGlob(Dataset):
             return x
         except:
             return None
+
     # def make_subset(self, index):
     #     self.getitem(index)
 
@@ -72,7 +74,6 @@ class DatasetGlob(Dataset):
             return False
         else:
             return True
-
 
         # return self.transform(Image.open(self.image_paths[index]))
 
@@ -97,6 +98,7 @@ class DatasetGlob(Dataset):
 
     def __len__(self):
         return len(self.image_paths)
+
 
 class WebArchiveDataset(DatasetGlob):
     def __init__(
