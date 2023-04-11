@@ -10,12 +10,16 @@ from pythae import models
 from pythae.data.datasets import DatasetOutput
 from pythae.models import VAE, VAEConfig
 from pythae.models.nn.benchmarks import celeba
-from pythae.models.nn.benchmarks.cifar import (Decoder_ResNet_AE_CIFAR,
-                                               Encoder_ResNet_VAE_CIFAR)
+from pythae.models.nn.benchmarks.cifar import (
+    Decoder_ResNet_AE_CIFAR,
+    Encoder_ResNet_VAE_CIFAR,
+)
 from pythae.pipelines import TrainingPipeline
 from pythae.trainers import BaseTrainerConfig
+
 # Note - you must have torchvision installed for this example
 from pytorch_lightning import loggers as pl_loggers
+
 #  %%
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from torch.utils.data import DataLoader, Dataset
@@ -92,7 +96,9 @@ dataloader = DatamoduleGlob(
 # model = Bio_VAE("VQ_VAE", channels=3, num_residual_layers=8, num_residual_hiddens=64)
 
 
-model_config = models.VAEConfig(input_dim=(channels, window_size, window_size), latent_dim=latent_dim)
+model_config = models.VAEConfig(
+    input_dim=(channels, window_size, window_size), latent_dim=latent_dim
+)
 
 
 model = models.VAE(
@@ -135,7 +141,11 @@ model_config_vqvae = pythae.models.VQVAEConfig(
 
 
 model = Bio_VAE(
-    "VAE", model_config=model_config,in_channels=3, latent_dim=window_size, image_dims=(window_size, window_size)
+    "VAE",
+    model_config=model_config,
+    in_channels=3,
+    latent_dim=window_size,
+    image_dims=(window_size, window_size),
 )
 
 model = pythae.models.VQVAE(
@@ -148,7 +158,7 @@ model = pythae.models.VQVAE(
     ),
 )
 
-model = Bio_VAE("VQ_VAE",model_config=model_config_vqvae, channels=channels)
+model = Bio_VAE("VQ_VAE", model_config=model_config_vqvae, channels=channels)
 
 # %%
 # model = Bio_VAE("VQ_VAE", channels=3)
@@ -174,7 +184,7 @@ dataloader.setup()
 model
 model.eval()
 # model.forward({"data": dataloader.train_dataloader().dataset[0].unsqueeze(0)})
-model.forward({"data":dataloader.train_dataloader().dataset[0].unsqueeze(0)})
+model.forward({"data": dataloader.train_dataloader().dataset[0].unsqueeze(0)})
 
 # from tqdm import tqdm
 
