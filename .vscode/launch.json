@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Snakemake Debug",
+            "type": "python",
+            "request": "launch",
+            "module": "snakemake",
+            "args": [
+                "--snakefile",
+                "${fileDirname}/Snakefile",
+                "--cores",
+                "1",
+                "--debug-dag"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${fileDirname}"
+        }
+
+    ]
+}
