@@ -1,59 +1,116 @@
 # Import necessary modules
 import os
+from tqdm import tqdm
 screen_name = 'idr0093-mueller-perturbation/screenA'
 
-
 rule all:
-    conda:
-        "enviroment.yaml"
+    # conda:
+        # "enviroment.yaml"
     input:
-        glob_wildcards("results/{image_id}.tif",image_id=image_ids)
+        # expand("results/{image_id}.tif", image_id=lambda wildcards: expand_wildcards_from_checkpoint(wildcards)),
+        # directory('results/{image_id}/done.flag',image_id=lambda wildcards: expand_wildcards_from_checkpoint(wildcards)),
+        # "image_ids.txt",
+        # "metadata.json",
+        lambda wildcards: expand_from_metadata(wildcards),
 
-
-# rule all:
-#     conda:
-#         "enviroment.yaml"
-#     input:
-#         expand("results/{{image_id}}/{z}_{c}_{t}.tiff", image_id=image_ids)
 
 checkpoint generate_image_ids:
-    # input: 
-    conda:
-        "enviroment.yaml"
+    # conda:
+        # "enviroment.yaml"
     output:
-        image_ids
+        image_ids = "image_ids.txt"
     run:
         from idr_funs import get_image_ids_by_screen
-        from idr import connection     
+        from idr import connection
         conn = connection('idr.openmicroscopy.org')
-        image_ids = get_image_ids_by_screen(conn,screen_name)
+        image_ids = get_image_ids_by_screen(conn, screen_name)
+        with open(output.image_ids, "w") as f:
+            f.write("\n".join(str(x) for x in image_ids))
 
-rule download_image:
+def expand_from_metadata(wildcards):
+    checkpoint_output = checkpoints.get_image_metadata.get(**wildcards).output.metadata
+    with open(checkpoint_output) as f:
+        metadata = json.load(f)
+    input_files = []
+    for image_id, zct in tqdm(metadata.items()):
+        z_values = range(zct["z"])
+        c_values = range(zct["c"])
+        t_values = range(zct["t"])
+        input_files.extend(expand("results/{image_id}/{z}_{c}_{t}.tiff", image_id=image_id, z=z_values, c=c_values, t=t_values))
+    return input_files[0:10]
+
+def expand_wildcards_from_checkpoint(wildcards):
+    checkpoint_output = checkpoints.generate_image_ids.get(**wildcards).output.image_ids
+    with open(checkpoint_output) as f:
+        image_ids = [x.strip() for x in f.readlines()]
+    return image_ids
+
+
+checkpoint get_image_metadata:
+    # conda:
+        # "enviroment.yaml"
     input:
-        "results/{image_id}/{z}_{c}_{t}.tif"
+        image_ids = "image_ids.txt"
     output:
-        os.path.join(output_dir, '{image_id}.tif')
-    conda:
-        "enviroment.yaml"
+        metadata = "metadata.json"
     run:
-        pixels = image.getPrimaryPixels()
-        pixels.save(output, format='ome.tiff', z=0, t=0, c=0)
-
-        download_image(conn, image_id, output_file)
-
-rule download_plane:
-    input:
-        directory('results/{image_id}/')
-    output:
-        touch("results/{image_id}/{z}_{c}_{t}.tif")
-    conda:
-        "enviroment.yaml"
-    run:
-        from idr import connection     
+        from idr import connection
         conn = connection('idr.openmicroscopy.org')
-        z = image.getSizeZ()
-        c = image.getSizeC()
-        t = image.getSizeT()
+        with open(input.image_ids) as f:
+            image_ids = [int(x.strip()) for x in f.readlines()]
+        metadata = {}
+        for image_id in tqdm(image_ids):
+            image = conn.getObject("Image", image_id)
+            z = image.getSizeZ()
+            c = image.getSizeC()
+            t = image.getSizeT()
+            metadata[str(image_id)] = {"z": z, "c": c, "t": t}
+        with open(output.metadata, "w") as f:
+            json.dump(metadata, f)
+
+
+rule download_images:
+    # conda:
+        # "enviroment.yaml"
+    input:
+        metadata = "metadata.json" 
+    output:
+        tiff = "results/{image_id}/{z}_{c}_{t}.tiff"
+    # params:
+        # z = lambda wildcards: get_zct(wildcards).get("z"),
+        # c = lambda wildcards: get_zct(wildcards).get("c"),
+        # t = lambda wildcards: get_zct(wildcards).get("t")
+    run:
+        from idr_funs import download_image
+        from idr import connection
+        conn = connection('idr.openmicroscopy.org')
+        download_image(conn, wildcards.image_id, output.tiff, int(wildcards.z), int(wildcards.c), int(wildcards.t))
+
+
+# rule download_plane:
+#     input:
+#         directory('results/{image_id}/')
+#     output:
+#         touch('results/{image_id}/done.flag'),
+#         touch("results/{image_id}/{z}_{c}_{t}.tif")
+#     # conda:
+#         # "enviroment.yaml"
+#     run:
+#         from idr import connection     
+#         conn = connection('idr.openmicroscopy.org')
+#         z = image.getSizeZ()
+#         c = image.getSizeC()
+#         t = image.getSizeT()
+        
+#         download_image(conn, image_id, output[1], z, c, t)
+#         for z in range(z):
+#             for c in range(c):
+#                 for t in range(t):
+#                     pixels = image.getPrimaryPixels()
+#                     plane = pixels.getPlane(z, c, t)
+#                     with open(output[1], "wb") as f:
+#                         f.write(plane)
+
 
 
 
