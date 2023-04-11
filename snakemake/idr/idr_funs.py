@@ -1,6 +1,7 @@
 from pathlib import Path
 from idr import connection, images
 from tqdm import tqdm
+from PIL import Image
 
 def get_omero_children_id(blitz_object):
     return [child.id for child in blitz_object.listChildren()]
@@ -15,7 +16,7 @@ def get_plate_ids_by_screen(conn,screen_name):
 def get_image_ids_by_screen(conn,screen_name):
     plate_ids = get_plate_ids_by_screen(conn,screen_name)
     image_ids = []
-    for plate_id in plate_ids:
+    for plate_id in tqdm(plate_ids):
         plate = conn.getObject('Plate', plate_id)
         image_ids.extend(get_omero_children_id(plate))
     return image_ids
@@ -27,11 +28,14 @@ def get_image_ids_by_screen(conn,screen_name):
 # Path(output_dir).mkdir(parents=True, exist_ok=True)
 
 # Define a function to download images
-def download_image(conn, image_id, output_file,z=0,t=0,c=0):
+def download_image(conn, image_id, output_file,z=0,c=0,t=0):
     image = conn.getObject('Image', image_id)
     pixels = image.getPrimaryPixels()
-    pixels.save(output_file, format='ome.tiff', z=z, t=t, c=c)
-
+    plane = pixels.getPlane(z, c, t)
+    print(f"Saving image {image_id} to {output_file}")
+    im = Image.fromarray(plane)
+    im.save(output_file)
+    return im
     # images.download_image(conn, image_id, download_path=output_dir)
 
 def get_image_dimensions(conn, image_id):
