@@ -1,0 +1,229 @@
+# Import necessary modules
+import os
+from tqdm import tqdm
+
+screen_name = "idr0093-mueller-perturbation/screenA"
+
+
+rule all:
+    # conda:
+    # "enviroment.yaml"
+    input:
+        # expand("results/{image_id}.tif", image_id=lambda wildcards: expand_wildcards_from_checkpoint(wildcards)),
+        # directory('results/{image_id}/done.flag',image_id=lambda wildcards: expand_wildcards_from_checkpoint(wildcards)),
+        "image_ids.txt",
+        "metadata.json",
+        lambda wildcards: expand_from_metadata(wildcards),
+
+
+rule generate_image_ids:
+    # conda:
+    # "enviroment.yaml"
+    output:
+        image_ids=touch("image_ids.txt"),
+    # shell:
+    #     """
+    #     touch {output.image_ids}
+    #     """
+    run:
+        from idr_funs import get_image_ids_by_screen
+        from idr import connection
+        conn = connection("idr.openmicroscopy.org")
+        image_ids = get_image_ids_by_screen(conn, screen_name)
+        with open(output.image_ids, "w") as f:
+            f.write("\n".join(str(x) for x in image_ids))
+        print("generate_image_ids: Done")
+        conn._closeSession()
+
+
+def expand_from_metadata(wildcards):
+    checkpoint_output = checkpoints.get_image_metadata.get(**wildcards).output.metadata
+    with open(checkpoint_output) as f:
+        metadata = json.load(f)
+    input_files = []
+    for image_id, zct in tqdm(metadata.items()):
+        input_files.extend(
+            expand(
+                "results/{image_id}/{z}_{c}_{t}.tiff",
+                image_id=image_id,
+                z=range(zct["z"]),
+                c=range(zct["c"]),
+                t=range(zct["t"]),
+            )
+        )
+    return input_files
+
+
+# # def expand_wildcards_from_checkpoint(wildcards):
+# #     checkpoint_output = checkpoints.generate_image_ids.get(**wildcards).output.image_ids
+# #     with open(checkpoint_output) as f:
+# #         image_ids = [x.strip() for x in f.readlines()]
+# #     print("Done")
+# #     return image_ids
+
+
+checkpoint get_image_metadata:
+    # conda:
+    # "enviroment.yaml"
+    input:
+        image_ids="image_ids.txt",
+    output:
+        metadata="metadata.json",
+    run:
+        from idr import connection
+
+        conn = connection("idr.openmicroscopy.org")
+        with open(input.image_ids) as f:
+            image_ids = [int(x.strip()) for x in f.readlines()]
+        metadata = {}
+        for image_id in tqdm(image_ids):
+            image = conn.getObject("Image", image_id)
+            z = image.getSizeZ()
+            c = image.getSizeC()
+            t = image.getSizeT()
+            metadata[str(image_id)] = {"z": z, "c": c, "t": t}
+        with open(output.metadata, "w") as f:
+            json.dump(metadata, f)
+        conn._closeSession()
+        print("get_image_metadata: Done")
+
+
+rule download_images:
+    # conda:
+    # "enviroment.yaml"
+    input:
+        metadata="metadata.json",
+    output:
+        tiff="results/{image_id}/{z}_{c}_{t}.tiff",
+    # params:
+    # z = lambda wildcards: get_zct(wildcards).get("z"),
+    # c = lambda wildcards: get_zct(wildcards).get("c"),
+    # t = lambda wildcards: get_zct(wildcards).get("t")
+    run:
+        from idr_funs import download_image
+        from idr import connection
+
+        conn = connection("idr.openmicroscopy.org")
+        download_image(
+            conn,
+            wildcards.image_id,
+            output.tiff,
+            int(wildcards.z),
+            int(wildcards.c),
+            int(wildcards.t),
+        )
+        conn._closeSession()
+
+
+
+# def expand_from_metadata(wildcards):
+#     checkpoint_output = checkpoints.get_image_metadata.get(**wildcards).output.metadata
+#     with open(checkpoint_output) as f:
+#         metadata = json.load(f)
+#     input_files = []
+#     for image_id, zct in tqdm(metadata.items()):
+#         z_values = range(zct["z"])
+#         c_values = range(zct["c"])
+#         t_values = range(zct["t"])
+#         input_files.extend(
+#             expand(
+#                 "results/{image_id}/{z}_{c}_{t}.tiff",
+#                 image_id=image_id,
+#                 z=z_values,
+#                 c=c_values,
+#                 t=t_values,
+#             )
+#         )
+#     return input_files[0:10]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# rule download_plane:
+#     input:
+#         directory('results/{image_id}/')
+#     output:
+#         touch('results/{image_id}/done.flag'),
+#         touch("results/{image_id}/{z}_{c}_{t}.tif")
+#     # conda:
+#         # "enviroment.yaml"
+#     run:
+#         from idr import connection
+#         conn = connection('idr.openmicroscopy.org')
+#         z = image.getSizeZ()
+#         c = image.getSizeC()
+#         t = image.getSizeT()
+
+#         download_image(conn, image_id, output[1], z, c, t)
+#         for z in range(z):
+#             for c in range(c):
+#                 for t in range(t):
+#                     pixels = image.getPrimaryPixels()
+#                     plane = pixels.getPlane(z, c, t)
+#                     with open(output[1], "wb") as f:
+#                         f.write(plane)
+
+
+# zct_list = []
+# for z in range(size_z, size_z):     # get the top half of the Z-stack
+#     for c in range(size_c):          # all channels
+#         for t in range(size_t):      # all time-points
+#             zct_list.append((z, c, t))
+
+# planes = pixels.getPlanes(zct_list)
+# for i, p in enumerate(planes):
+#     print("plane zct:", zct_list[i], " min:", p.min(), " max:", p.max())
+
+
+# # Define a rule to download all images
+# rule download_all_images:
+#     input:
+#         os.path.join(input_dir, 'image_ids.txt')
+#     output:
+#         os.path.join(output_dir, 'done.txt')
+#     run:
+#         input_file = str(input[0])
+#         output_file = str(output[0])
+#         download_images(input_file, output_dir)
+#         # Create an empty file to indicate that the download is complete
+#         open(output_file, 'w').close()
+
+# # Define a rule to generate the list of image IDs
+# rule generate_image_ids:
+#     output:
+#         os.path.join(input_dir, 'image_ids.txt')
+#     run:
+#         output_file = str(output[0])
+#         # Get a list of all image IDs in the experiment
+#         image_ids = images.list_images(conn, experiment_id)
+#         # Write the list of image IDs to the output file
+#         with open(output_file, 'w') as f:
+#             f.write('\n'.join(image_ids))
+
+# # Define a rule to collect all downloaded images using a wildcard glob
+# rule collect_images:
+#     output:
+#         os.path.join(output_dir, '*.tif')
+#     shell:
+#         """
+#         mkdir -p {output_dir}
+#         mv {output_dir}/*.TIF {output_dir}/*.tif
+#         """
+# # Define an all rule to run all rules
+# rule all:
+#     input:
+#         os.path.join(output_dir, 'done.txt')
+#     output:
+#         os.path.join(output_dir, '*.tif')
+#     run:
+#         pass
