@@ -302,5 +302,5 @@ cython_debug/
 .history
 lightning_logs/*
 tests/*.png
-checkpoints/epoch=74-step=68167.ckpt
-checkpoints/last.ckpt
+checkpoints
+./models

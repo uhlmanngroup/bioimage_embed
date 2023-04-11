@@ -1,25 +1,38 @@
 # %%
+import os
 from pathlib import Path
 
 #  %%
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
+import torch
 
 # Note - you must have torchvision installed for this example
+from torch.utils.data import DataLoader
+import os
 from pytorch_lightning import loggers as pl_loggers
 from torchvision import transforms
 from bio_vae.lightning import DatamoduleGlob
 
 from bio_vae.datasets import DatasetGlob
-from bio_vae.models import Bio_VAE
-from bio_vae.lightning import LitAutoEncoderTorch
+from bio_vae.transforms import (
+    CropCentroidPipeline,
+    DistogramToCoords,
+    DistogramToCoords,
+    MaskToDistogramPipeline,
+)
+from bio_vae.models import Mask_VAE, VQ_VAE, VAE
+from bio_vae.lightning import LitAutoEncoderTorch, LitAutoEncoderPyro
 import matplotlib.pyplot as plt
 
 
+
+interp_size = 128 * 4
+
 max_epochs = 500
 
-window_size = 128 * 2
-batch_size = 16
+window_size = 128 * 4
+batch_size = 2
 num_training_updates = 15000
 
 num_hiddens = 64
@@ -34,48 +47,52 @@ commitment_cost = 0.25
 decay = 0.99
 
 learning_rate = 1e-3
-num_workers = 2**4
-data_samples = 16  # Set to -1 for all images
+
 model_name = "VQ_VAE"
-dataset = "idr0093"
+dataset = "idr0093-mueller-perturbation"
 data_dir = "data"
-train_dataset_glob = f"{data_dir}/**/*{dataset}*/**/*tif"
+train_dataset_glob = f"{data_dir}/**/{dataset}/**/*.ome.tiff"
 
 # %%
 
 model_dir = f"models/{dataset}_{model_name}"
 # %%
 
-# transformer_crop = CropCentroidPipeline(window_size)
-# transformer_dist = MaskToDistogramPipeline(window_size, interp_size)
-# transformer_coords = DistogramToCoords(window_size)
+transformer_crop = CropCentroidPipeline(window_size)
+transformer_dist = MaskToDistogramPipeline(window_size, interp_size)
+transformer_coords = DistogramToCoords(window_size)
 
-train_dataset = DatasetGlob(train_dataset_glob, samples=data_samples)
+train_dataset = DatasetGlob(train_dataset_glob)
 # train_dataset_crop = DatasetGlob(
 #     train_dataset_glob, transform=CropCentroidPipeline(window_size))
 
 
 transform = transforms.Compose(
     [
-        transforms.Grayscale(),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomAffine((0, 360)),
-        transforms.RandomResizedCrop(size=512),
-        # transforms.RandomCrop(size=(512,512)),
-        # transforms.GaussianBlur(5),
-        transforms.ToTensor(),
-        # transforms.Normalize((0.485), (0.229)),
+        transformer_crop,
+        transformer_dist,
     ]
 )
 
+train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
+plt.imshow(train_dataset[0][0], cmap="gray")
+plt.show()
 
-train_dataset = DatasetGlob(train_dataset_glob, transform=transform, samples=data_samples)
-# train_dataset = DatasetGlob(train_dataset_glob, transform=transform)
+train_dataset = DatasetGlob(train_dataset_glob, transform=transforms.ToTensor())
+plt.imshow(train_dataset[0][0], cmap="gray")
+plt.show()
+train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_crop)
+plt.imshow(train_dataset[0][0], cmap="gray")
+plt.show()
 
-plt.imshow(train_dataset[10][0], cmap="gray")
-# plt.show()
-# print(train_dataset[0][0])
+train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_crop)
+plt.imshow(train_dataset[0][0], cmap="gray")
+plt.show()
+
+train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
+plt.imshow(train_dataset[0][0], cmap="gray")
+plt.show()
+
 
 # img_squeeze = train_dataset[0].unsqueeze(0)
 # %%
@@ -89,19 +106,17 @@ dataloader = DatamoduleGlob(
     train_dataset_glob,
     batch_size=batch_size,
     shuffle=True,
-    num_workers=num_workers,
     transform=transform,
     pin_memory=True,
     persistent_workers=True,
+    num_workers=2**4,
+    # transform=transformer_dist,
 )
 
 # dataloader = DataLoader(train_dataset, batch_size=batch_size,
 #                         shuffle=True, num_workers=2**4, pin_memory=True, collate_fn=my_collate)
 
-model = Bio_VAE("VQ_VAE", channels=1, num_residual_layers=8, num_residual_hiddens=64)
-
-model = Bio_VAE("VQ_VAE", channels=1)
-
+model = Mask_VAE("VQ_VAE", channels=1)
 # model = Mask_VAE("VAE", 1, 64,
 #                      #  hidden_dims=[32, 64],
 #                      image_dims=(interp_size, interp_size))
@@ -110,7 +125,7 @@ model = Bio_VAE("VQ_VAE", channels=1)
 # %%
 lit_model = LitAutoEncoderTorch(model)
 
-tb_logger = pl_loggers.TensorBoardLogger(f"{model_dir}/runs/")
+tb_logger = pl_loggers.TensorBoardLogger("{model_dir}/runs/")
 
 Path(f"{model_dir}/").mkdir(parents=True, exist_ok=True)
 

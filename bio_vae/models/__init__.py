@@ -1,20 +1,16 @@
-from .ae import AutoEncoder
-from .vae import VAE
-from .vq_vae import VQ_VAE
-
-# from .vae_bio import Mask_VAE, Image_VAE
-from .utils import BaseVAE
-
-
-# Note - you must have torchvision installed for this example
-from torch.utils.data import DataLoader
-import torch
 import torch
 import torch.nn.functional as F
+# Note - you must have torchvision installed for this example
 from torch.utils.data import DataLoader
+
+from bio_vae.models import VAE, VQ_VAE
 from bio_vae.transforms import DistogramToMaskPipeline
+
+from .ae import AutoEncoder
+# from .vae_bio import Mask_VAE, Image_VAE
 from .utils import BaseVAE
-from bio_vae.models import VQ_VAE, VAE
+from .vae import VAE
+from .vq_vae import VQ_VAE
 
 
 class Bio_VAE(BaseVAE):
@@ -26,16 +22,38 @@ class Bio_VAE(BaseVAE):
     #                   VAE: {}}
     # by default our latent space is 50-dimensional
     # and we use 400 hidden units
-    def __init__(self, model="VQ_VAE", *args, **kwargs):
-        super(Bio_VAE, self).__init__()
+    
+    def init_model(self,model,*args,**kwargs):
         if type(model) is str:
-            self.model = self.model_lookup[model.lower()](*args, **kwargs)
+            return self.model_lookup[model.lower()](*args, **kwargs)
         else:
-            self.model = model
+            return model
+        
+    # def init_pythae_model(self,model,*args,**kwargs):
+        # return model
+              
+    def __init__(self, model="VQ_VAE", backend="", *args, **kwargs):
+        super(Bio_VAE, self).__init__()
+        # if backend=="":
+        self.model = self.init_model(model,*args,**kwargs)
+        self.model_name = self.model._get_name()
+        # if backend=="pythae":
+            # self.model = self.init_pythae_model(model,*args,**kwargs)
 
     # def __getattr__(self, attr):
     #     return getattr(self.obj, attr)
-
+    
+    def update(self):
+        pass
+    
+    def img_to_latent(self,img):   
+        vq = self.get_model().model._vq_vae
+        embedding_torch = vq._embedding
+        embedding_tensor_in = self.get_model().model.encoder_z(img)
+        embedding_tensor_out = vq(embedding_tensor_in)
+        latent = embedding_torch(embedding_tensor_out[-1].argmax(axis=1))
+        return latent
+    
     def forward(self, x):
         return self.model(x)
 
@@ -52,7 +70,7 @@ class Bio_VAE(BaseVAE):
         return self.model.encode(img)
 
     def recon(self, img):
-        return self.model.recon(img)
+        return self.model.recon({"data":img})
 
     def mask_from_latent(self, z, window_size):
         # This should be class-method based

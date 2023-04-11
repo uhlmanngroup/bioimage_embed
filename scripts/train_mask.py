@@ -51,8 +51,7 @@ model_name = "VQ_VAE"
 
 # train_dataset_glob = "data-science-bowl-2018/stage1_train/*/masks/*.png"
 train_dataset_glob = "data/stage1_train/*/masks/*.png"
-train_dataset_glob = f"data/{dataset}/*.ome.tiff"
-
+train_dataset_glob = f"data/{dataset}/*.png"
 # %%
 # train_dataset_glob = os.path.join("data/BBBC010_v1_foreground_eachworm/*.png")
 
