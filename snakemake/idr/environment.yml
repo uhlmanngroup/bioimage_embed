@@ -1,0 +1,9 @@
+name: idr-py-download
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.9
+  - idr-py
+  - tqdm
+  # - snakemake
