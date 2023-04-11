@@ -6,4 +6,9 @@ dependencies:
   - python=3.9
   - idr-py
   - tqdm
-  # - snakemake
+  - scipy
+  - pillow
+  - mamba
+  - snakemake
+  - pip:
+    - ome-zarr
