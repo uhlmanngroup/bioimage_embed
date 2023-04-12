@@ -3,7 +3,7 @@ import torch.nn.functional as F
 # Note - you must have torchvision installed for this example
 from torch.utils.data import DataLoader
 
-from bio_vae.models import VAE, VQ_VAE
+# from bio_vae.models import VAE, VQ_VAE
 from bio_vae.transforms import DistogramToMaskPipeline
 
 from .ae import AutoEncoder
