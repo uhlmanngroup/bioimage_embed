@@ -306,3 +306,5 @@ checkpoints
 ./models
 results/*
 .snakemake
+results
+snakemake/idr/results
