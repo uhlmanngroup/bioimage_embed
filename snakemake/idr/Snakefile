@@ -1,9 +1,12 @@
 # Import necessary modules
 import os
 from tqdm import tqdm
+from idr import connection
+
+from idr_funs import get_image_ids_by_screen
+from idr import connection
 
 screen_name = "idr0093-mueller-perturbation/screenA"
-
 
 rule all:
     # conda:
@@ -13,7 +16,7 @@ rule all:
         # directory('results/{image_id}/done.flag',image_id=lambda wildcards: expand_wildcards_from_checkpoint(wildcards)),
         "image_ids.txt",
         "metadata.json",
-        lambda wildcards: expand_from_metadata(wildcards),
+        expand_from_metadata,
 
 
 rule generate_image_ids:
@@ -26,8 +29,6 @@ rule generate_image_ids:
     #     touch {output.image_ids}
     #     """
     run:
-        from idr_funs import get_image_ids_by_screen
-        from idr import connection
         conn = connection("idr.openmicroscopy.org")
         image_ids = get_image_ids_by_screen(conn, screen_name)
         with open(output.image_ids, "w") as f:
@@ -70,7 +71,6 @@ checkpoint get_image_metadata:
     output:
         metadata="metadata.json",
     run:
-        from idr import connection
 
         conn = connection("idr.openmicroscopy.org")
         with open(input.image_ids) as f:
