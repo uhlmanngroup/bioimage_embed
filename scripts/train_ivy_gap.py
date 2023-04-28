@@ -1,81 +1,129 @@
 # %%
 from pathlib import Path
 
-import matplotlib.pyplot as plt
+# from bio_vae.models import Bio_VAE
+import albumentations as A
+
+# import matplotlib.pyplot as plt
 import pythae
 import pytorch_lightning as pl
 import torch
+from albumentations.pytorch import ToTensorV2
 from PIL import Image
-from pythae import models
-from pythae.data.datasets import DatasetOutput
-from pythae.models import VAE, VAEConfig
-from pythae.models.nn.benchmarks import celeba
-from pythae.models.nn.benchmarks.cifar import (
-    Decoder_ResNet_AE_CIFAR,
-    Encoder_ResNet_VAE_CIFAR,
-)
-from pythae.pipelines import TrainingPipeline
-from pythae.trainers import BaseTrainerConfig
 
 # Note - you must have torchvision installed for this example
 from pytorch_lightning import loggers as pl_loggers
-
-#  %%
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from torch.utils.data import DataLoader, Dataset
-from torchvision import datasets, transforms
-from torchvision.datasets import VisionDataset
 
 from bio_vae.datasets import DatasetGlob
 from bio_vae.lightning import DatamoduleGlob, LitAutoEncoderTorch
-from bio_vae.models import Bio_VAE, vae, vq_vae
+from types import SimpleNamespace
+
+# import timm
+from bio_vae.models import VQ_VAE, Bio_VAE
+
+# from pythae.data.datasets import DatasetOutput
+
+# from pythae.models.nn.benchmarks import celeba
+
+
+# from torch.utils.data import Dataset
+# from torchvision import transforms
+
 
 Image.MAX_IMAGE_PIXELS = None
 
-max_epochs = 500
+# max_epochs = 500
 
-window_size = 64 * 2
-batch_size = 32
-num_workers = 2**4
+# window_size = 64 * 2
+# batch_size = 64
+# num_workers = 2**4
 # model_name = "VQVAE"
 dataset = "ivy_gap"
 data_dir = "data"
 train_dataset_glob = f"{data_dir}/{dataset}/random/*png"
-learning_rate = 1e-3
-optimizer_cls = "AdamW"
-optimizer_params = {"weight_decay": 0.05, "betas": (0.91, 0.995)}
-scheduler_cls = "ReduceLROnPlateau"
-scheduler_params = {"patience": 5, "factor": 0.5}
 
-num_embeddings = 512
-decay = 0.99
-learning_rate = 1e-3
+params = {
+    "epochs": 500,
+    "batch_size": 128,
+    "num_workers": 2**4,
+    "window_size": 64 * 2,
+    "channels": 3,
+    "latent_dim": 64,
+    "num_embeddings": 512,
+}
+
+optimizer_params = {
+    "opt": "LAMB",
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "momentum": 0.9,
+}
+
+lr_scheduler_params = {
+    "sched": "cosine",
+    "min_lr": 1e-6,
+    "warmup_epochs": 5,
+    "warmup_lr": 1e-6,
+    "cooldown_epochs": 10,
+    "t_max": 50,
+    "cycle_momentum": False,
+}
+args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
+
+# num_embeddings = 128
+# decay = 0.99
+# learning_rate = 1e-2
 
 channels = 3
 
-input_dim = (channels, window_size, window_size)
-latent_dim = 64
+input_dim = (args.channels, args.window_size, args.window_size)
+# latent_dim = 64
 
 
-train_dataset = DatasetGlob(train_dataset_glob)
-
-transform = transforms.Compose(
+transform = A.Compose(
     [
-        # transforms.Grayscale(),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomAffine((0, 360)),
-        transforms.RandomResizedCrop(size=window_size),
-        # transforms.RandomCrop(size=(512,512)),
-        # transforms.GaussianBlur(5),
-        transforms.ToTensor(),
-        # transforms.Normalize((0.485), (0.229)),
+        # Flip the images horizontally or vertically with a 50% chance
+        A.OneOf(
+            [
+                A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.5),
+            ],
+            p=0.5,
+        ),
+        # Rotate the images by a random angle within a specified range
+        A.Rotate(limit=45, p=0.5),
+        # Randomly scale the image intensity to adjust brightness and contrast
+        A.RandomGamma(gamma_limit=(80, 120), p=0.5),
+        # Apply random elastic transformations to the images
+        A.ElasticTransform(
+            alpha=1,
+            sigma=50,
+            alpha_affine=50,
+            p=0.5,
+        ),
+        # Shift the image channels along the intensity axis
+        # Add a small amount of noise to the images
+        A.GaussNoise(var_limit=(10.0, 50.0), p=0.5),
+        # Crop a random part of the image and resize it back to the original size
+        A.RandomCrop(
+            height=args.window_size,
+            width=args.window_size,
+            p=1,
+        ),
+        # Adjust image intensity with a specified range for individual channels
+        A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+        A.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+        ),
+        ToTensorV2(),
     ]
 )
 
-
+train_dataset = DatasetGlob(train_dataset_glob)
 train_dataset = DatasetGlob(train_dataset_glob, transform=transform)
-# train_dataset = DatasetGlob(train_dataset_glob, transform=transform)
+# train_dataset = DatasetGlob(train_dataset_glob )
 
 # plt.imshow(train_dataset[100][0], cmap="gray")
 # plt.show()
@@ -84,145 +132,57 @@ train_dataset = DatasetGlob(train_dataset_glob, transform=transform)
 # %%
 dataloader = DatamoduleGlob(
     train_dataset_glob,
-    batch_size=batch_size,
+    batch_size=args.batch_size,
     shuffle=True,
-    num_workers=num_workers,
+    num_workers=args.num_workers,
     transform=transform,
     pin_memory=True,
     persistent_workers=True,
 )
 
 
-# model = Bio_VAE("VQ_VAE", channels=3, num_residual_layers=8, num_residual_hiddens=64)
-
-
-model_config = models.VAEConfig(
-    input_dim=(channels, window_size, window_size), latent_dim=latent_dim
-)
-
-
-model = models.VAE(
-    model_config=model_config,
-    encoder=vae.Encoder(model_config),
-    decoder=vae.Decoder(model_config),
-)
-
-model_config = models.VAEConfig(
-    input_dim=(3, window_size, window_size), latent_dim=window_size
-)
-
-# model = models.VAE(
-#     model_config=model_config,
-#     encoder=celeba.Encoder_ResNet_VAE_CELEBA(model_config),
-#     decoder=celeba.Decoder_ResNet_AE_CELEBA(model_config),
-# )
-
-# model = models.VAE(
-#     model_config=model_config,
-#     encoder=celeba.Encoder_Conv_VAE_CELEBA(model_config),
-#     decoder=celeba.Decoder_Conv_AE_CELEBA(model_config),
-# )
-
-# model_config = VQVAEConfig(
-#     input_dim=(3, window_size, window_size), latent_dim=window_size,
-# )
-
-# model = VQVAE(
-#     model_config=model_config,
-#     encoder=celeba.Encoder_ResNet_VQVAE_CELEBA(model_config),
-#     decoder=celeba.Decoder_ResNet_VQVAE_CELEBA(model_config),
-# )
-
-# model = vae.VAE()
-
 model_config_vqvae = pythae.models.VQVAEConfig(
-    input_dim=input_dim, latent_dim=latent_dim, num_embeddings=num_embeddings
+    input_dim=input_dim, latent_dim=args.latent_dim, num_embeddings=args.num_embeddings
 )
 
 
-model = Bio_VAE(
-    "VAE",
-    model_config=model_config,
-    in_channels=3,
-    latent_dim=window_size,
-    image_dims=(window_size, window_size),
-)
-
-model = pythae.models.VQVAE(
-    model_config_vqvae,
-    encoder=vq_vae.Encoder(
-        model_config_vqvae,
-    ),
-    decoder=vq_vae.Decoder(
-        model_config_vqvae,
-    ),
-)
-
-model = Bio_VAE("VQ_VAE", model_config=model_config_vqvae, channels=channels)
+model = Bio_VAE("VQ_VAE", model_config=model_config_vqvae, channels=args.channels)
+lit_model = LitAutoEncoderTorch(model, args)
 
 # %%
-# model = Bio_VAE("VQ_VAE", channels=3)
 
 
-training_config = BaseTrainerConfig(
-    output_dir="my_model",
-    num_epochs=50,
-    learning_rate=learning_rate,
-    per_device_train_batch_size=200,
-    per_device_eval_batch_size=200,
-    steps_saving=None,
-    optimizer_cls=optimizer_cls,
-    optimizer_params=optimizer_params,
-    scheduler_cls=scheduler_cls,
-    scheduler_params=scheduler_params,
-)
+def vqvae_to_latent(model: VQ_VAE, img: torch.Tensor) -> torch.Tensor:
+
+    vq = model.get_model().model._vq_vae
+    embedding_torch = vq._embedding
+    embedding_in = model.get_model().model.encoder_z(img)
+    embedding_out = vq(embedding_in)
+    latent = embedding_torch(embedding_out[-1].argmax(axis=1))
+
+    return latent
 
 
-pipeline = TrainingPipeline(training_config=training_config, model=model)
+# tensor = vqvae_to_latent(lit_model, train_dataset[0].unsqueeze(0))
+# pipeline = TrainingPipeline(training_config=training_config, model=model)
 
 dataloader.setup()
-model
 model.eval()
-# model.forward({"data": dataloader.train_dataloader().dataset[0].unsqueeze(0)})
-model.forward({"data": dataloader.train_dataloader().dataset[0].unsqueeze(0)})
-
-# from tqdm import tqdm
-
-# train_data = [data for data in tqdm(dataloader.train_dataloader())]
-# eval_data = [data for data in tqdm(dataloader.test_dataloader())]
-
-# train_data[0]
-
-
-# # for i in tqdm(range(100)):
-# #     for data in tqdm(train_data):
-# #         train_data.append(transform(data))
-# #     for data in tqdm(eval_data):
-# #         eval_data.append(transform(data))
-
-# train_data_big = torch.cat(train_data)
-# eval_data_big = torch.cat(eval_data)
-
 # %%
 
 
-class AECustom(Dataset):
-    def __init__(self, dataset):
-        self.dataset = dataset
-        self.size = len(self.dataset)
+# class AECustom(Dataset):
+# def __init__(self, dataset):
+#     self.dataset = dataset
+#     self.size = len(self.dataset)
 
-    def __len__(self):
-        return self.size
+# def __len__(self):
+#     return self.size
 
-    def __getitem__(self, index):
-        X = self.dataset[index]
-        return DatasetOutput(data=X)
+# def __getitem__(self, index):
+#     X = self.dataset[index]
+#     return DatasetOutput(data=X)
 
-
-# pipeline(
-#     train_data=AECustom(dataloader.train_dataloader().dataset),
-#     eval_data=AECustom(dataloader.test_dataloader().dataset),
-# )
 
 model_name = model._get_name()
 model_dir = f"models/{dataset}_{model_name}"
@@ -230,11 +190,10 @@ model_dir = f"models/{dataset}_{model_name}"
 # %%
 lit_model = LitAutoEncoderTorch(
     model,
-    learning_rate=learning_rate,
-    optimizer_cls=optimizer_cls,
-    optimizer_params=optimizer_params,
-    scheduler_cls=scheduler_cls,
-    scheduler_params=scheduler_params,
+    args
+    # learning_rate=learning_rate,
+    # optimizer_params=optimizer_params,
+    # lr_scheduler_params=lr_scheduler_params,
 )
 
 tb_logger = pl_loggers.TensorBoardLogger(f"{model_dir}/runs/")
@@ -248,10 +207,10 @@ trainer = pl.Trainer(
     gradient_clip_val=0.5,
     enable_checkpointing=True,
     gpus=1,
-    accumulate_grad_batches=1,
+    accumulate_grad_batches=4,
     callbacks=[checkpoint_callback],
     min_epochs=50,
-    max_epochs=max_epochs,
+    max_epochs=args.epochs,
 )  # .from_argparse_args(args)
 
 # %%
