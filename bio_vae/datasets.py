@@ -51,9 +51,10 @@ class DatasetGlob(Dataset):
     def getitem(self, index):
         try:
             x = Image.open(self.image_paths[index])
+            # x = np.array(x)
             x = ImageSequence.Iterator(x)
             if self.transform is not None:
-                x = self.transform(x[0])
+                x = self.transform(image=np.array(x[0]))["image"]
             return x
         except:
             return None
@@ -61,7 +62,7 @@ class DatasetGlob(Dataset):
     # def make_subset(self, index):
     #     self.getitem(index)
 
-    def is_image_cropped(image):
+    def is_image_cropped(self,image):
         if (
             np.sum(
                 np.sum(image[:, 0]),
@@ -95,9 +96,6 @@ class DatasetGlob(Dataset):
 
         # else:
         #     return self.getitem(index+x)
-
-    def __len__(self):
-        return len(self.image_paths)
 
 
 class WebArchiveDataset(DatasetGlob):
