@@ -308,3 +308,5 @@ results/*
 .snakemake
 results
 snakemake/idr/results
+outputs
+logs
