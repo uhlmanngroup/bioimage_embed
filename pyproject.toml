@@ -4,6 +4,9 @@ version = "0.1.1"
 description = ""
 authors = ["Craig <ctr26@ebi.ac.uk>"]
 
+[tool.poetry.scripts]
+bio_vae = "main:main"
+
 [tool.poetry.dependencies]
 python = "^3.9"
 torchvision = "^0.13.1"
