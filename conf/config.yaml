@@ -29,6 +29,7 @@ trainer:
   accumulate_grad_batches: 16
   min_epochs: 50
   max_epochs: 200
+  strategy: "ddp"
 
 dataset:
   name: "ivy_gap"
@@ -40,7 +41,7 @@ dataset:
 
 dataloader:
   batch_size: 128
-  num_workers: 4
+  num_workers: 32
   pin_memory: true
   shuffle: true
 
