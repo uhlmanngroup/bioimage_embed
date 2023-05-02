@@ -41,9 +41,10 @@ dataset:
 
 dataloader:
   batch_size: 128
-  num_workers: 32
+  num_workers: 16
   pin_memory: true
   shuffle: true
+  persistent_workers: true
 
 timm:
   opt: LAMB
