@@ -1,0 +1,6 @@
+_target_: bio_vae.lightning.DatamoduleGlob
+glob_str: ${dataset.train_dataset_glob}
+batch_size: 32
+num_workers: 4
+pin_memory: true
+shuffle: true
