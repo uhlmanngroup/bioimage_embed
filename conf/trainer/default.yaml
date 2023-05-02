@@ -5,7 +5,8 @@ devices: "1"
 # weights_summary: null
 # progress_bar_refresh_rate: 5
 # resume_from_checkpoint: null
-
+# val_check_interval: 1
+check_val_every_n_epoch: 1
 logger: ${logger}
 gradient_clip_val: 1
 enable_checkpointing: True

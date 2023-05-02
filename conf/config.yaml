@@ -24,12 +24,14 @@ name: null
 
 trainer:
   accelerator: "gpu"
-  devices: "1"
+  devices: "auto"
   gradient_clip_val: 1
   accumulate_grad_batches: 16
-  min_epochs: 50
+  min_epochs: 0
   max_epochs: 200
   strategy: "ddp"
+  profiler: null
+  fast_dev_run: False
 
 dataset:
   name: "ivy_gap"
@@ -40,11 +42,12 @@ dataset:
     - 128
 
 dataloader:
-  batch_size: 128
-  num_workers: 16
-  pin_memory: true
+  batch_size: 32
+  num_workers: 8
+  pin_memory: false
   shuffle: true
   persistent_workers: true
+
 
 timm:
   opt: LAMB
@@ -90,6 +93,14 @@ albumentations:
           - __class_fullname__: VerticalFlip
             always_apply: false
             p: 0.5
+      - __class_fullname__: RandomResizedCrop
+        always_apply: false
+        height: ${dataset.crop_size[0]}
+        p: 1
+        width: ${dataset.crop_size[1]}
+        scale:
+          - 1.0
+          - 1.0
       - __class_fullname__: Rotate
         always_apply: false
         border_mode: 4
@@ -129,19 +140,6 @@ albumentations:
         var_limit:
           - 10.0
           - 50.0
-      - __class_fullname__: RandomResizedCrop
-        always_apply: false
-        height: ${dataset.crop_size[0]}
-        p: 1
-        width: ${dataset.crop_size[1]}
-        scale:
-          - 1.0
-          - 1.0
-      - __class_fullname__: RandomCrop
-        always_apply: false
-        height: ${model.input_dim[1]}
-        p: 1
-        width: ${model.input_dim[2]}
       - __class_fullname__: Normalize
         always_apply: true
         p: 1.0
