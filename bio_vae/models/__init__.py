@@ -11,6 +11,7 @@ from .utils import BaseVAE
 from .vae import VAE
 from .vq_vae import VQ_VAE
 
+from .bolts import ResNet18VAEEncoder,ResNet18VAEDecoder
 
 class Bio_VAE(BaseVAE):
     model_lookup = {
