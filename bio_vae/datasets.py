@@ -46,7 +46,7 @@ class DatasetGlob(Dataset):
     def get_cached_image(self, index):
         return Image.open(self.image_paths[index])
 
-    def getitem(self, index, cached=True):
+    def getitem(self, index, cached=False):
         safe_idx = int((index) % (len(self) / self.over_sampling))
 
         if cached:
@@ -55,8 +55,9 @@ class DatasetGlob(Dataset):
             x = Image.open(self.image_paths[safe_idx])
 
         if self.transform is not None:
-            x = self.transform(image=np.array(x))["image"]
-            return x
+            augmented = self.transform(image=np.array(x))
+            # x = Image.fromarray(augmented['image'])
+            return augmented["image"]
 
     def is_image_cropped(self, image):
         if (
@@ -73,28 +74,28 @@ class DatasetGlob(Dataset):
             return True
 
 
-    def __getitem__(self, index):
-        x = self.getitem(index)
-        if isinstance(index, slice):
-            return [self.getitem(i) for i in range(*index.indices(len(self)))]
-        else:
-            return x
-
     # def __getitem__(self, index):
-    #     # x = self.getitem(index)
-    #     # if self.is_image_cropped(x):
-    #     # return index
-    #     # if isinstance(index, slice):
-    #     # return [self.getitem(i) for i in range(*index.indices(10))]
-    #     # TODO implement indexing/slicing
-    #     # return self.getitem(index)
-
-    #     # return self.getitem(index)
-    #     dummy_list = np.arange(0, self.__len__())
-    #     loop = np.array(dummy_list[index])
+    #     x = self.getitem(index)
     #     if isinstance(index, slice):
-    #         return [self.getitem(i) for i in loop]
-    #     return self.getitem(index)
+    #         return [self.getitem(i) for i in range(*index.indices(len(self)))]
+    #     else:
+    #         return x
+
+    def __getitem__(self, index):
+        # x = self.getitem(index)
+        # if self.is_image_cropped(x):
+        # return index
+        # if isinstance(index, slice):
+        # return [self.getitem(i) for i in range(*index.indices(10))]
+        # TODO implement indexing/slicing
+        # return self.getitem(index)
+
+        # return self.getitem(index)
+        dummy_list = np.arange(0, self.__len__())
+        loop = np.array(dummy_list[index])
+        if isinstance(index, slice):
+            return [self.getitem(i) for i in loop]
+        return self.getitem(index)
 
     # else:
     #     return self.getitem(index+x)
