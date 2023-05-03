@@ -18,7 +18,8 @@ class SimpleCustomBatch:
 
 
 class DatamoduleGlob(pl.LightningDataModule):
-    def collate_wrapper(batch):
+    
+    def collate_wrapper(self,batch):
         return SimpleCustomBatch(batch)
 
     def __init__(
