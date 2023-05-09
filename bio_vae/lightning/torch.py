@@ -40,7 +40,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         # if self.PYTHAE_FLAG:
         self.logger.experiment.add_image(
             "output",
-            torchvision.utils.make_grid(results["recon_x"]),
+            torchvision.utils.make_grid(results.reconstruction),
             batch_idx,
         )
         return self.loss

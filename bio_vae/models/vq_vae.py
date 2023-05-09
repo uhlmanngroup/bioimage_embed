@@ -382,15 +382,15 @@ class VQ_VAE(nn.Module):
             out_channels=channels,
         )
 
-    def forward(self, x):
+    def forward(self, x, epoch=None):
         z = self.encoder(x["data"])
         loss, quantized, perplexity, _ = self._vq_vae(z)
         x_recon = self._decoder(quantized)["reconstruction"]
-        return loss, x_recon, perplexity
+        return ModelOutput(loss=loss,reconstruction=x_recon,perplexity=perplexity)
 
     def recon(self, x):
-        loss, x_recon, perplexity = self.forward(x)
-        return x_recon
+        # loss, x_recon, perplexity = self.forward(x)
+        return self.forward(x)["reconstruction"]
 
     def encoder_z(self, x):
         # z = self._encoder(x)
