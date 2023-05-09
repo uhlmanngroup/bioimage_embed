@@ -11,19 +11,22 @@ from pl_bolts.models.autoencoders import (
     resnet50_encoder,
 )
 
-class ResNet18VAEEncoder(BaseEncoder):
 
-    enc_out_dim = 512
+class ResNet50VAEEncoder(BaseEncoder):
 
-    def __init__(self, model_config:VAEConfig, first_conv=False, maxpool1=False,**kwargs):
-        super(ResNet18VAEEncoder, self).__init__()
-        
+    enc_out_dim = 2048
+
+    def __init__(
+        self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
+    ):
+        super(ResNet50VAEEncoder, self).__init__()
+
         input_height = model_config.input_dim[-2]
         latent_dim = model_config.latent_dim
-        
-        self.encoder = resnet18_encoder(first_conv, maxpool1)
+
+        self.encoder = resnet50_encoder(first_conv, maxpool1)
         self.embedding = nn.Linear(self.enc_out_dim, latent_dim)
-        self.log_var = nn.Linear(self.enc_out_dim, latent_dim) 
+        self.log_var = nn.Linear(self.enc_out_dim, latent_dim)
         # self.fc1 = nn.Linear(512, latent_dim)
         # self._adaptive_pool = nn.AdaptiveAvgPool2d((embedding_dim, embedding_dim))
 
@@ -36,9 +39,11 @@ class ResNet18VAEEncoder(BaseEncoder):
         return output
 
 
-class ResNet18VAEDecoder(BaseDecoder):
-    def __init__(self, model_config:VAEConfig, first_conv=False, maxpool1=False,**kwargs):
-        super(ResNet18VAEDecoder, self).__init__()
+class ResNet50VAEDecoder(BaseDecoder):
+    def __init__(
+        self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
+    ):
+        super(ResNet50VAEDecoder, self).__init__()
         latent_dim = model_config.latent_dim
         input_height = model_config.input_dim[-2]
         self.decoder = resnet18_decoder(latent_dim, input_height, first_conv, maxpool1)
@@ -52,5 +57,95 @@ class ResNet18VAEDecoder(BaseDecoder):
         return output
 
 
-# class ResNet18VAE(VAE):
-#     def 
+class ResNet18VAEEncoder(BaseEncoder):
+
+    enc_out_dim = 512
+
+    def __init__(
+        self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
+    ):
+        super(ResNet18VAEEncoder, self).__init__()
+
+        input_height = model_config.input_dim[-2]
+        latent_dim = model_config.latent_dim
+
+        self.encoder = resnet18_encoder(first_conv, maxpool1)
+        self.embedding = nn.Linear(self.enc_out_dim, latent_dim)
+        self.log_var = nn.Linear(self.enc_out_dim, latent_dim)
+        # self.fc1 = nn.Linear(512, latent_dim)
+        # self._adaptive_pool = nn.AdaptiveAvgPool2d((embedding_dim, embedding_dim))
+
+    def forward(self, x):
+        x = self.encoder(x)
+        # x = self.fc1(x)
+
+        return ModelOutput(embedding=self.embedding(x), log_covariance=self.log_var(x))
+
+
+class ResNet18VAEDecoder(BaseDecoder):
+    def __init__(
+        self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
+    ):
+        super(ResNet18VAEDecoder, self).__init__()
+        latent_dim = model_config.latent_dim
+        input_height = model_config.input_dim[-2]
+        self.decoder = resnet18_decoder(latent_dim, input_height, first_conv, maxpool1)
+
+    def forward(self, x):
+        x = self.decoder(x)
+        # x = self.fc1(x)
+        return ModelOutput(reconstruction=x)
+
+
+# class ResNetVAEEncoder(BaseEncoder):
+#     def __init__(self, model_config: VAEConfig, encoder_fn, enc_out_dim, first_conv=False, maxpool1=False, **kwargs):
+#         super(ResNetVAEEncoder, self).__init__()
+
+#         input_height = model_config.input_dim[-2]
+#         latent_dim = model_config.latent_dim
+
+#         self.encoder = encoder_fn(first_conv, maxpool1)
+#         self.embedding = nn.Linear(enc_out_dim, latent_dim)
+#         self.log_var = nn.Linear(enc_out_dim, latent_dim)
+
+#     def forward(self, x):
+#         output = ModelOutput()
+#         x = self.encoder(x)
+#         output["embedding"] = self.embedding(x)
+#         output["log_covariance"] = self.log_var(x)
+#         return output
+
+
+# class ResNetVAEDecoder(BaseDecoder):
+#     def __init__(self, model_config: VAEConfig, decoder_fn, first_conv=False, maxpool1=False, **kwargs):
+#         super(ResNetVAEDecoder, self).__init__()
+
+#         latent_dim = model_config.latent_dim
+#         input_height = model_config.input_dim[-2]
+#         self.decoder = decoder_fn(latent_dim, input_height, first_conv, maxpool1)
+
+#     def forward(self, x):
+#         output = ModelOutput()
+#         x = self.decoder(x)
+#         output["reconstruction"] = x
+#         return output
+
+
+# class ResNet50VAEEncoder(ResNetVAEEncoder):
+#     def __init__(self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs):
+#         super().__init__(model_config, resnet50_encoder, enc_out_dim=2048, first_conv=first_conv, maxpool1=maxpool1, **kwargs)
+
+
+# class ResNet50VAEDecoder(ResNetVAEDecoder):
+#     def __init__(self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs):
+#         super().__init__(model_config, resnet50_decoder, first_conv=first_conv, maxpool1=maxpool1, **kwargs)
+
+
+# class ResNet18VAEEncoder(ResNetVAEEncoder):
+#     def __init__(self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs):
+#         super().__init__(model_config, resnet18_encoder, enc_out_dim=512, first_conv=first_conv, maxpool1=maxpool1, **kwargs)
+
+
+# class ResNet18VAEDecoder(ResNetVAEDecoder):
+#     def __init__(self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs):
+#         super().__init__(model_config, resnet18_decoder, first_conv=first_conv, maxpool1=maxpool1, **kwargs)
