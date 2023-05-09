@@ -1,1 +1,2 @@
-from .vae import ResNet18VAEEncoder, ResNet18VAEDecoder
+from .vqvae import *
+from .vae import *
