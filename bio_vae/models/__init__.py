@@ -54,8 +54,8 @@ class Bio_VAE(BaseVAE):
         latent = embedding_torch(embedding_tensor_out[-1].argmax(axis=1))
         return latent
     
-    def forward(self, x):
-        return self.model(x)
+    def forward(self, x,epoch=None):
+        return self.model(x,epoch=None)
 
     def decoder(self, z):
         return self.model.decoder(z)

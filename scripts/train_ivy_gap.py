@@ -27,10 +27,6 @@ from bio_vae.models import VQ_VAE, Bio_VAE
 # from pythae.models.nn.benchmarks import celeba
 
 
-# from torch.utils.data import Dataset
-# from torchvision import transforms
-
-
 Image.MAX_IMAGE_PIXELS = None
 
 # max_epochs = 500
@@ -42,10 +38,12 @@ Image.MAX_IMAGE_PIXELS = None
 dataset = "ivy_gap"
 data_dir = "data"
 train_dataset_glob = f"{data_dir}/{dataset}/random/*png"
-
+# train_dataset_glob = (
+#     f"{data_dir}/{dataset}/donor_id_10865_specimen_id_706601_subimage_id_101713624.jpg"
+# )
 params = {
     "epochs": 500,
-    "batch_size": 128,
+    "batch_size": 2**4,
     "num_workers": 2**4,
     "window_size": 64 * 2,
     "channels": 3,
@@ -111,17 +109,13 @@ transform = A.Compose(
             width=args.window_size,
             p=1,
         ),
-        # Adjust image intensity with a specified range for individual channels
-        A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
-        A.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-        ),
+        
+        A.ToFloat(max_value=1, p=1.0),
         ToTensorV2(),
     ]
 )
 
-train_dataset = DatasetGlob(train_dataset_glob)
+# train_dataset = DatasetGlob(train_dataset_glob)
 train_dataset = DatasetGlob(train_dataset_glob, transform=transform)
 # train_dataset = DatasetGlob(train_dataset_glob )
 
@@ -138,6 +132,7 @@ dataloader = DatamoduleGlob(
     transform=transform,
     pin_memory=True,
     persistent_workers=True,
+    over_sampling=16,
 )
 
 
@@ -206,7 +201,8 @@ trainer = pl.Trainer(
     logger=tb_logger,
     gradient_clip_val=0.5,
     enable_checkpointing=True,
-    gpus=1,
+    devices="auto",
+    accelerator="gpu",
     accumulate_grad_batches=4,
     callbacks=[checkpoint_callback],
     min_epochs=50,
