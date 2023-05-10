@@ -5,7 +5,7 @@ description = ""
 authors = ["Craig <ctr26@ebi.ac.uk>"]
 
 [tool.poetry.scripts]
-bio_vae = "main:main"
+bioimrep = "main:main"
 
 [tool.poetry.dependencies]
 python = "^3.9"
