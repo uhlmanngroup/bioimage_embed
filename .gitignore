@@ -310,6 +310,5 @@ results
 snakemake/idr/results
 outputs
 logs
-models
 my_model
 checkpoints
