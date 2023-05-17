@@ -8,6 +8,29 @@ import argparse
 import timm
 
 class LitAutoEncoderTorch(pl.LightningModule):
+    args = argparse.Namespace(
+        opt="adamw",
+        weight_decay=0.001,
+        momentum=0.9,
+        sched="cosine",
+        epochs=50,
+        lr=0.1,
+        min_lr=1e-6,
+        t_initial=10,
+        t_mul=2,
+        lr_min=None,
+        decay_rate=0.1,
+        warmup_lr=1e-6,
+        warmup_lr_init=1e-6,
+        warmup_epochs=5,
+        cycle_limit=None,
+        t_in_epochs=False,
+        noisy=False,
+        noise_std=0.1,
+        noise_pct=0.67,
+        noise_seed=None,
+        cooldown_epochs=5,
+    )
     def __init__(self, model,args):
         super().__init__()
         self.model = model
@@ -40,13 +63,33 @@ class LitAutoEncoderTorch(pl.LightningModule):
         # if self.PYTHAE_FLAG:
         self.logger.experiment.add_image(
             "output",
-            torchvision.utils.make_grid(results.reconstruction),
+            torchvision.utils.make_grid(results.recon_x),
             batch_idx,
         )
         return self.loss
+
+    def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+        # Implement your own logic for updating the lr scheduler
+        # This method will be called at each training step
+        # Update the lr scheduler based on the provided arguments
+        # You can access the lr scheduler using `self.lr_schedulers()`
+
+        # Example:
+        for lr_scheduler in self.lr_schedulers():
+            lr_scheduler.step()
+            
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
-        return optimizer
+        self.optimizer = optim.create_optimizer(self.args, self.model.parameters())
+        self.lr_scheduler = scheduler.create_scheduler(
+            self.args, self.optimizer
+        )[0]
+        return {
+            'optimizer': self.optimizer,
+            'lr_scheduler': self.lr_scheduler
+        }
+    # def configure_optimizers(self):
+        # optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        # return optimizer
     
 # class LitAutoEncoderTorch(pl.LightningModule):
 #     # lr_scheduler = None
@@ -140,15 +183,15 @@ class LitAutoEncoderTorch(pl.LightningModule):
 #         # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1)
 #         # return [optimizer], [scheduler]
 #         return optimizer
-#     # def configure_optimizers(self):
-#     #     self.optimizer = optim.create_optimizer(self.args, self.model.parameters())
-#     #     self.lr_scheduler = scheduler.create_scheduler(
-#     #         self.args, self.optimizer
-#     #     )[0]
-#     #     return {
-#     #         'optimizer': self.optimizer,
-#     #         'lr_scheduler': self.lr_scheduler
-#     #     }
+    # def configure_optimizers(self):
+    #     self.optimizer = optim.create_optimizer(self.args, self.model.parameters())
+    #     self.lr_scheduler = scheduler.create_scheduler(
+    #         self.args, self.optimizer
+    #     )[0]
+    #     return {
+    #         'optimizer': self.optimizer,
+    #         'lr_scheduler': self.lr_scheduler
+    #     }
         
 #     # def lr_scheduler_step(self, optimizer, epoch, optimizer_idx):
 #     #     # Check if the current scheduler is the custom scheduler
