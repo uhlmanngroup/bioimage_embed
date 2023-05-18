@@ -1,10 +1,11 @@
-import pythae
+
+# Note - you must have torchvision installed for this example
+from torch.utils.data import DataLoader
+import torch
+from torch import nn
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from pythae.models.base.base_utils import ModelOutput
-from pythae.models.nn import BaseDecoder, BaseEncoder
-from torch import nn
 from torch.utils.data import DataLoader
 
 # https://colab.research.google.com/github/zalandoresearch/pytorch-vq-vae/blob/master/vq-vae.ipynb#scrollTo=fknqLRCvdJ4I
@@ -188,22 +189,11 @@ class ResidualStack(nn.Module):
         return F.relu(x)
 
 
-class Encoder(BaseEncoder):
+class Encoder(nn.Module):
     def __init__(
-        self,
-        model_config=None,
-        num_hiddens=64,
-        num_residual_hiddens=32,
-        num_residual_layers=2,
-        in_channels=1,
-        embedding_dim=64,
+        self, num_hiddens, num_residual_layers, num_residual_hiddens, in_channels
     ):
         super(Encoder, self).__init__()
-        if model_config is not None:
-            embedding_dim = model_config.latent_dim
-            num_hiddens = model_config.num_embeddings
-            in_channels = model_config.input_dim[0]
-            image_dims = model_config.input_dim[1:]
 
         self._conv_1 = nn.Conv2d(
             in_channels=in_channels,
@@ -222,72 +212,55 @@ class Encoder(BaseEncoder):
         self._conv_3 = nn.Conv2d(
             in_channels=num_hiddens,
             out_channels=num_hiddens,
-            kernel_size=4,
-            stride=2,
-            padding=1,
-        )
-        self._conv_4 = nn.Conv2d(
-            in_channels=num_hiddens,
-            out_channels=embedding_dim,
-            kernel_size=4,
-            stride=2,
+            kernel_size=3,
+            stride=1,
             padding=1,
         )
         self._residual_stack = ResidualStack(
-                                in_channels=num_hiddens,
-                                num_hiddens=num_hiddens,
-                                num_residual_layers=num_residual_layers,
-                                num_residual_hiddens=num_residual_hiddens)
-
-        self._adaptive_pool = nn.AdaptiveAvgPool2d((embedding_dim, embedding_dim))
+            in_channels=num_hiddens,
+            num_hiddens=num_hiddens,
+            num_residual_layers=num_residual_layers,
+            num_residual_hiddens=num_residual_hiddens,
+        )
 
     def forward(self, inputs):
-        output = ModelOutput()
-        x = inputs
-        x = self._conv_1(x)
+        x = self._conv_1(inputs)
         x = F.relu(x)
 
         x = self._conv_2(x)
         x = F.relu(x)
 
         x = self._conv_3(x)
-        x = F.relu(x)
+        return self._residual_stack(x)
 
-        x = self._conv_4(x)
-        # x = F.relu(x)
-        x = self._residual_stack(x)
-        output["embedding"] = x
 
-        return output
-
-# import pythae
-class Decoder(BaseDecoder):
+class Decoder(nn.Module):
     def __init__(
         self,
-        model_config=None,
-        in_channels=1,
-        num_hiddens=64,
-        num_residual_hiddens=32,
-        num_residual_layers=2,
-        out_channels=1,
+        in_channels,
+        num_hiddens,
+        num_residual_layers,
+        num_residual_hiddens,
+        out_channels,
     ):
         super(Decoder, self).__init__()
 
-        if model_config is not None:
-            num_hiddens = model_config.num_embeddings
-            in_channels = model_config.latent_dim
-            out_channels = model_config.input_dim[0]
-            image_dims = model_config.input_dim[1:]
-
-        self._conv_trans_1 = nn.ConvTranspose2d(
+        self._conv_1 = nn.Conv2d(
             in_channels=in_channels,
             out_channels=num_hiddens,
-            kernel_size=4,
-            stride=2,
+            kernel_size=3,
+            stride=1,
             padding=1,
         )
 
-        self._conv_trans_2 = nn.ConvTranspose2d(
+        self._residual_stack = ResidualStack(
+            in_channels=num_hiddens,
+            num_hiddens=num_hiddens,
+            num_residual_layers=num_residual_layers,
+            num_residual_hiddens=num_residual_hiddens,
+        )
+
+        self._conv_trans_1 = nn.ConvTranspose2d(
             in_channels=num_hiddens,
             out_channels=num_hiddens // 2,
             kernel_size=4,
@@ -295,49 +268,24 @@ class Decoder(BaseDecoder):
             padding=1,
         )
 
-        self._conv_trans_3 = nn.ConvTranspose2d(
+        self._conv_trans_2 = nn.ConvTranspose2d(
             in_channels=num_hiddens // 2,
-            out_channels=num_hiddens // 4,
-            kernel_size=4,
-            stride=2,
-            padding=1,
-        )
-
-        self._conv_trans_4 = nn.ConvTranspose2d(
-            in_channels=num_hiddens // 4,
             out_channels=out_channels,
             kernel_size=4,
             stride=2,
             padding=1,
         )
-        
-        self._residual_stack = ResidualStack(in_channels=num_hiddens,
-                                             num_hiddens=num_hiddens,
-                                             num_residual_layers=num_residual_layers,
-                                             num_residual_hiddens=num_residual_hiddens)
 
     def forward(self, inputs):
-        output = ModelOutput()
-        
-        
-        x = inputs
+        x = self._conv_1(inputs)
+
         x = self._residual_stack(x)
-        
-        # x = F.relu(x)
+
         x = self._conv_trans_1(x)
         x = F.relu(x)
 
-        x = self._conv_trans_2(x)
-        x = F.relu(x)
+        return self._conv_trans_2(x)
 
-        x = self._conv_trans_3(x)
-        x = F.relu(x)
-
-        x = self._conv_trans_4(x)
-        x = F.relu(x)
-        
-        output["reconstruction"] = x
-        return output
 
 class VQ_VAE(nn.Module):
     def __init__(
@@ -355,12 +303,7 @@ class VQ_VAE(nn.Module):
         super(VQ_VAE, self).__init__()
 
         self._encoder = Encoder(
-            None,
-            num_hiddens,
-            num_residual_layers,
-            num_residual_hiddens,
-            in_channels=channels,
-            embedding_dim=embedding_dim,
+            num_hiddens, num_residual_layers, num_residual_hiddens, in_channels=channels
         )
         self._pre_vq_conv = nn.Conv2d(
             in_channels=num_hiddens, out_channels=embedding_dim, kernel_size=1, stride=1
@@ -374,7 +317,6 @@ class VQ_VAE(nn.Module):
                 num_embeddings, embedding_dim, commitment_cost
             )
         self._decoder = Decoder(
-            None,
             embedding_dim,
             num_hiddens,
             num_residual_layers,
@@ -382,22 +324,22 @@ class VQ_VAE(nn.Module):
             out_channels=channels,
         )
 
-    def forward(self, x, epoch=None):
-        z = self.encoder(x["data"])
+    def forward(self, x):
+        z = self.encoder(x)
         loss, quantized, perplexity, _ = self._vq_vae(z)
-        x_recon = self._decoder(quantized)["reconstruction"]
-        return ModelOutput(loss=loss,reconstruction=x_recon,perplexity=perplexity)
+        x_recon = self._decoder(quantized)
+        return loss, x_recon, perplexity
 
     def recon(self, x):
-        # loss, x_recon, perplexity = self.forward(x)
-        return self.forward(x)["reconstruction"]
+        loss, x_recon, perplexity = self.forward(x)
+        return x_recon
 
     def encoder_z(self, x):
         # z = self._encoder(x)
         # z = self._pre_vq_conv(z)
-        # z = self._encoder(x)["embedding"]
-        # z = self._pre_vq_conv(z)
-        return self._encoder(x)["embedding"]
+        z = self._encoder(x)
+        z = self._pre_vq_conv(z)
+        return z
 
     def encoder_zq(self, x):
         # z = self._encoder(x)
@@ -444,16 +386,25 @@ class VQ_VAE(nn.Module):
     def output_from_results(self, loss, x_recon, perplexity):
         return x_recon
 
-    def loss_function(self, *args, recons, input, **kwargs) -> dict:
+    def loss_function(self, vq_loss, perplexity, recons, input, **kwargs) -> dict:
         """
         :param args:
         :param kwargs:
         :return:
         """
-        vq_loss, recons, perplexity = args
-
+        # vq_loss, recons, perplexity = args
+        # # recons = args[0]
+        # input = args[1]
+        # vq_loss = args[2]
         recons_loss = F.mse_loss(recons, input)
 
         loss = recons_loss + vq_loss
         return {"loss": loss, "Reconstruction_Loss": recons_loss, "VQ_Loss": vq_loss}
 
+        # vq_loss, output, perplexity = self.forward(inputs)
+        # output = x_recon
+        # loss = self.loss_fn(output, inputs)
+
+        # vq_loss, data_recon, perplexity = model(inputs)
+        # recon_error = F.mse_loss(output, inputs)
+        # recon_error = self.loss_fn(output, inputs)
