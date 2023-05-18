@@ -38,7 +38,6 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
 
-
 class cropCentroid(torch.nn.Module):
     def __init__(self, size):
         super().__init__()
