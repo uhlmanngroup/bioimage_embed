@@ -14,25 +14,14 @@ from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 import os
-from skimage.measure import regionprops
-from torchvision.transforms.functional import crop
 from scipy import ndimage
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch import nn
-from pytorch_lightning import loggers as pl_loggers
 import torchvision
-from sklearn.manifold import MDS
-from sklearn.metrics.pairwise import euclidean_distances
-from scipy.ndimage import convolve, sobel
-from skimage.measure import find_contours
-from scipy.interpolate import interp1d
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-import torch.optim as optim
 
 
 class AutoEncoder(nn.Module):
@@ -119,3 +108,5 @@ class AutoEncoder(nn.Module):
             ),
         )
         return expand
+
+
