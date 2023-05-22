@@ -55,11 +55,11 @@ class LitAutoEncoderTorch(pl.LightningModule):
         x = {"data":batch}
         model_output = self.model(x,epoch=batch_idx)
         # loss = self.model.training_step(x)
-        self.loss = model_output.loss
+        loss = model_output.loss
 
         # self.log("train_loss", self.loss)
         # self.log("train_loss", loss)
-        self.logger.experiment.add_scalar("Loss/train", self.loss, batch_idx)
+        self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
 
         self.logger.experiment.add_image(
             "input", torchvision.utils.make_grid(batch), batch_idx
@@ -70,7 +70,30 @@ class LitAutoEncoderTorch(pl.LightningModule):
             torchvision.utils.make_grid(model_output.recon_x),
             batch_idx,
         )
-        return self.loss
+
+        return loss
+     
+    def validation_step(self, batch, batch_idx):
+
+        x = {"data":batch}
+        model_output = self.model(x,epoch=batch_idx)
+        loss = model_output.loss
+        z = model_output.z.view(model_output.z.shape[0], -1)
+        # z_indices
+        self.logger.experiment.add_embedding(
+            z,
+            label_img=batch,
+            global_step=self.current_epoch,
+            tag="z",
+        )       
+
+        self.logger.experiment.add_scalar("Loss/val", loss, batch_idx)
+        self.logger.experiment.add_image(
+            "val",
+            torchvision.utils.make_grid(model_output.recon_x),
+            batch_idx,
+        )
+        
 
     # def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
     #     # Implement your own logic for updating the lr scheduler
