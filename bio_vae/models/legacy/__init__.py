@@ -11,8 +11,8 @@ from .vae import VAE
 from .vq_vae import VQ_VAE
 
 from ..bolts import ResNet18VAEEncoder,ResNet18VAEDecoder
-
-class Bio_VAE(BaseVAE):
+from torch import nn
+class Bio_VAE(nn.Module):
     model_lookup = {
         "vq_vae": VQ_VAE,
         "vae": VAE,

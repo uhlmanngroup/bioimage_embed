@@ -12,6 +12,7 @@ from torch.nn import functional as F
 import torch
 from torch import Tensor
 from pythae.models.base.base_utils import ModelOutput
+from typing import List
 # from .convnet import CovNetEncoder, CovNetDecoder
 class VAE(nn.Module):
     def __init__(
