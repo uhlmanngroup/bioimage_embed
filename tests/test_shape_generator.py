@@ -18,17 +18,17 @@ import torch
 from torch.utils.data import DataLoader
 
 from bio_vae.datasets import BroadDataset
-from bio_vae.transforms import (
+from bio_vae.shapes.transforms import (
     DistogramToCoords,
     CropCentroidPipeline,
 )
-from bio_vae.transforms import (
+from bio_vae.shapes.transforms import (
     DistogramToCoords,
     MaskToDistogramPipeline,
     AsymmetricDistogramToMaskPipeline,
 )
 
-from bio_vae.models import VQ_VAE,Bio_VAE
+from bio_vae.models import Bio_VAE
 from bio_vae.lightning import LitAutoEncoderTorch
 
 interp_size = 128 * 4
