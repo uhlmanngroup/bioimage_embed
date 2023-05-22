@@ -87,7 +87,6 @@ class ResNet18VQVAEEncoder(BaseEncoder):
         self.prequantized = nn.Conv2d(self.enc_out_dim, latent_dim, 1, 1)
 
     def forward(self, x):
-        output = ModelOutput()
         x = self.encoder(x)
         # x = self.fc1(x)
         embedding = self.prequantized(x.view(-1, self.enc_out_dim, 1, 1))
