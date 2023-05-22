@@ -1,4 +1,3 @@
-
 # Note - you must have torchvision installed for this example
 from torch.utils.data import DataLoader
 import torch
@@ -7,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+from pythae.models.base.base_utils import ModelOutput
 
 # https://colab.research.google.com/github/zalandoresearch/pytorch-vq-vae/blob/master/vq-vae.ipynb#scrollTo=fknqLRCvdJ4I
 
@@ -290,11 +290,11 @@ class Decoder(nn.Module):
 class VQ_VAE(nn.Module):
     def __init__(
         self,
-        num_hiddens=64,
-        num_residual_hiddens=32,
+        num_hiddens=32,
+        num_residual_hiddens=64,
         num_residual_layers=2,
-        embedding_dim=64,
-        num_embeddings=512,
+        embedding_dim=32,
+        num_embeddings=32,
         commitment_cost=0.25,
         decay=0.99,
         channels=1,
@@ -324,8 +324,33 @@ class VQ_VAE(nn.Module):
             out_channels=channels,
         )
 
+    # def forward(self, x, epoch=None):
+    #     z = self.encoder(x["data"])
+    #     vq_loss, quantized, perplexity, _ = self._vq_vae(z)
+    #     x_recon = self._decoder(quantized)
+    #     loss_out = self.loss_function(
+    #         vq_loss=vq_loss, perplexity=perplexity, recons=x_recon, input=x["data"]
+    #     )
+    #     return ModelOutput(**loss_out, recon_x=x_recon)
+
+    # def loss_function(self, vq_loss, perplexity, recons, input, **kwargs) -> dict:
+    #     """
+    #     :param args:
+    #     :param kwargs:
+    #     :return:
+    #     """
+    #     # vq_loss, recons, perplexity = args
+    #     # recons = args[0]
+    #     # input = args[1]
+    #     # vq_loss = args[2]
+    #     recons_loss = F.mse_loss(recons, input)
+
+    #     loss = recons_loss + vq_loss
+    #     return {"loss": loss, "Reconstruction_Loss": recons_loss, "VQ_Loss": vq_loss}
+
     def forward(self, x):
         z = self.encoder(x)
+        z = self._pre_vq_conv(z)
         loss, quantized, perplexity, _ = self._vq_vae(z)
         x_recon = self._decoder(quantized)
         return loss, x_recon, perplexity
@@ -342,8 +367,6 @@ class VQ_VAE(nn.Module):
         return z
 
     def encoder_zq(self, x):
-        # z = self._encoder(x)
-        # z = self._pre_vq_conv(z)
         z = self.encoder_z(x)
         loss, z_q, perplexity, _ = self._vq_vae(z)
         return z_q
@@ -386,16 +409,14 @@ class VQ_VAE(nn.Module):
     def output_from_results(self, loss, x_recon, perplexity):
         return x_recon
 
-    def loss_function(self, vq_loss, perplexity, recons, input, **kwargs) -> dict:
+    def loss_function(self, *args, recons, input, **kwargs) -> dict:
         """
         :param args:
         :param kwargs:
         :return:
         """
-        # vq_loss, recons, perplexity = args
-        # # recons = args[0]
-        # input = args[1]
-        # vq_loss = args[2]
+        vq_loss, recons, perplexity = args
+
         recons_loss = F.mse_loss(recons, input)
 
         loss = recons_loss + vq_loss
@@ -408,3 +429,13 @@ class VQ_VAE(nn.Module):
         # vq_loss, data_recon, perplexity = model(inputs)
         # recon_error = F.mse_loss(output, inputs)
         # recon_error = self.loss_fn(output, inputs)
+
+    def vqvae_to_latent(self, img: torch.Tensor) -> torch.Tensor:
+
+        vq = self._vq_vae
+        embedding_torch = vq._embedding
+        embedding_in = self.encoder_z(img)
+        embedding_out = self._vq_vae(embedding_in)
+        latent = embedding_torch(embedding_out[-1].argmax(axis=1))
+
+        return latent
