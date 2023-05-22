@@ -4,6 +4,8 @@ from torch import nn
 import torch
 import torch.nn.functional as F
 
+from ..nets.resnet import ResnetDecoder, ResnetEncoder
+
 # https://colab.research.google.com/github/zalandoresearch/pytorch-vq-vae/blob/master/vq-vae.ipynb#scrollTo=fknqLRCvdJ4I
 
 
@@ -138,7 +140,6 @@ class VectorQuantizerEMA(nn.Module):
         # convert quantized from BHWC -> BCHW
         return loss, quantized.permute(0, 3, 1, 2).contiguous(), perplexity, encodings
 
-from ..nets.resnet import ResnetDecoder, ResnetEncoder
 class VQ_VAE(nn.Module):
     def __init__(
         self,
@@ -175,31 +176,6 @@ class VQ_VAE(nn.Module):
             num_residual_hiddens,
             out_channels=channels,
         )
-
-    # def forward(self, x, epoch=None):
-    #     z = self.encoder(x["data"])
-    #     vq_loss, quantized, perplexity, _ = self._vq_vae(z)
-    #     x_recon = self._decoder(quantized)
-    #     loss_out = self.loss_function(
-    #         vq_loss=vq_loss, perplexity=perplexity, recons=x_recon, input=x["data"]
-    #     )
-    #     return ModelOutput(**loss_out, recon_x=x_recon)
-
-    # def loss_function(self, vq_loss, perplexity, recons, input, **kwargs) -> dict:
-    #     """
-    #     :param args:
-    #     :param kwargs:
-    #     :return:
-    #     """
-    #     # vq_loss, recons, perplexity = args
-    #     # recons = args[0]
-    #     # input = args[1]
-    #     # vq_loss = args[2]
-    #     recons_loss = F.mse_loss(recons, input)
-
-    #     loss = recons_loss + vq_loss
-    #     return {"loss": loss, "Reconstruction_Loss": recons_loss, "VQ_Loss": vq_loss}
-
     def forward(self, x):
         z = self.encoder(x)
         z = self._pre_vq_conv(z)

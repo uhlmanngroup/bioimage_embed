@@ -12,9 +12,9 @@
 # from .bolts import ResNet18VAEEncoder, ResNet18VAEDecoder
 
 import pythae
-
+from .pythae import legacy
 from . import bolts
-
+from functools import partial
 
 class ModelFactory:
     def __init__(
@@ -33,8 +33,7 @@ class ModelFactory:
         encoder = encoder_class(model_config)
         decoder = decoder_class(model_config)
         # TODO Fix this
-        model = model_class(model_config, encoder=encoder, decoder=decoder)
-        return model
+        return model_class(model_config=model_config, encoder=encoder, decoder=decoder)
 
     def resnet18_vae(self):
         return self.create_model(
@@ -68,10 +67,32 @@ class ModelFactory:
             bolts.ResNet50VQVAEDecoder,
         )
 
+    def resnet_vqvae_legacy(self,depth):
+        return self.create_model(
+                partial(pythae.models.VQVAEConfig,**self.kwargs),
+                # partial(legacy.vq_vae.VQVAE,**self.kwargs,num_hidden_residuals=depth),
+                partial(legacy.vq_vae.VQVAE,num_hidden_residuals=depth,**self.kwargs),
+                encoder_class=lambda x: None,
+                decoder_class=lambda x: None
+        )
+        
+    def resnet50_vqvae_legacy(self):
+        return self.resnet_vqvae_legacy(50)
+    
+    def resnet101_vqvae_legacy(self):
+        return self.resnet_vqvae_legacy(101)
+
+    def resnet150_vqvae_legacy(self):
+        return self.resnet_vqvae_legacy(150)
+
+    def resnet152_vqvae_legacy(self):
+        return self.resnet_vqvae_legacy(152)
+
+
 
 MODELS = ["resnet18_vae", "resnet50_vae", "resnet18_vqvae", "resnet50_vqvae"]
 
 
-def create_model(model, input_dim, latent_dim, pretrained=False, progress=True):
-    factory = ModelFactory(input_dim, latent_dim, pretrained, progress)
+def create_model(model, input_dim, latent_dim, pretrained=False, progress=True,**kwargs):
+    factory = ModelFactory(input_dim, latent_dim, pretrained, progress,**kwargs)
     return getattr(factory, model)()

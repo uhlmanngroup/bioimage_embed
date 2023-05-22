@@ -1,11 +1,10 @@
 # TODO make this a relative import
-from bio_vae.models import legacy
 
 from torch import nn
 from pythae import models
 
-import bio_vae
 
+from functools import partial
 # from pythae.models import VQVAE, Encoder, Decoder
 from pythae.models.base.base_utils import ModelOutput
 
@@ -13,6 +12,7 @@ from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn import BaseDecoder, BaseEncoder
 from ...nets.resnet import ResnetDecoder, ResnetEncoder
 
+from ....models import legacy
 
 class Encoder(BaseEncoder):
     def __init__(self, model_config, **kwargs):
@@ -95,3 +95,5 @@ class VQVAE(models.VQVAE):
             **loss_dict
         )
         # return ModelOutput(reconstruction=x_recon, **loss_dict)
+
+# Resnet50_VQVAE = partial(VQVAE,num_hidden_residuals=50)

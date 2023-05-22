@@ -92,7 +92,7 @@ class ConvNetEncoder(BaseEncoder):
         )
         return output
 
-class ConvNetEncoder(BaseDecoder):
+class ConvNetDecoder(BaseDecoder):
     def __init__(self, model_config, hidden_dims=[32, 64, 128, 256, 512]):
         BaseDecoder.__init__(self)
         self.input_dim = model_config.input_dim
