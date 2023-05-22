@@ -1,0 +1,17 @@
+# model_name: VQVAE
+
+# model:
+_target_: pythae.models.VAE
+# model_config: $(model.model_config)
+encoder: 
+  _target_: bio_vae.models.ResNet18VAEEncoder
+  model_config: ${pythae.model_config}
+decoder:
+  _target_: bio_vae.models.ResNet18VAEDecoder
+  model_config: ${pythae.model_config}
+
+model_config:
+  _target_: pythae.models.VAEConfig
+  _convert_: all
+  input_dim: ${model.input_dim}
+  latent_dim: ${model.latent_dim}

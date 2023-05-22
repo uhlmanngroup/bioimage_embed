@@ -1,252 +1,127 @@
-import sys
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pyro.optim import Adam
-from pyro.infer import SVI, Trace_ELBO
-import pyro.distributions as dist
-import pyro
-import pytorch_lightning as pl
-from torch.utils.data import random_split, DataLoader
-import glob
-from torch.optim import lr_scheduler
-
-# Note - you must have torchvision installed for this example
-from torchvision import datasets
-from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
-from PIL import Image
-import os
-from skimage.measure import regionprops
-from torchvision.transforms.functional import crop
-from scipy import ndimage
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-from torch import nn
-from pytorch_lightning import loggers as pl_loggers
 import torchvision
-from sklearn.manifold import MDS
-from sklearn.metrics.pairwise import euclidean_distances
-from scipy.ndimage import convolve, sobel
-from skimage.measure import find_contours
-from scipy.interpolate import interp1d
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-import torch.optim as optim
+import pytorch_lightning as pl
 import pythae
-from pythae.trainers import BaseTrainerConfig, BaseTrainer
-
+from timm import optim, scheduler
+from types import SimpleNamespace
+import argparse
+import timm
 
 class LitAutoEncoderTorch(pl.LightningModule):
-
-    # lr_scheduler_config = {
-    #     # REQUIRED: The scheduler instance
-    #     "scheduler": None,
-    #     # The unit of the scheduler's step size, could also be 'step'.
-    #     # 'epoch' updates the scheduler on epoch end whereas 'step'
-    #     # updates it after a optimizer update.
-    #     "interval": "epoch",
-    #     # How many epochs/steps should pass between calls to
-    #     # `scheduler.step()`. 1 corresponds to updating the learning
-    #     # rate after every epoch/step.
-    #     "frequency": 1,
-    #     # Metric to to monitor for schedulers like `ReduceLROnPlateau`
-    #     "monitor": "val_loss",
-    #     # If set to `True`, will enforce that the value specified 'monitor'
-    #     # is available when the scheduler is updated, thus stopping
-    #     # training if not found. If set to `False`, it will only produce a warning
-    #     "strict": True,
-    #     # If using the `LearningRateMonitor` callback to monitor the
-    #     # learning rate progress, this keyword can be used to specify
-    #     # a custom logged name
-    #     "name": None,
-    # }
-    
-    lr_scheduler = None
-    lr_scheduler_config = {
-    # REQUIRED: The scheduler instance
-    "scheduler": None,
-    # The unit of the scheduler's step size, could also be 'step'.
-    # 'epoch' updates the scheduler on epoch end whereas 'step'
-    # updates it after a optimizer update.
-    "interval": "epoch",
-    # How many epochs/steps should pass between calls to
-    # `scheduler.step()`. 1 corresponds to updating the learning
-    # rate after every epoch/step.
-    "frequency": 1,
-    # Metric to to monitor for schedulers like `ReduceLROnPlateau`
-    "monitor": "val_loss",
-    # If set to `True`, will enforce that the value specified 'monitor'
-    # is available when the scheduler is updated, thus stopping
-    # training if not found. If set to `False`, it will only produce a warning
-    "strict": True,
-    # If using the `LearningRateMonitor` callback to monitor the
-    # learning rate progress, this keyword can be used to specify
-    # a custom logged name
-    "name": None,
-}
-
-    def __init__(
-        self,
-        model,
-        batch_size=1,
-        learning_rate=1e-4,
-        optimizer_cls="Adam",
-        optimizer_params={},
-        scheduler_cls=None,
-        scheduler_params={},
-    ):
+    args = argparse.Namespace(
+        opt="adamw",
+        weight_decay=0.001,
+        momentum=0.9,
+        sched="cosine",
+        epochs=50,
+        lr=1e-4,
+        min_lr=1e-6,
+        t_initial=10,
+        t_mul=2,
+        lr_min=None,
+        decay_rate=0.1,
+        warmup_lr=1e-6,
+        warmup_lr_init=1e-6,
+        warmup_epochs=5,
+        cycle_limit=None,
+        t_in_epochs=False,
+        noisy=False,
+        noise_std=0.1,
+        noise_pct=0.67,
+        noise_seed=None,
+        cooldown_epochs=5,
+        warmup_t=0,
+    )
+    def __init__(self, model,args):
         super().__init__()
-
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-
-        self.loss_fn = torch.nn.MSELoss()
-
         self.model = model
-        
-        self.PYTHAE_FLAG = issubclass(self.model.__class__, pythae.models.BaseAE)
-        
-        if self.PYTHAE_FLAG:
-            self.pythae_flag()
-
-        self.optimizer = getattr(torch.optim, optimizer_cls)(
-            self.parameters(), lr=self.learning_rate, **optimizer_params
-        )
-        
-        if scheduler_cls is not None:
-            self.lr_scheduler = getattr(
-                torch.optim.lr_scheduler, scheduler_cls
-        )(self.optimizer, **scheduler_params)
-
-    def pythae_flag(self):
         self.model = self.model.to(self.device)
-        self.model.train()
+        if args:
+            self.args = SimpleNamespace(**{**vars(args),**vars(self.args)})
 
-    # def decoder(self, z):
-    #     return self.model.decoder(z)
-
-    # def encoder(self, img):
-    #     return self.model.encoder(img)
-
-    # def decode(self, z):
-    #     return self.model.decode(z)
-
-    # def encode(self, img):
-    #     return self.model.encode(img)
-
+        # self.model.train()
+        
     def forward(self, x):
-        # if self.PYTHAE_FLAG:
-        return self.model.forward({"data": x})["recon_x"]
-        # return self.model.forward(x)
-
-    def recon(self, x):
-        if self.PYTHAE_FLAG:
-            return self.forward({"data": x})
-        return self.model.recon(x)
-
-    def configure_optimizers(self):
-        if self.lr_scheduler:
-            self.lr_scheduler_config["scheduler"] = self.lr_scheduler
-            return {"optimizer": self.optimizer,
-                    "lr_scheduler": self.lr_scheduler_config}
-        return self.optimizer
-
-    # def predict_step(self, batch, batch_idx, dataloader_idx=0):
-    # return self.recon(batch)
-
-    def get_loss(self, batch):
-        if self.PYTHAE_FLAG:
-            return self.model({"data": batch}).loss
-        # self.curr_device = real_img.device
-
-        results = self.get_results(batch)
-        recons = self.recon(batch)
-
-        loss = self.model.loss_function(*results, recons=recons, input=batch)
-        return loss["loss"]
-
+        return self.model({"data":x}
+                          )
     def get_results(self, batch):
-        # if self.PYTHAE_FLAG:   
+        # if self.PYTHAE_FLAG:
         return self.model.forward({"data": batch})
         # return self.model.forward(batch)
         
+    def training_step(self, batch, batch_idx):
+        # results = self.get_results(batch)
+        self.model.train()
+        x = {"data":batch}
+        model_output = self.model(x,epoch=batch_idx)
+        # loss = self.model.training_step(x)
+        loss = model_output.loss
 
-    def test_step(self, batch, batch_idx):
-        test_loss = self.get_loss(batch)
-        self.log("test_loss", test_loss, on_epoch=True)
-        return test_loss
-
-    def validation_step(self, batch, batch_idx):
-        val_loss = self.get_loss(batch)
-        self.log("val_loss", val_loss, on_epoch=True)
-        return val_loss
-
-    def training_step(self, batch, batch_idx, optimizer_idx=0):
-        loss = self.get_loss(batch)
-        self.model.update()
-        results = self.get_results(batch)
-
-        self.log("train_loss", loss)
-        # self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
+        # self.log("train_loss", self.loss)
+        # self.log("train_loss", loss)
+        self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
 
         self.logger.experiment.add_image(
             "input", torchvision.utils.make_grid(batch), batch_idx
         )
-        if self.PYTHAE_FLAG:
-            self.logger.experiment.add_image(
-                "output",
-                torchvision.utils.make_grid(results["recon_x"]),
-                batch_idx,
-            )
-        else:
-            self.logger.experiment.add_image(
-                "output",
-                torchvision.utils.make_grid(self.model.output_from_results(*results)),
-                batch_idx,
-            )
+        # if self.PYTHAE_FLAG:
+        self.logger.experiment.add_image(
+            "output",
+            torchvision.utils.make_grid(model_output.recon_x),
+            batch_idx,
+        )
+
         return loss
-    
-    def get_model(self):
-        return self.model
+     
+    def validation_step(self, batch, batch_idx):
 
-    @property
-    def num_training_steps(self) -> int:
-        return 100
+        x = {"data":batch}
+        model_output = self.model(x,epoch=batch_idx)
+        loss = model_output.loss
+        z = model_output.z.view(model_output.z.shape[0], -1)
+        # z_indices
+        self.logger.experiment.add_embedding(
+            z,
+            label_img=batch,
+            global_step=self.current_epoch,
+            tag="z",
+        )       
 
-    # def _training_step(self, inputs, batch_idx):
-    #     vq_loss, output, perplexity = self.forward(inputs)
-    #     # output = x_recon
-    #     # loss = self.loss_fn(output, inputs)
+        self.logger.experiment.add_scalar("Loss/val", loss, batch_idx)
+        self.logger.experiment.add_image(
+            "val",
+            torchvision.utils.make_grid(model_output.recon_x),
+            batch_idx,
+        )
+        
 
-    #     # vq_loss, data_recon, perplexity = model(inputs)
-    #     # recon_error = F.mse_loss(output, inputs)
-    #     recon_error = self.loss_fn(output, inputs)
-    #     loss = recon_error + vq_loss  # Missing variance bit
-    #     self.log("train_loss", loss)
-    #     # tensorboard = self.logger.experiment
-    #     # self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
+    # def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+    #     # Implement your own logic for updating the lr scheduler
+    #     # This method will be called at each training step
+    #     # Update the lr scheduler based on the provided arguments
+    #     # You can access the lr scheduler using `self.lr_schedulers()`
 
-    #     # torchvision.utils.make_grid(output)
-    #     self.logger.experiment.add_image(
-    #         "input", torchvision.utils.make_grid(inputs), batch_idx
-    #     )
-    #     # self.logger.experiment.add_embedding(
-    #     #     "input_image", torchvision.utils.make_grid(transformer_image(inputs)), batch_idx)
-    #     self.logger.experiment.add_image(
-    #         "output", torchvision.utils.make_grid(output), batch_idx
-    #     )
-    #     # self.logger.experiment.add_embedding(
-    #     #     "output_image", torchvision.utils.make_grid(transformer_image(output)), batch_idx)
-
-    #     # tensorboard.add_image("input", transforms.ToPILImage()(output[batch_idx]), batch_idx)
-    #     # tensorboard.add_image("output", transforms.ToPILImage()(output[batch_idx]), batch_idx)
-    #     return loss
-
-    # def get_embedding(self):
-    #     return self.model.get_embedding()
-
-    # def sample(self, *args, **kwargs):
-    #     return self.model.sample(*args, **kwargs)
-
+    #     # Example:
+    #     for lr_scheduler in self.lr_schedulers():
+    #         lr_scheduler.step()
+            
+    def configure_optimizers(self):
+        optimizer = optim.create_optimizer(self.args, self.model.parameters())
+        lr_scheduler = scheduler.create_scheduler(
+            self.args, optimizer
+        )[0]
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': lr_scheduler,
+                'interval': 'step', # or 'epoch' for step vs epoch training, respectively
+            }
+        }
+        
+    def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+        scheduler.step(epoch=self.current_epoch,metric=metric)
+        
+        
+    # def configure_optimizers(self):
+    #     optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+    #     return optimizer

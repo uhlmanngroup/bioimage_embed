@@ -9,21 +9,22 @@ import pythae
 
 # Note - you must have torchvision installed for this example
 from torch.utils.data import DataLoader
+from bio_vae.models.legacy import vq_vae
 
 from bio_vae.utils import collate_none, get_test_image
 from bio_vae.datasets import BroadDataset, DatasetGlob
-from bio_vae.transforms import (
+from bio_vae.shapes.transforms import (
     CropCentroidPipeline,
     MaskToDistogramPipeline,
     DistogramToMaskPipeline,
 )
-from bio_vae.transforms import (
+from bio_vae.shapes.transforms import (
     DistogramToCoords,
 )
 
 from bio_vae.models import VQ_VAE, Bio_VAE, VAE
 from bio_vae.lightning import LitAutoEncoderTorch
-from bio_vae.models import vae, vq_vae
+from bio_vae.models.legacy import vae
 
 interp_size = 128 * 4
 window_size = 64

@@ -302,9 +302,13 @@ cython_debug/
 .history
 lightning_logs/*
 tests/*.png
-checkpoints
+./checkpoints
 ./models
 results/*
 .snakemake
 results
 snakemake/idr/results
+outputs
+logs
+my_model
+checkpoints

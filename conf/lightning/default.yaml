@@ -1,0 +1,3 @@
+_target_: bio_vae.lightning.LitAutoEncoderTorch
+model: ${pythae}
+args: ${timm}
