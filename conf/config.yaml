@@ -63,9 +63,11 @@ timm:
   cycle_momentum: false
 
 model:
+  _target_: bio_vae.models.ModelFactory
   name: "VQVAE"
+  # Dims match ImageNet
   input_dim: [3, 64, 64]
-  latent_dim: 256
+  latent_dim: 8
 
 pythae:
   encoder: bio_vae.models.ResNet18VAEEncoder
@@ -139,12 +141,6 @@ albumentations:
       #   var_limit:
       #     - 10.0
       #     - 50.0
-      # - __class_fullname__: Normalize
-      #   always_apply: true
-      #   p: 1.0
-      #   mean: [0.485, 0.456, 0.406]
-      #   std: [0.229, 0.224, 0.225]
-      #   max_pixel_value: 255
       - __class_fullname__: Resize
         always_apply: true
         height: ${model.input_dim[1]}
