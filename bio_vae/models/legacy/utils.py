@@ -27,10 +27,10 @@ from torch.utils.data import DataLoader
 from typing import List, Callable, Union, Any, TypeVar, Tuple
 from abc import abstractmethod
 
-from .types_ import *
+# from .types_ import *
 from torch import nn
 from abc import abstractmethod
-
+from torch import Tensor
 
 class BaseVAE(nn.Module):
     def __init__(self) -> None:
