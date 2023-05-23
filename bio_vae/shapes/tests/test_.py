@@ -64,6 +64,7 @@ class TestMask:
 
 @pytest.mark.parametrize("model", models)
 class TestModels:
+    test_img = torch.randn(1, *input_dim)
     def test_dist_to_coord(self, model, test_img):
         # dist = transformer_dist(train_dataset[0][0])
         # TODO Faulty?
