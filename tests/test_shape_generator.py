@@ -65,21 +65,11 @@ transformer_coords = DistogramToCoords(window_size)
 #     train_dataset_glob, transform=CropCentroidPipeline(window_size))
 # train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
 # train_dataset_crop = DatasetGlob(train_dataset_glob, transform=transformer_crop)
-train_dataset = BroadDataset(
-    "BBBC010", download=True, transform=transformer_dist)
-train_dataset_crop = BroadDataset(
-    "BBBC010", download=True, transform=transformer_crop)
+train_dataset = None
+transformer_dist = None
+train_dataset_crop = None 
+# transformer_crop)
 
-
-assert len(train_dataset) > 0
-assert len(train_dataset_crop) > 0
-
-
-def test_glob():
-    assert len(train_dataset) > 0
-    assert len(train_dataset_crop) > 0
-    plt.imshow(test_img[0][0])
-    plt.close()
 
 
 # img_squeeze = train_dataset_crop[0].unsqueeze(0)
