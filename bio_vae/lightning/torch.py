@@ -32,7 +32,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         cooldown_epochs=5,
         warmup_t=0,
     )
-    def __init__(self, model,args):
+    def __init__(self, model,args=None):
         super().__init__()
         self.model = model
         self.model = self.model.to(self.device)
