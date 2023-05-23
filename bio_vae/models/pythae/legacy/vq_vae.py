@@ -46,15 +46,19 @@ class Decoder(BaseDecoder):
         reconstruction = self.model(x["embedding"])
         return ModelOutput(reconstruction=reconstruction)
 
-
+from pythae.models import VQVAEConfig
 class VQVAE(models.VQVAE):
-    def __init__(self, model_config, **kwargs):
+    def __init__(self, model_config: VQVAEConfig, **kwargs):
         super(models.BaseAE, self).__init__()
         # super(nn.Module)
         # input_dim (tuple) – The input_data dimension.
 
         self.model_name = "VQVAE"
         self.model_config = model_config
+        
+        if self.model_config.decay > 0.0:
+            self.model_config.use_ema = True
+        
         self.model = legacy.vq_vae.VQ_VAE(
             channels=model_config.input_dim[0],
             embedding_dim=model_config.latent_dim,
