@@ -1,4 +1,5 @@
 #  %%
+import bio_vae
 import torch
 import matplotlib.pyplot as plt
 
@@ -54,7 +55,6 @@ train_dataset_crop = None
 # img_crop = train_dataset_crop[1].unsqueeze(0)
 
 # train_dataset = train_dataset_dist
-import bio_vae
 
 input_dim = (3, window_size, window_size)
 latent_dim = 16
