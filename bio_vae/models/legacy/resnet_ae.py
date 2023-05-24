@@ -267,3 +267,32 @@ class VQ_VAE(nn.Module):
         latent = embedding_torch(embedding_out[-1].argmax(axis=1))
 
         return latent
+
+class VAE(nn.Module):
+    def __init__(self, num_hiddens=32, num_residual_hiddens=64, num_residual_layers=2, embedding_dim=32, channels=1):
+        super(VAE, self).__init__()
+
+        self.encoder = nn.Sequential(
+            ResnetEncoder(num_hiddens, num_residual_layers, num_residual_hiddens, in_channels=channels),
+            nn.Flatten(),
+            nn.Linear(num_hiddens * 8 * 8, embedding_dim * 2),  # Assuming input size is 64x64
+        )
+        self.decoder = ResnetDecoder(embedding_dim, num_hiddens, num_residual_layers, num_residual_hiddens, out_channels=channels)
+
+    def reparameterize(self, mu, log_var):
+        std = torch.exp(0.5 * log_var)
+        eps = torch.randn_like(std)
+        return mu + eps * std
+
+    def forward(self, x):
+        h = self.encoder(x)
+        mu, log_var = torch.split(h, h.size(1) // 2, dim=1)
+        z = self.reparameterize(mu, log_var)
+        x_recon = self.decoder(z.view(z.size(0), z.size(1), 1, 1))
+        return x_recon, mu, log_var
+
+    def loss_function(self, recons, input, mu, log_var):
+        recons_loss = F.mse_loss(recons, input)
+        kld_loss = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+        loss = recons_loss + kld_loss
+        return {"loss": loss, "Reconstruction_Loss":recons_loss, "KLD":kld_loss}
