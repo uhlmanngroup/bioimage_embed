@@ -40,7 +40,11 @@ class ModelFactory:
 
     def resnet18_vae(self):
         return self.create_model(
-            pythae.models.VAEConfig,
+            partial(
+                pythae.models.VAEConfig,
+                use_default_encoder=False,
+                use_default_decoder=False,
+            ),
             pythae.models.VAE,
             bolts.ResNet18VAEEncoder,
             bolts.ResNet18VAEDecoder,
@@ -48,7 +52,11 @@ class ModelFactory:
 
     def resnet50_vae(self):
         return self.create_model(
-            pythae.models.VAEConfig,
+            partial(
+                pythae.models.VAEConfig,
+                use_default_encoder=False,
+                use_default_decoder=False,
+            ),
             pythae.models.VAE,
             bolts.ResNet50VAEEncoder,
             bolts.ResNet50VAEDecoder,
@@ -56,7 +64,11 @@ class ModelFactory:
 
     def resnet18_vqvae(self):
         return self.create_model(
-            pythae.models.VQVAEConfig,
+            partial(
+                pythae.models.VQVAEConfig,
+                use_default_encoder=False,
+                use_default_decoder=False,
+            ),
             pythae.models.VQVAE,
             bolts.ResNet18VQVAEEncoder,
             bolts.ResNet18VQVAEDecoder,
@@ -64,7 +76,11 @@ class ModelFactory:
 
     def resnet50_vqvae(self):
         return self.create_model(
-            pythae.models.VQVAEConfig,
+            partial(
+                pythae.models.VQVAEConfig,
+                use_default_encoder=False,
+                use_default_decoder=False,
+            ),
             pythae.models.VQVAE,
             bolts.ResNet50VQVAEEncoder,
             bolts.ResNet50VQVAEDecoder,
