@@ -48,7 +48,7 @@ class ResidualStack(nn.Module):
 
 class ResnetEncoder(nn.Module):
     def __init__(
-        self, num_hiddens, num_residual_layers, num_residual_hiddens, in_channels
+        self, num_hiddens, num_residual_layers, num_residual_hiddens, in_channels, **kwargs
     ):
         super(ResnetEncoder, self).__init__()
 
@@ -99,6 +99,7 @@ class ResnetDecoder(nn.Module):
         num_residual_layers,
         num_residual_hiddens,
         out_channels,
+        **kwargs
     ):
         super(ResnetDecoder, self).__init__()
 

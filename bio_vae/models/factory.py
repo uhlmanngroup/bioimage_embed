@@ -85,10 +85,21 @@ class ModelFactory:
             bolts.ResNet50VQVAEEncoder,
             bolts.ResNet50VQVAEDecoder,
         )
+    def resnet_vae_legacy(self, depth):
+        return self.create_model(
+            pythae.models.VAEConfig,
+            # partial(legacy.vq_vae.VQVAE,**self.kwargs,num_hidden_residuals=depth),
+            partial(legacy.VAE, num_hidden_residuals=depth, **self.kwargs),
+            encoder_class=lambda x: None,
+            decoder_class=lambda x: None,
+        )
+        
+    def resnet18_vae_legacy(self):
+
 
     def resnet_vqvae_legacy(self, depth):
         return self.create_model(
-            partial(pythae.models.VQVAEConfig, **self.kwargs),
+            pythae.models.VQVAEConfig,
             # partial(legacy.vq_vae.VQVAE,**self.kwargs,num_hidden_residuals=depth),
             partial(legacy.vq_vae.VQVAE, num_hidden_residuals=depth, **self.kwargs),
             encoder_class=lambda x: None,
@@ -121,6 +132,7 @@ MODELS = [
     "resnet11_vqvae_legacy",
     "resnet150_vqvae_legacy",
     "resnet152_vqvae_legacy",
+    "resnet18_vae_legacy", 
 ]
 
 

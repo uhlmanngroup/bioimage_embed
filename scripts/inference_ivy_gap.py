@@ -5,11 +5,7 @@ import pythae
 import torch
 import umap
 import umap.plot
-from pythae.models import VAE, VAEConfig
-from pythae.pipelines import TrainingPipeline
-from pythae.trainers import BaseTrainerConfig
-from scipy.stats import gaussian_kde
-from sklearn.decomposition import PCA
+
 
 #  %%
 from torch.utils.data import DataLoader, Dataset
@@ -20,7 +16,7 @@ from tqdm import tqdm
 
 from bio_vae.datasets import DatasetGlob
 from bio_vae.lightning import LitAutoEncoderTorch
-from bio_vae.models import VAE, VQ_VAE, Bio_VAE
+from bio_vae.models.legacy import VQ_VAE, Bio_VAE
 
 latent_dim = 64
 window_size = 64 * 2
@@ -56,7 +52,8 @@ model_config_vqvae = pythae.models.VQVAEConfig(
 model = Bio_VAE("VQ_VAE", model_config=model_config_vqvae, channels=channels)
 # model = Mask_VAE(VAE(1, 64, image_dims=(interp_size, interp_size)))
 
-lit_model = LitAutoEncoderTorch(model)
+args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
+lit_model = LitAutoEncoderTorch(model,args)
 model = LitAutoEncoderTorch(model).load_from_checkpoint(ckpt_file, model=model)
 train_dataset = DatasetGlob(train_dataset_glob)
 
@@ -81,10 +78,10 @@ plt.close()
 
 
 image_index = 5
-test_img_in = train_dataset[image_index].unsqueeze(0)
+test_img_in = train_dataset[image_index][:,0:window_size,0:window_size].unsqueeze(0)
 
-# I have upstreamed this function in the vqvae class but use this for now 
-def vqvae_to_latent(model: VQ_VAE, img:torch.Tensor) -> torch.Tensor:
+# I have upstreamed this function in the vqvae class but use this for now
+def vqvae_to_latent(model: VQ_VAE, img: torch.Tensor) -> torch.Tensor:
 
     vq = model.get_model().model._vq_vae
     embedding_torch = vq._embedding

@@ -7,7 +7,8 @@ from torch.utils.data import DataLoader
 from .ae import AutoEncoder
 # from .vae_bio import Mask_VAE, Image_VAE
 from .utils import BaseVAE
-from .vae import VAE
+from .resnets import VAE
+# from .vae import VAE
 from .vq_vae import VQ_VAE
 
 from ..bolts import ResNet18VAEEncoder,ResNet18VAEDecoder

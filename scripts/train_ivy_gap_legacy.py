@@ -1,13 +1,13 @@
 # %%
 from pathlib import Path
-
+from torch.autograd import Variable
+import torch
 # from bio_vae.models import Bio_VAE
 import albumentations as A
 
 # import matplotlib.pyplot as plt
 import pythae
 import pytorch_lightning as pl
-import torch
 from albumentations.pytorch import ToTensorV2
 from PIL import Image
 
@@ -31,16 +31,16 @@ train_dataset_glob = f"{data_dir}/{dataset}/random/*png"
 
 params = {
     "epochs": 500,
-    "batch_size": 2**4,
+    "batch_size": 16,
     "num_workers": 2**4,
     # "window_size": 64*2,
     "input_dim": (3,128,128),
     # "channels": 3,
-    "latent_dim": 8,
-    "num_embeddings": 8,
-    "num_hiddens": 8,
-    "num_residual_hiddens": 150,
-    "num_residual_layers":8 ,
+    "latent_dim": 16,
+    "num_embeddings": 16,
+    "num_hiddens": 16,
+    "num_residual_hiddens": 32,
+    "num_residual_layers": 150,
     # "embedding_dim": 32,
     # "num_embeddings": 16,
     "commitment_cost":0.25,
@@ -137,14 +137,20 @@ dataloader = DatamoduleGlob(
 )
 
 
-model_config_vqvae = pythae.models.VQVAEConfig(
-**vars(args),
-)
+# model_config_vqvae = pythae.models.VQVAEConfig(
+# **vars(args),
+# )
 import bio_vae
 # model = VQ_VAE(model_config=model_config_vqvae, channels=args.channels)
-model = bio_vae.models.pythae.legacy.vq_vae.VQVAE(model_config=model_config_vqvae,**vars(args))
-# model = bio_vae.models.create_model("resnet18_vqvae", input_dim, args.latent_dim)
+# model = bio_vae.models.create_model("resnet150_vqvae_legacy",**vars(args))
+# model = bio_vae.models.pythae.legacy.vq_vae.VQVAE(model_config=model_config_vqvae,**vars(args))
 
+model = bio_vae.models.create_model("resnet18_vqvae_legacy",**vars(args))
+
+
+# model = bio_vae.models.create_model("resnet18_vae_legacy",**vars(args))
+# model = bio_vae.models.create_model("resnet18_vae", **vars(args))
+# model
 # import pythae
 
 # from pythae.models.nn.benchmarks.celeba import (
@@ -244,3 +250,12 @@ try:
     trainer.fit(lit_model, datamodule=dataloader, ckpt_path=f"{model_dir}/last.ckpt")
 except:
     trainer.fit(lit_model, datamodule=dataloader)
+
+model.eval()
+
+validation = trainer.validate(lit_model, datamodule=dataloader)
+testing = trainer.test(lit_model, datamodule=dataloader)
+example_input = Variable(torch.rand(1, *args.input_dim))
+
+torch.jit.save(model.to_torchscript(), "model.pt")
+torch.onnx.export(model, example_input, f"{model_dir}/model.onnx")
