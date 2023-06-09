@@ -15,7 +15,7 @@ from torchvision import transforms
 from bio_vae.lightning import DatamoduleGlob
 
 from bio_vae.datasets import DatasetGlob
-from bio_vae.transforms import (
+from bio_vae.shapes.transforms import (
     CropCentroidPipeline,
     DistogramToCoords,
     DistogramToCoords,
