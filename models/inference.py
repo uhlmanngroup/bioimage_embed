@@ -55,6 +55,7 @@ transform = transforms.Compose(
 
 
 # Create a connection
+print("Trying to connect to IDR...")
 conn = connection("idr.openmicroscopy.org", "public", "public")
 
 # Define the folder
@@ -208,6 +209,11 @@ if not os.path.isfile("z.csv"):
 
 # z = pd.read_csv("z.csv").set_index(["filenames", "label"])
 z = df
+
+top_10_labels = df.index.get_level_values("label").value_counts().head(10).index
+z = df[df.index.get_level_values("label").isin(top_10_labels)]
+
+
 # X = torch.stack(z).detach().numpy().reshape(500, -1)
 X = z.to_numpy()
 labels = z.index.get_level_values("label").to_numpy().astype(str)
@@ -224,23 +230,23 @@ mapper = reducer.fit(X, y=y)
 
 umap.plot.points(mapper, labels=labels)
 # umap.plot.savefig(f"{image_name}.png")
-plt.savefig(f"umap.png")
+plt.savefig(f"umap_{image_name}.png")
 plt.show()
 
 conn.close()
 
-
+from sklearn.decomposition import PCA
 # Create a pipeline with PCA and Random Forest classifier
 pipeline = Pipeline(
     [
-        ("pca", PCA(n_components=1)),  # Set the number of desired components for PCA
+        ("pca", PCA(n_components=0.95)),  # Set the number of desired components for PCA
         ("classifier", RandomForestClassifier()),
     ]
 )
 
 
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
+    X, labels, test_size=0.2, random_state=42
 )
 classifier = RandomForestClassifier()
 classifier.fit(X_train, y_train)
