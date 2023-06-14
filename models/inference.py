@@ -1,6 +1,7 @@
 import torch
 import umap
 import numpy as np
+import pandas as pd
 import torch.nn as nn
 from torchvision import transforms
 import os
@@ -18,13 +19,15 @@ import umap.plot
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
 from sklearn.pipeline import Pipeline
-#import os
+
+# import os
 import glob
 from PIL import Image
 from torchvision.transforms import ToTensor
 import torch
 from torch.utils.data import Dataset
 from idr import connection
+
 model_path = "models/model.pt"
 
 # Load the TorchScript model
@@ -71,51 +74,144 @@ labels = []
 from io import BytesIO
 
 # Loop over the filenames
-for filename in filenames[0:500]:
-    # Open the image and convert to PyTorch tensor
-    with open(image_name, 'rb') as f:
-        image_data = f.read()
-    image = Image.open(BytesIO(image_data))
-    # image = Image.open(filename)
-    # image = ToTensor()(image)
-    images.append(image)
+# for filename in filenames[0:500]:
+#     # Open the image and convert to PyTorch tensor
+#     with open(filename, "rb") as f:
+#         image_data = f.read()
+#     image = Image.open(BytesIO(image_data))
+#     # image = Image.open(filename)
+#     # image = ToTensor()(image)
+#     images.append(image)
 
-    # Extract the image ID from the filename
-    image_id = os.path.basename(os.path.dirname(filename))
+#     # Extract the image ID from the filename
+#     image_id = os.path.basename(os.path.dirname(filename))
 
-    # Get the image data
-    image_data = conn.getObject("Image", image_id)
-    well_id = image_data.getParent().getWell().getId()
-    well = conn.getObject("Well", well_id)
-    metadata = well.getAnnotation().getValue()
-    try:
-        gene_symbol = dict(metadata)["Gene Symbol"]
-    except:
-        gene_symbol = "Wildtype"
+#     # Get the image data
+#     image_data = conn.getObject("Image", image_id)
+#     well_id = image_data.getParent().getWell().getId()
+#     well = conn.getObject("Well", well_id)
+#     metadata = well.getAnnotation().getValue()
+#     try:
+#         gene_symbol = dict(metadata)["Gene Symbol"]
+#     except:
+#         gene_symbol = "Wildtype"
 
-    # well.getAnnotation().getValue()
-    # gene_id = image_data.getPrimaryAnnotatedTerms()[0]['id']
-    labels.append(gene_symbol)
+#     # well.getAnnotation().getValue()
+#     # gene_id = image_data.getPrimaryAnnotatedTerms()[0]['id']
+#     labels.append(gene_symbol)
 
 
 # Now you have your images and labels, you can create a PyTorch dataset:
-class GeneDataset(Dataset):
-    def __init__(self, images, labels):
-        self.images = images
-        self.labels = labels
+class GeneData:
+    # def __init__(self, images, labels):
+    #     self.images = images
+    #     self.labels = labels
+    def __init__(self, transform):
+        self.transform = transform
 
-    def __len__(self):
-        return len(self.images)
+    # def __len__(self):
+    # return len(self.images)
 
-    def __getitem__(self, idx):
-        return self.images[idx], self.labels[idx]
+    # def __getitem__(self, filename):
+    def __call__(self, filename):
+        # filename = filename
+        z = self.transform(self.get_image(filename))
+        label = self.get_label(filename)
+        return z, label
+        # return self.images[idx], self.labels[idx]
+
+    def get_image(self, filename):
+        with open(filename, "rb") as f:
+            image_data = f.read()
+        image = Image.open(BytesIO(image_data))
+        # image = Image.open(filename)
+        # image = ToTensor()(image)
+        return image
+        # images.append(image)
+
+    def get_embedding(self, filename):
+        image = self.get_image(filename)
+        z = self.encode(image)
+        return z
+
+    def encode(self, image):
+        tensor = transform(image)
+        z = encoder(tensor.unsqueeze(0).to(torch.float))
+        return z
+        # Extract the image ID from the filename
+
+    def get_image_id(self, filename):
+        image_id = os.path.basename(os.path.dirname(filename))
+        return image_id
+
+    def image_id_to_label(self, image_id):
+        image_data = conn.getObject("Image", image_id)
+        well_id = image_data.getParent().getWell().getId()
+        well = conn.getObject("Well", well_id)
+        metadata = well.getAnnotation().getValue()
+        try:
+            gene_symbol = dict(metadata)["Gene Symbol"]
+        except:
+            gene_symbol = "Wildtype"
+        return gene_symbol
+
+    def get_label(self, filename):
+        image_id = self.get_image_id(filename)
+        label = self.image_id_to_label(image_id)
+        return label
 
 
-dataset = GeneDataset(images, labels)
+# dataset = GeneDataset(images, labels)
+# for filename in filenames[0:500]:
+# dataset
+# GeneData(transform)(filenames[0])
+# dataset = [GeneData(transform)(filename) for filename in filenames[0:500]]
+df = pd.DataFrame(index=filenames[0:10])
+from dask.delayed import delayed
+import dask.dataframe as dd
 
-z = [encoder((transform(data[0]).unsqueeze(0).to(torch.float))) for data in dataset]
-labels = np.array([data[1] for data in dataset])
-X = torch.stack(z).detach().numpy().reshape(500, -1)
+
+def genedata_to_series(filename, transform):
+    z, label = GeneData(transform)(filename)
+    return pd.Series({"z": z.numpy().flatten(), "label": label})
+    # return pd.DataFrame({"z":z.numpy().flatten(),
+    #   "label":label})
+
+    return z.numpy().flatten(), label
+
+
+def genedata_row_to_series(row, transform):
+    return genedata_to_series(row["filenames"], transform)
+
+
+df = pd.DataFrame(data={"filenames": filenames[0:10]})
+df[["z", "label"]] = df.apply(genedata_row_to_series, axis=1, transform=transform)
+
+
+ddf = dd.from_pandas(pd.DataFrame(data={"filenames": filenames}), npartitions=32)
+result = ddf.apply(
+    genedata_row_to_series,
+    transform=transform,
+    axis=1,
+    meta=pd.DataFrame({"z": [], "label": str}),
+)
+from dask.diagnostics import ProgressBar
+
+# Apply the function to each row of the Dask DataFrame
+if not os.path.isfile("z.csv"):
+    with ProgressBar():
+        ddf[["z", "label"]] = result
+        df = ddf.compute()
+        df = df.set_index(["filenames", "label"]).apply(pd.Series)
+        df = df["z"].apply(pd.Series)
+        # df.to_csv("z.csv",index=False)
+
+# z = pd.read_csv("z.csv").set_index(["filenames", "label"])
+z = df
+# X = torch.stack(z).detach().numpy().reshape(500, -1)
+X = z.to_numpy()
+labels = z.index.get_level_values("label").to_numpy().astype(str)
+
 # Create a UMAP object and fit-transform the data
 reducer = umap.UMAP()
 
@@ -127,7 +223,8 @@ y = label_encoder.fit_transform(labels)
 mapper = reducer.fit(X, y=y)
 
 umap.plot.points(mapper, labels=labels)
-umap_plot.savefig(f"{image_name}.png")
+# umap.plot.savefig(f"{image_name}.png")
+plt.savefig(f"umap.png")
 plt.show()
 
 conn.close()

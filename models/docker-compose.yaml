@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  bio_vae:
+    image: europe-west2-docker.pkg.dev/prj-ext-dev-mlops-bia-363210/q-embl-vq-vae/bio_vae:sakshi_scale_hpt_latest
+    volumes:
+      - .:/app
+    # command: ["python", "/app/save_model.py"]
+    entrypoint: []
+    command: ["tail", "-f", "/dev/null"]
+    environment:
+      PYTHONPATH: "${PYTHONPATH}:/bio_vae_training"
