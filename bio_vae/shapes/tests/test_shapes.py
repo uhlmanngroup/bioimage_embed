@@ -40,7 +40,7 @@ def create_circle_contour(radius, image_size):
 
     image[np.abs(distance - radius) < 1] = 255  # Set contour to white
 
-    return image
+    return image,distance
 
 
 
@@ -54,7 +54,7 @@ class TestMask:
     test_img_torch = torch.tensor(test_img).unsqueeze(0).unsqueeze(0)
     test_dist_torch = torch.tensor(test_dist).unsqueeze(0).unsqueeze(0)
     
-    def test_pipeline_forward(self):
+    def test_pipeline_forward(self,model):
         # dist = MaskToDistogramPipeline(window_size)(train_dataset_raw[0])
         # plt.imshow(dist)
         # plt.savefig("tests/test_mask_to_dist.png")
@@ -69,7 +69,7 @@ class TestMask:
         plt.savefig("tests/test_dist_to_mask.png")
         plt.close()
         
-    def test_mask_to_dist(self):
+    def test_mask_to_dist(self,model):
         dist = MaskToDistogramPipeline(window_size)(self.test_img_torch)
         assert(dist == self.test_dist_torch)
         pass
