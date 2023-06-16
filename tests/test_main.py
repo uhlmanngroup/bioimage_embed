@@ -22,6 +22,7 @@ from bio_vae.shapes.transforms import (
 from bio_vae.shapes.transforms import (
     DistogramToCoords,
 )
+from bio_vae.models import MODELS
 
 # from bio_vae.models import VQ_VAE, Bio_VAE, VAE
 from bio_vae.lightning import LitAutoEncoderTorch
@@ -29,12 +30,22 @@ from bio_vae.models.legacy import vae
 
 
 # @pytest.mark.skip(reason="Crashes github actions")
-models = [vq_vae.VQ_VAE, vae.VAE]
+# models = [vq_vae.VQ_VAE, vae.VAE]
+# dataset = [torch.randn(1, 3, 64, 64)]
 
+input_dim = [(3,64,64),(1,64,64)]
+latent_dim = [16]
 
-@pytest.mark.parametrize("model", models)
-def test_training(self, model, dataset, wrapper):
-    model = wrapper(model)
+from bio_vae.models import create_model, MODELS
+
+@pytest.mark.parametrize("model", MODELS)
+@pytest.mark.parametrize("input_dim", input_dim)
+@pytest.mark.parametrize("latent_dim", latent_dim)
+
+def test_training(model, input_dim, latent_dim):
+    # model = wrapper(model)
+    dataset = torch.rand(1,*input_dim)
+    model = create_model(model, input_dim=input_dim, latent_dim=latent_dim)
     lit_model = LitAutoEncoderTorch(model)
     dataloader = DataLoader(
         dataset,
@@ -44,7 +55,6 @@ def test_training(self, model, dataset, wrapper):
         pin_memory=False,
         collate_fn=collate_none,
     )
-    lit_model = LitAutoEncoderTorch(model)
     trainer = pl.Trainer(
         max_steps=1,
         max_epochs=1,
