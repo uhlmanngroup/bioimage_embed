@@ -95,8 +95,11 @@ class ModelFactory:
         )
         
     def resnet18_vae_legacy(self):
+        return self.resnet_vae_legacy(18)
 
-
+    def resnet50_vae_legacy(self):
+        return self.resnet_vae_legacy(50)
+    
     def resnet_vqvae_legacy(self, depth):
         return self.create_model(
             pythae.models.VQVAEConfig,
@@ -132,7 +135,8 @@ MODELS = [
     "resnet11_vqvae_legacy",
     "resnet150_vqvae_legacy",
     "resnet152_vqvae_legacy",
-    "resnet18_vae_legacy", 
+    "resnet18_vae_legacy",
+    "resnet50_vae_legacy", 
 ]
 
 
