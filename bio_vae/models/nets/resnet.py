@@ -1,5 +1,7 @@
 from torch import nn
 from torch.nn import functional as F
+
+
 class Residual(nn.Module):
     def __init__(self, in_channels, num_hiddens, num_residual_hiddens):
         super(Residual, self).__init__()
@@ -48,7 +50,12 @@ class ResidualStack(nn.Module):
 
 class ResnetEncoder(nn.Module):
     def __init__(
-        self, num_hiddens, num_residual_layers, num_residual_hiddens, in_channels, **kwargs
+        self,
+        num_hiddens,
+        num_residual_layers,
+        num_residual_hiddens,
+        in_channels,
+        **kwargs
     ):
         super(ResnetEncoder, self).__init__()
 
@@ -143,4 +150,3 @@ class ResnetDecoder(nn.Module):
         x = F.relu(x)
 
         return self._conv_trans_2(x)
-

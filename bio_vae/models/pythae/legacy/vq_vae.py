@@ -17,19 +17,24 @@ from ....models import legacy
 
 
 from pythae.models import VQVAEConfig, VQVAEConfig
+
+
 class Encoder(BaseEncoder):
     def __init__(self, model_config, **kwargs):
-
+        super(Encoder, self).__init__()
         embedding_dim = model_config.latent_dim
         input_dim = model_config.input_dim[1:]
 
         self.model = ResnetEncoder(
-            in_channels=model_config.input_dim[0],
-            **{**vars(model_config), **kwargs}
+            in_channels=model_config.input_dim[0], **{**vars(model_config), **kwargs}
         )
+
+
 class VAEEncoder(Encoder):
     def forward(self, x):
         return ModelOutput(embedding=self.model(x["data"]))
+
+
 class VQVAEEncoder(Encoder):
     def forward(self, x):
         return ModelOutput(pre_quantized=self.model(x["data"]))
@@ -37,6 +42,7 @@ class VQVAEEncoder(Encoder):
 
 class VAEDecoder(BaseDecoder):
     def __init__(self, model_config, **kwargs):
+        super(VAEDecoder, self).__init__()
         self.model = ResnetDecoder(
             in_channels=model_config.latent_dim,
             out_channels=model_config.input_dim[0],
@@ -46,8 +52,6 @@ class VAEDecoder(BaseDecoder):
     def forward(self, x):
         reconstruction = self.model(x["embedding"])
         return ModelOutput(reconstruction=reconstruction)
-
-
 
 
 class VQVAE(models.VQVAE):
@@ -117,25 +121,36 @@ class VAE(models.VAE):
 
         self.model_name = "VAE"
         self.model_config = model_config
-        self.encoder = VAEEncoder(model_config)
-        self.decoder = VAEDecoder(model_config)
+        self.encoder = VAEEncoder(model_config, **kwargs)
+        self.decoder = VAEDecoder(model_config, **kwargs)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(model_config.num_hiddens, model_config.latent_dim * 2)
+        self.fc = nn.Linear(kwargs["num_hiddens"], model_config.latent_dim * 2)
         # shape is (batch_size, model_config.num_hiddens, 1, 1)
-        
+
     def reparameterize(self, mu, log_var):
         std = torch.exp(0.5 * log_var)
         eps = torch.randn_like(std)
         return mu + eps * std
 
     def forward(self, x, epoch=None):
-        h = self.encoder(x)
+        h = self.encoder(x)["embedding"]
+        # pre_encode_size = torch.tensor(x["data"].shape[-2:])
+        # scale = torch.floor_divide(torch.tensor(x["data"].shape[-2:]),torch.tensor(h.shape[-2:]))
+        pre_encode_size = torch.tensor(h.shape[-2:])
         h = self.avgpool(h)
+        post_encode_size = torch.tensor(h.shape[-2:])
+        scale = torch.div(pre_encode_size, post_encode_size, rounding_mode="trunc")
+        h = torch.flatten(h, 1)
         h = self.fc(h)
         mu, log_var = torch.split(h, h.size(1) // 2, dim=1)
         z = self.reparameterize(mu, log_var)
-        x_recon = self.decoder(z.view(z.size(0), z.size(1), 1, 1))
-        return x_recon, mu, log_var
+        # x_recon = self.decoder(z.view(z.size(0), z.size(1), 1, 1))
+        embedding = z.unsqueeze(-1).unsqueeze(-1).repeat(1, 1, *scale.tolist())
+        x_recon = self.decoder({"embedding": embedding})["reconstruction"]
+        # return x_recon, mu, log_var
+
+        loss_dict = self.loss_function(x_recon, x["data"], mu, log_var)
+        return ModelOutput(recon_x=x_recon,z=z, **loss_dict)
 
     def loss_function(self, recons, input, mu, log_var):
         recons_loss = F.mse_loss(recons, input)

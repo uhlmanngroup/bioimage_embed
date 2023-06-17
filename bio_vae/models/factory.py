@@ -31,12 +31,12 @@ class ModelFactory:
         self, model_config_class, model_class, encoder_class, decoder_class
     ):
         model_config = model_config_class(
-            input_dim=self.input_dim, latent_dim=self.latent_dim, **self.kwargs
+            input_dim=self.input_dim, latent_dim=self.latent_dim, 
         )
         encoder = encoder_class(model_config)
         decoder = decoder_class(model_config)
         # TODO Fix this
-        return model_class(model_config=model_config, encoder=encoder, decoder=decoder)
+        return model_class(model_config=model_config, encoder=encoder, decoder=decoder,**self.kwargs)
 
     def resnet18_vae(self):
         return self.create_model(
