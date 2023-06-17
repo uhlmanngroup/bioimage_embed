@@ -31,12 +31,34 @@ class ModelFactory:
         self, model_config_class, model_class, encoder_class, decoder_class
     ):
         model_config = model_config_class(
-            input_dim=self.input_dim, latent_dim=self.latent_dim, 
+            input_dim=self.input_dim,
+            latent_dim=self.latent_dim,
         )
         encoder = encoder_class(model_config)
         decoder = decoder_class(model_config)
         # TODO Fix this
-        return model_class(model_config=model_config, encoder=encoder, decoder=decoder,**self.kwargs)
+        return model_class(
+            model_config=model_config, encoder=encoder, decoder=decoder, **self.kwargs
+        )
+
+    def resnet_vae_bolt(
+        self, enc_type, enc_out_dim, first_conv=False, maxpool1=False, kl_coeff=0.1
+    ):
+        return bolts.vae.PythaeWrapper(
+            input_height=self.input_dim[1],
+            enc_type=enc_type,
+            enc_out_dim=enc_out_dim,
+            first_conv=first_conv,
+            maxpool1=maxpool1,
+            kl_coeff=kl_coeff,
+            latent_dim=self.latent_dim,
+        )
+
+    def resnet18_vae_bolt(self, **kwargs):
+        return self.resnet_vae_bolt(enc_type="resnet18", enc_out_dim=512, **kwargs)
+
+    def resnet50_vae_bolt(self, **kwargs):
+        return self.resnet_vae_bolt(enc_type="resnet50", enc_out_dim=2048, **kwargs)
 
     def resnet18_vae(self):
         return self.create_model(
@@ -85,6 +107,7 @@ class ModelFactory:
             bolts.ResNet50VQVAEEncoder,
             bolts.ResNet50VQVAEDecoder,
         )
+
     def resnet_vae_legacy(self, depth):
         return self.create_model(
             pythae.models.VAEConfig,
@@ -93,13 +116,13 @@ class ModelFactory:
             encoder_class=lambda x: None,
             decoder_class=lambda x: None,
         )
-        
+
     def resnet18_vae_legacy(self):
         return self.resnet_vae_legacy(18)
 
     def resnet50_vae_legacy(self):
         return self.resnet_vae_legacy(50)
-    
+
     def resnet_vqvae_legacy(self, depth):
         return self.create_model(
             pythae.models.VQVAEConfig,
@@ -128,6 +151,8 @@ class ModelFactory:
 MODELS = [
     "resnet18_vae",
     "resnet50_vae",
+    "resnet18_vae_bolt",
+    "resnet50_vae_bolt",
     "resnet18_vqvae",
     "resnet50_vqvae",
     "resnet18_vqvae_legacy",
@@ -136,7 +161,7 @@ MODELS = [
     "resnet150_vqvae_legacy",
     "resnet152_vqvae_legacy",
     "resnet18_vae_legacy",
-    "resnet50_vae_legacy", 
+    "resnet50_vae_legacy",
 ]
 
 
