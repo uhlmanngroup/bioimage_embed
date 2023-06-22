@@ -21,7 +21,6 @@ from types import SimpleNamespace
 
 # import timm
 # from bio_vae.models import VQ_VAE, Bio_VAE
-from bio_vae.models.legacy.legacy import Bio_VAE
 
 Image.MAX_IMAGE_PIXELS = None
 
