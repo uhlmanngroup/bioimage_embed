@@ -1,5 +1,9 @@
 # TODO make this a relative import
 
+import torch
+from torch import nn
+from torch.nn import functional as F
+
 from torch import nn
 from pythae import models
 
@@ -12,7 +16,6 @@ from pythae.models.base.base_utils import ModelOutput
 # import VQVAE, Encoder, Decoder
 from pythae.models.nn import BaseDecoder, BaseEncoder
 from ...nets.resnet import ResnetDecoder, ResnetEncoder
-
 from ....models import legacy
 
 
@@ -28,7 +31,6 @@ class Encoder(BaseEncoder):
         self.model = ResnetEncoder(
             in_channels=model_config.input_dim[0], **{**vars(model_config), **kwargs}
         )
-
 
 class VAEEncoder(Encoder):
     def forward(self, x):
@@ -108,11 +110,6 @@ class VQVAE(models.VQVAE):
         # return ModelOutput(reconstruction=x_recon, **loss_dict)
 
 
-import torch
-from torch import nn
-from torch.nn import functional as F
-
-
 class VAE(models.VAE):
     def __init__(self, model_config: VQVAEConfig, **kwargs):
         super(models.BaseAE, self).__init__()
@@ -150,7 +147,7 @@ class VAE(models.VAE):
         # return x_recon, mu, log_var
 
         loss_dict = self.loss_function(x_recon, x["data"], mu, log_var)
-        return ModelOutput(recon_x=x_recon,z=z, **loss_dict)
+        return ModelOutput(recon_x=x_recon, z=z, **loss_dict)
 
     def loss_function(self, recons, input, mu, log_var):
         recons_loss = F.mse_loss(recons, input)

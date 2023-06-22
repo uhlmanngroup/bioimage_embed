@@ -44,7 +44,7 @@ class ModelFactory:
     def resnet_vae_bolt(
         self, enc_type, enc_out_dim, first_conv=False, maxpool1=False, kl_coeff=0.1
     ):
-        return bolts.vae.PythaeWrapper(
+        return bolts.vae.VAEPythaeWrapper(
             input_height=self.input_dim[1],
             enc_type=enc_type,
             enc_out_dim=enc_out_dim,

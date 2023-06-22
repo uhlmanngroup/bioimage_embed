@@ -152,7 +152,7 @@ class ResNet18VAEDecoder(BaseDecoder):
 
 from pl_bolts.models import autoencoders
 
-class PythaeWrapper(nn.Module):
+class VAEPythaeWrapper(nn.Module):
     def __init__(self,input_height,latent_dim, enc_type="resnet50", enc_out_dim=512, first_conv=False, maxpool1=False, kl_coeff=0.1):
         super().__init__()
         self.model = autoencoders.VAE(
