@@ -303,7 +303,6 @@ cython_debug/
 lightning_logs/*
 tests/*.png
 ./checkpoints
-./models
 results/*
 .snakemake
 results

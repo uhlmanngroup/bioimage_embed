@@ -149,3 +149,27 @@ class ResNet18VAEDecoder(BaseDecoder):
 # class ResNet18VAEDecoder(ResNetVAEDecoder):
 #     def __init__(self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs):
 #         super().__init__(model_config, resnet18_decoder, first_conv=first_conv, maxpool1=maxpool1, **kwargs)
+
+from pl_bolts.models import autoencoders
+
+class VAEPythaeWrapper(nn.Module):
+    def __init__(self,input_height,latent_dim, enc_type="resnet50", enc_out_dim=512, first_conv=False, maxpool1=False, kl_coeff=0.1):
+        super().__init__()
+        self.model = autoencoders.VAE(
+            input_height=input_height,
+            enc_type=enc_type,
+            enc_out_dim=enc_out_dim,
+            first_conv=first_conv,
+            maxpool1=maxpool1,
+            kl_coeff=kl_coeff,
+            latent_dim=latent_dim,
+
+        )
+
+    def forward(self, x,epoch=None):
+        x_recon = self.model(x["data"])
+        z,recon_x,p,q = self.model._run_step(x["data"])
+        _,logs = self.model.step((x["data"],x["data"]),batch_idx=epoch)
+        return ModelOutput(recon_x=recon_x, z=z, **logs)
+                           
+    

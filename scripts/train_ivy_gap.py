@@ -20,32 +20,20 @@ from bio_vae.lightning import DatamoduleGlob, LitAutoEncoderTorch
 from types import SimpleNamespace
 
 # import timm
-from bio_vae.models import VQ_VAE, Bio_VAE
-
-# from pythae.data.datasets import DatasetOutput
-
-# from pythae.models.nn.benchmarks import celeba
-
+# from bio_vae.models import VQ_VAE, Bio_VAE
 
 Image.MAX_IMAGE_PIXELS = None
 
-# max_epochs = 500
-
-# window_size = 64 * 2
-# batch_size = 64
-# num_workers = 2**4
-# model_name = "VQVAE"
 dataset = "ivy_gap"
 data_dir = "data"
 train_dataset_glob = f"{data_dir}/{dataset}/random/*png"
-# train_dataset_glob = (
-#     f"{data_dir}/{dataset}/donor_id_10865_specimen_id_706601_subimage_id_101713624.jpg"
-# )
+
+
 params = {
     "epochs": 500,
     "batch_size": 2**4,
     "num_workers": 2**4,
-    "window_size": 64 * 2,
+    "window_size": 256,
     "channels": 3,
     "latent_dim": 64,
     "num_embeddings": 512,
@@ -89,6 +77,11 @@ transform = A.Compose(
             ],
             p=0.5,
         ),
+        A.RandomCrop(
+            height=args.window_size,
+            width=args.window_size,
+            p=1,
+        ),
         # Rotate the images by a random angle within a specified range
         A.Rotate(limit=45, p=0.5),
         # Randomly scale the image intensity to adjust brightness and contrast
@@ -102,14 +95,13 @@ transform = A.Compose(
         ),
         # Shift the image channels along the intensity axis
         # Add a small amount of noise to the images
-        A.GaussNoise(var_limit=(10.0, 50.0), p=0.5),
+        # A.GaussNoise(var_limit=(10.0, 50.0), p=0.5),
         # Crop a random part of the image and resize it back to the original size
         A.RandomCrop(
-            height=args.window_size,
-            width=args.window_size,
+            height=224,
+            width=224,
             p=1,
         ),
-        
         A.ToFloat(max_value=1, p=1.0),
         ToTensorV2(),
     ]
@@ -136,26 +128,29 @@ dataloader = DatamoduleGlob(
 )
 
 
-model_config_vqvae = pythae.models.VQVAEConfig(
-    input_dim=input_dim, latent_dim=args.latent_dim, num_embeddings=args.num_embeddings
-)
+# model_config_vqvae = pythae.models.VQVAEConfig(
+#     input_dim=input_dim, latent_dim=args.latent_dim, num_embeddings=args.num_embeddings
+# )
 
 
-model = Bio_VAE("VQ_VAE", model_config=model_config_vqvae, channels=args.channels)
+# model = Bio_VAE("VQ_VAE", model_config=model_config_vqvae, channels=args.channels)
+
+from bio_vae.models import create_model
+model = create_model("resnet18_vqvae", input_dim=input_dim, latent_dim=args.latent_dim)
 lit_model = LitAutoEncoderTorch(model, args)
 
 # %%
 
 
-def vqvae_to_latent(model: VQ_VAE, img: torch.Tensor) -> torch.Tensor:
+# def vqvae_to_latent(model: VQ_VAE, img: torch.Tensor) -> torch.Tensor:
 
-    vq = model.get_model().model._vq_vae
-    embedding_torch = vq._embedding
-    embedding_in = model.get_model().model.encoder_z(img)
-    embedding_out = vq(embedding_in)
-    latent = embedding_torch(embedding_out[-1].argmax(axis=1))
+#     vq = model.get_model().model._vq_vae
+#     embedding_torch = vq._embedding
+#     embedding_in = model.get_model().model.encoder_z(img)
+#     embedding_out = vq(embedding_in)
+#     latent = embedding_torch(embedding_out[-1].argmax(axis=1))
 
-    return latent
+#     return latent
 
 
 # tensor = vqvae_to_latent(lit_model, train_dataset[0].unsqueeze(0))

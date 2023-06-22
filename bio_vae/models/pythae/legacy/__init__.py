@@ -1,1 +1,1 @@
-from .vq_vae import Encoder, Decoder, VQVAE
+from .vq_vae import VAEEncoder, VAEDecoder, VQVAE, VAE, VQVAEEncoder

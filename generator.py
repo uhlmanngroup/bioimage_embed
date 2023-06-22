@@ -52,18 +52,18 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 
 from bio_vae.datasets import DatasetGlob
-from bio_vae.transforms import (
+from bio_vae.shapes.transforms import (
     ImagetoDistogram,
     cropCentroid,
     DistogramToCoords,
     CropCentroidPipeline,
 )
-from bio_vae.transforms import (
+from bio_vae.shapes.transforms import (
     DistogramToCoords,
     MaskToDistogramPipeline,
     AsymmetricDistogramToMaskPipeline,
 )
-from bio_vae.transforms import (
+from bio_vae.shapes.transforms import (
     DistogramToMaskPipeline,
     AsymmetricDistogramToSymmetricDistogram,
     AsymmetricDistogramToCoordsPipeline,
