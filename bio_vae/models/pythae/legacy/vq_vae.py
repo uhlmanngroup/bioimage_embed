@@ -19,7 +19,7 @@ from ...nets.resnet import ResnetDecoder, ResnetEncoder
 from ....models import legacy
 
 
-from pythae.models import VQVAEConfig, VQVAEConfig
+from pythae.models import VQVAEConfig, VAEConfig
 
 
 class Encoder(BaseEncoder):
@@ -31,6 +31,7 @@ class Encoder(BaseEncoder):
         self.model = ResnetEncoder(
             in_channels=model_config.input_dim[0], **{**vars(model_config), **kwargs}
         )
+
 
 class VAEEncoder(Encoder):
     def forward(self, x):
@@ -111,7 +112,7 @@ class VQVAE(models.VQVAE):
 
 
 class VAE(models.VAE):
-    def __init__(self, model_config: VQVAEConfig, **kwargs):
+    def __init__(self, model_config: VAEConfig, **kwargs):
         super(models.BaseAE, self).__init__()
         # super(nn.Module)
         # input_dim (tuple) – The input_data dimension.
