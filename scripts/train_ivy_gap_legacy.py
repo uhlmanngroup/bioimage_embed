@@ -2,11 +2,11 @@
 from pathlib import Path
 from torch.autograd import Variable
 import torch
+import bio_vae
 # from bio_vae.models import Bio_VAE
 import albumentations as A
 
 # import matplotlib.pyplot as plt
-import pythae
 import pytorch_lightning as pl
 from albumentations.pytorch import ToTensorV2
 from PIL import Image
@@ -16,25 +16,20 @@ from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 from bio_vae.datasets import DatasetGlob
-from bio_vae.lightning import DatamoduleGlob, LitAutoEncoderTorch
+from bio_vae.lightning import DataModule, DataModuleGlob, LitAutoEncoderTorch
 from types import SimpleNamespace
 
-# import timm
-from bio_vae.models.legacy import Bio_VAE, VQ_VAE
-
-Image.MAX_IMAGE_PIXELS = None
 
 dataset = "ivy_gap"
 data_dir = "data"
 train_dataset_glob = f"{data_dir}/{dataset}/random/*png"
-
 
 params = {
     "epochs": 500,
     "batch_size": 16,
     "num_workers": 2**4,
     # "window_size": 64*2,
-    "input_dim": (3,128,128),
+    "input_dim": (3, 64, 64),
     # "channels": 3,
     "latent_dim": 16,
     "num_embeddings": 16,
@@ -43,8 +38,8 @@ params = {
     "num_residual_layers": 150,
     # "embedding_dim": 32,
     # "num_embeddings": 16,
-    "commitment_cost":0.25,
-    "decay":0.99,
+    "commitment_cost": 0.25,
+    "decay": 0.99,
 }
 
 optimizer_params = {
@@ -125,8 +120,8 @@ train_dataset = DatasetGlob(train_dataset_glob, transform=transform)
 # plt.close()
 
 # %%
-dataloader = DatamoduleGlob(
-    train_dataset_glob,
+dataloader = DataModule(
+    train_dataset,
     batch_size=args.batch_size,
     shuffle=True,
     num_workers=args.num_workers,
@@ -136,95 +131,21 @@ dataloader = DatamoduleGlob(
     over_sampling=1,
 )
 
-
-# model_config_vqvae = pythae.models.VQVAEConfig(
-# **vars(args),
-# )
-import bio_vae
-# model = VQ_VAE(model_config=model_config_vqvae, channels=args.channels)
 # model = bio_vae.models.create_model("resnet150_vqvae_legacy",**vars(args))
-# model = bio_vae.models.pythae.legacy.vq_vae.VQVAE(model_config=model_config_vqvae,**vars(args))
 
-model = bio_vae.models.create_model("resnet18_vqvae_legacy",**vars(args))
-
-
-# model = bio_vae.models.create_model("resnet18_vae_legacy",**vars(args))
-# model = bio_vae.models.create_model("resnet18_vae", **vars(args))
-# model
-# import pythae
-
-# from pythae.models.nn.benchmarks.celeba import (
-#     Encoder_ResNet_VQVAE_CELEBA,
-#     Encoder_ResNet_VAE_CELEBA,
-#     Decoder_ResNet_VQVAE_CELEBA,
-#     Decoder_ResNet_AE_CELEBA,
-# )
-
-# config = pythae.models.VAEConfig(input_dim=input_dim, latent_dim=args.latent_dim)
-
-# model = pythae.models.VAE(
-#     config,
-#     encoder=Encoder_ResNet_VAE_CELEBA(config),
-#     decoder=Decoder_ResNet_AE_CELEBA(config),
-# )
-
-# config = pythae.models.VQVAEConfig(input_dim=input_dim, latent_dim=args.latent_dim)
-
-# model = pythae.models.VQVAE(
-#     config,
-#     encoder=Encoder_ResNet_VQVAE_CELEBA(config),
-#     decoder=Decoder_ResNet_VQVAE_CELEBA(config),
-# )
-
+model = bio_vae.models.create_model("resnet18_vqvae_legacy", **vars(args))
 
 lit_model = LitAutoEncoderTorch(model, args)
 
 # %%
-
-
-# def vqvae_to_latent(model: VQ_VAE, img: torch.Tensor) -> torch.Tensor:
-
-#     vq = model.get_model().model._vq_vae
-#     embedding_torch = vq._embedding
-#     embedding_in = model.get_model().model.encoder_z(img)
-#     embedding_out = vq(embedding_in)
-#     latent = embedding_torch(embedding_out[-1].argmax(axis=1))
-
-#     return latent
-
-
-# tensor = vqvae_to_latent(lit_model, train_dataset[0].unsqueeze(0))
-# pipeline = TrainingPipeline(training_config=training_config, model=model)
 
 dataloader.setup()
 model.eval()
 # %%
 
 
-# class AECustom(Dataset):
-# def __init__(self, dataset):
-#     self.dataset = dataset
-#     self.size = len(self.dataset)
-
-# def __len__(self):
-#     return self.size
-
-# def __getitem__(self, index):
-#     X = self.dataset[index]
-#     return DatasetOutput(data=X)
-
-
 model_name = model._get_name()
 model_dir = f"my_models/{dataset}_{model_name}"
-
-# # %%
-# lit_model = LitAutoEncoderTorch(
-#     model,
-#     args
-#     # learning_rate=learning_rate,
-#     # optimizer_params=optimizer_params,
-#     # lr_scheduler_params=lr_scheduler_params,
-# )
 
 tb_logger = pl_loggers.TensorBoardLogger(f"logs/")
 
