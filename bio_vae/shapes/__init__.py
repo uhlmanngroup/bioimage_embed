@@ -1,3 +1,7 @@
+from .lightning import MaskEmbed
+import torch 
+import torch.nn.functional as F
+
 def mask_from_latent(self, z, window_size):
     # This should be class-method based
     # I.e. self.decoder(z)
