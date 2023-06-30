@@ -38,6 +38,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
 
+
 class cropCentroid(torch.nn.Module):
     def __init__(self, size):
         super().__init__()
@@ -50,6 +51,7 @@ class cropCentroid(torch.nn.Module):
         return self.__class__.__name__ + f"(size={self.size})"
 
     def crop_centroid(self, image, size):
+        # TODO: Only works for grayscale images
         np_image = np.array(image)
         im_height, im_width = np_image.shape
         height, width = size, size
@@ -154,12 +156,15 @@ class ImagetoDistogram(torch.nn.Module):
 
     def forward(self, img):
         # return self.get_distogram(img, self.size)
-        return self.get_distogram_C(
+        return self.get_distogram_pil(
             img, self.size, matrix_normalised=self.matrix_normalised
         )
 
     def __repr__(self):
         return self.__class__.__name__ + f"(size={self.size})"
+
+    def get_distogram_pil(self, image, size, matrix_normalised=False):
+        return self.get_distogram(np.array(image), size, matrix_normalised=matrix_normalised)
 
     def get_distogram_C(self, tensor, size, matrix_normalised=False):
         dist_list = []
@@ -200,10 +205,9 @@ class ImagetoDistogram(torch.nn.Module):
         # Fro norm is the same as the L2 norm, but for positive semi-definite matrices
         # norm = np.linalg.norm(distance_matrix)
 
-        if not matrix_normalised:
-            return distance_matrix
         if matrix_normalised:
             return distance_matrix / norm
+        return distance_matrix
 
     def cart2pol(self, x, y):
         return (np.sqrt(x**2 + y**2), np.arctan2(y, x))
@@ -258,17 +262,17 @@ class CropCentroidPipeline(torch.nn.Module):
                 # transforms.Normalize(0, 1),
                 transforms.ToPILImage(),
                 transforms.Grayscale(num_output_channels=num_output_channels),
-                transforms.ToTensor()
+                # transforms.ToTensor()
                 # transforms.RandomCrop((512, 512)),
                 # transforms.ConvertImageDtype(torch.bool)
             ]
         )
 
     def forward(self, x):
-        try:
-            return self.pipeline(x)
-        except:
-            return None
+        # try:
+        return self.pipeline(x)
+        # except:
+        # return None
 
 
 class MaskToDistogramPipeline(torch.nn.Module):
@@ -279,20 +283,21 @@ class MaskToDistogramPipeline(torch.nn.Module):
         self.pipeline = transforms.Compose(
             [
                 CropCentroidPipeline(self.window_size),
-                # transforms.ToPILImage(),
                 # transforms.ToTensor(),
+                # transforms.ToPILImage(),
                 ImagetoDistogram(self.interp_size, matrix_normalised=matrix_normalised),
+                # transforms.ToTensor(),
                 # transforms.ToPILImage(),
                 # transforms.RandomCrop((512, 512)),
-                transforms.ConvertImageDtype(torch.float32),
+                # transforms.ConvertImageDtype(torch.float32),
             ]
         )
 
     def forward(self, x):
-        try:
-            return self.pipeline(x)
-        except:
-            return None
+        # try:
+        return self.pipeline(x)
+        # except:
+        # return None
 
 
 class DistogramToMaskPipeline(torch.nn.Module):
@@ -308,10 +313,10 @@ class DistogramToMaskPipeline(torch.nn.Module):
         )
 
     def forward(self, x):
-        try:
-            return self.pipeline(x)
-        except:
-            return None
+        # try:
+        return self.pipeline(x)
+        # except:
+        # return None
 
 
 class AsymmetricDistogramToMaskPipeline(torch.nn.Module):
