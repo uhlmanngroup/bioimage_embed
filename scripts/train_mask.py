@@ -1,24 +1,24 @@
 # %%
-import os
 from pathlib import Path
-
+import umap
 from torch.autograd import Variable
-import torchvision
+from types import SimpleNamespace
 
 #  %%
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
 import torch
 
+from bio_vae import shapes
+import bio_vae
+
 # Note - you must have torchvision installed for this example
-from torch.utils.data import DataLoader
-import os
+
 from pytorch_lightning import loggers as pl_loggers
 from torchvision import transforms
-from bio_vae.lightning import DataModuleGlob, DataModule
+from bio_vae.lightning import DataModule
 
 from torchvision import datasets
-from bio_vae.datasets import DatasetGlob
 from bio_vae.shapes.transforms import (
     CropCentroidPipeline,
     DistogramToCoords,
@@ -27,21 +27,21 @@ from bio_vae.shapes.transforms import (
 )
 
 # from bio_vae.models import Mask_VAE, VQ_VAE, VAE
-from bio_vae.lightning import LitAutoEncoderTorch, LitAutoEncoderPyro
 import matplotlib.pyplot as plt
 
-from bio_vae.lightning import DataModule, DataModuleGlob, LitAutoEncoderTorch
+from bio_vae.lightning import DataModule
 import matplotlib
-matplotlib.use('TkAgg')
-interp_size = 128 *2
 
-max_epochs = 500
+matplotlib.use("TkAgg")
+interp_size = 128 * 2
 
-window_size = 128*2
+max_epochs = 100
+
+window_size = 128 * 2
 
 
 params = {
-    "epochs": 500,
+    "epochs": 100,
     "batch_size": 4,
     "num_workers": 2**4,
     # "window_size": 64*2,
@@ -77,16 +77,16 @@ lr_scheduler_params = {
 }
 
 # channels = 3
-import argparse 
-from types import SimpleNamespace
+
+
 # input_dim = (params["channels"], params["window_size"], params["window_size"])
 args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
 
-dataset = "bbbc010/BBBC010_v1_foreground_eachworm"
-dataset = "bbbc010"
+dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm"
+# dataset = "bbbc010"
 model_name = "vqvae"
 
-train_data_path = f"data/{dataset}"
+train_data_path = f"data/{dataset_path}"
 
 
 # train_dataset_glob = "data-science-bowl-2018/stage1_train/*/masks/*.png"
@@ -102,7 +102,7 @@ train_data_path = f"data/{dataset}"
 
 # model_dir = "test"
 # model_dir = "BBBC010_v1_foreground_eachworm"
-model_dir = f"models/{dataset}_{model_name}"
+model_dir = f"models/{dataset_path}_{model_name}"
 # %%
 
 transform_crop = CropCentroidPipeline(window_size)
@@ -181,12 +181,12 @@ for key, value in train_data.items():
 #     batch = list(filter(lambda x: x is not None, batch))
 #     return torch.utils.data.dataloader.default_collate(batch)
 
-transform = transforms.Compose(
-    [transform_mask_to_dist, transforms.ToTensor()]
-)
+transform = transforms.Compose([transform_mask_to_dist, transforms.ToTensor()])
+
+dataset = datasets.ImageFolder(train_data_path, transform=transform)
 
 dataloader = DataModule(
-    datasets.ImageFolder(train_data_path, transform=transform),
+    dataset,
     batch_size=args.batch_size,
     shuffle=True,
     num_workers=args.num_workers,
@@ -195,12 +195,10 @@ dataloader = DataModule(
 
 # dataloader = DataLoader(train_dataset, batch_size=batch_size,
 #                         shuffle=True, num_workers=2**4, pin_memory=True, collate_fn=my_collate)
-import bio_vae
 
 model = bio_vae.models.create_model("resnet50_vqvae_legacy", **vars(args))
-from bio_vae import shapes
 
-lit_model = shapes.MaskEmbed(model,args)
+lit_model = shapes.MaskEmbed(model, args)
 # model = Mask_VAE("VAE", 1, 64,
 #                      #  hidden_dims=[32, 64],
 #                      image_dims=(interp_size, interp_size))
@@ -215,7 +213,7 @@ model.eval()
 
 
 model_name = model._get_name()
-model_dir = f"my_models/{dataset}_{model_name}"
+model_dir = f"my_models/{dataset_path}_{model_name}"
 
 tb_logger = pl_loggers.TensorBoardLogger(f"logs/")
 
@@ -242,15 +240,78 @@ try:
 except:
     trainer.fit(lit_model, datamodule=dataloader)
 
-model.eval()
+lit_model.eval()
 
 validation = trainer.validate(lit_model, datamodule=dataloader)
 # testing = trainer.test(lit_model, datamodule=dataloader)
 example_input = Variable(torch.rand(1, *args.input_dim))
 
-torch.jit.save(model.to_torchscript(), "model.pt")
-torch.onnx.export(model, example_input, f"{model_dir}/model.onnx")
+# torch.jit.save(lit_model.to_torchscript(), f"{model_dir}/model.pt")
+# torch.onnx.export(lit_model, example_input, f"{model_dir}/model.onnx")
 
 # %%
 # Inference
+# predict_dataloader = DataLoader(dataset, batch_size=1)
+
+
+dataloader = DataModule(
+    dataset,
+    batch_size=1,
+    shuffle=False,
+    num_workers=args.num_workers,
+    # transform=transform,
+)
+dataloader.setup()
+
+predictions = trainer.predict(lit_model, datamodule=dataloader)
+latent_space = torch.stack(
+    [prediction.z.flatten() for prediction in predictions[:-1]], dim=0
+)
+
+idx_to_class = {v: k for k, v in dataset.class_to_idx.items()}
+
+import numpy as np
+
+y = np.array([int(data[-1]) for data in dataloader.predict_dataloader()])[:-1]
+classes = np.array([idx_to_class[i] for i in y]) 
+# y = torch.stack([data[-1] for data in dataloader.dataset[:-1], dim=0)
+# y = torch.stack([prediction.y for prediction in predictions[:-1]], dim=0)
+# umap_space = umap.UMAP().fit(latent_space, y=y)
+umap_space = umap.UMAP().fit_transform(latent_space.numpy(), y=y)
+mapper = umap.UMAP().fit(latent_space.numpy(), y=y)
+
+import umap.plot
+umap.plot.points(mapper, labels=classes)
+
+
+# %%
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+X = latent_space.numpy()
+y = classes
+# Split the data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Create a random forest classifier
+clf = RandomForestClassifier()
+
+# Fit the model to the data
+clf.fit(X_train, y_train)
+
+# Use the model to make predictions on the test set
+y_pred = clf.predict(X_test)
+
+# Calculate metric scores
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred, average='macro')
+recall = recall_score(y_test, y_pred, average='macro')
+f1 = f1_score(y_test, y_pred, average='macro')
+
+print(f'Accuracy: {accuracy:.2f}')
+print(f'Precision: {precision:.2f}')
+print(f'Recall: {recall:.2f}')
+print(f'F1 Score: {f1:.2f}')
+
+# %%
 
