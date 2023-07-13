@@ -6,8 +6,6 @@ from sklearn.metrics import make_scorer
 import pandas as pd
 from sklearn import metrics
 import matplotlib as mpl
-# Use the pgf backend (must be set before pyplot imported)
-mpl.use('pgf')
 
 from pathlib import Path
 import umap
@@ -15,6 +13,7 @@ from torch.autograd import Variable
 from types import SimpleNamespace
 
 import numpy as np
+
 #  %%
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
@@ -31,8 +30,8 @@ from bio_vae.lightning import DataModule
 
 from torchvision import datasets
 from bio_vae.shapes.transforms import (
+    ImageToCoords,
     CropCentroidPipeline,
-    DistogramToCoords,
     DistogramToCoords,
     MaskToDistogramPipeline,
 )
@@ -100,25 +99,13 @@ model_name = "vqvae"
 train_data_path = f"data/{dataset_path}"
 metadata = lambda x: f"results/{x}"
 
-# train_dataset_glob = "data-science-bowl-2018/stage1_train/*/masks/*.png"
-# train_dataset_glob = "data/stage1_train/*/masks/*.png"
-# train_dataset_glob = f"data/{dataset}/*.png"
-# %%
-# train_dataset_glob = os.path.join("data/BBBC010_v1_foreground_eachworm/*.png")
-
-
-# train_dataset_glob = os.path.join("data/DatasetGlob/train/masks/*.tif")
-# test_dataloader_glob=os.path.join(os.path.expanduser("~"),
-# "data-science-bowl-2018/stage1_test/*/masks/*.png")
-
-# model_dir = "test"
-# model_dir = "BBBC010_v1_foreground_eachworm"
 model_dir = f"models/{dataset_path}_{model_name}"
 # %%
 
 transform_crop = CropCentroidPipeline(window_size)
 transform_dist = MaskToDistogramPipeline(window_size, interp_size)
-transform_coords = DistogramToCoords(window_size)
+transform_mdscoords = DistogramToCoords(window_size)
+transform_coords = ImageToCoords(window_size)
 
 transform_mask_to_gray = transforms.Compose([transforms.Grayscale(1)])
 
@@ -138,8 +125,8 @@ transform_mask_to_dist = transforms.Compose(
 )
 transform_mask_to_coords = transforms.Compose(
     [
-        transform_mask_to_dist,
-        # transform_coords,
+        transform_mask_to_crop,
+        transform_coords,
     ]
 )
 
@@ -152,7 +139,7 @@ transforms_dict = {
     "none": transform_mask_to_gray,
     "transform_crop": transform_mask_to_crop,
     "transform_dist": transform_mask_to_dist,
-    # "transform_coords": transform_mask_to_coords,
+    "transform_coords": transform_mask_to_coords,
 }
 
 train_data = {
@@ -163,26 +150,41 @@ train_data = {
 for key, value in train_data.items():
     print(key, len(value))
     plt.imshow(train_data[key][0][0], cmap="gray")
-    plt.imsave(metadata(f"transform_{key}.png"), train_data[key][0][0], cmap="gray")
+    plt.imsave(metadata(f"{key}.png"), train_data[key][0][0], cmap="gray")
     # plt.show()
     plt.close()
 
 
-# train_dataset = DatasetGlob(train_data, transform=transforms.ToTensor())
-# plt.imshow(train_dataset[0][0], cmap="gray")
-# plt.show()
-# train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_crop)
-# plt.imshow(train_dataset[0][0], cmap="gray")
+# plt.scatter(*train_data["transform_coords"][0][0])
+# plt.savefig(metadata(f"transform_coords.png"))
 # plt.show()
 
-# train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_crop)
-# plt.imshow(train_dataset[0][0], cmap="gray")
+# plt.imshow(train_data["transform_crop"][0][0], cmap="gray")
+# plt.scatter(*train_data["transform_coords"][0][0],c=np.arange(interp_size), cmap='rainbow', s=1)
 # plt.show()
+# plt.savefig(metadata(f"transform_coords.png"))
 
-# train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
-# plt.imshow(train_dataset[0][0], cmap="gray")
-# plt.show()
 
+# Retrieve the coordinates and cropped image
+coords = train_data["transform_coords"][0][0]
+crop_image = train_data["transform_crop"][0][0]
+
+fig = plt.figure(frameon=True)
+ax = plt.Axes(fig, [0, 0, 1, 1])
+ax.set_axis_off()
+fig.add_axes(ax)
+
+# Display the cropped image using grayscale colormap
+plt.imshow(crop_image, cmap="gray_r")
+
+# Scatter plot with smaller point size
+plt.scatter(*coords, c=np.arange(interp_size), cmap="rainbow", s=1)
+
+# Save the plot as an image without border and coordinate axes
+plt.savefig(metadata(f"transform_coords.png"), bbox_inches="tight", pad_inches=0)
+
+# Close the plot
+plt.close()
 
 # img_squeeze = train_dataset[0].unsqueeze(0)
 # %%
@@ -315,40 +317,46 @@ plt.show()
 # %%
 
 X = latent_space.numpy()
-# X = semi_supervised_latent
 y = classes
-# Split the data into training and test sets
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
-# Define a dictionary of metrics
-scoring = {
-    "accuracy": make_scorer(metrics.accuracy_score),
-    "precision": make_scorer(metrics.precision_score, average="macro"),
-    "recall": make_scorer(metrics.recall_score, average="macro"),
-    "f1": make_scorer(metrics.f1_score, average="macro"),
-}
 
-# Create a random forest classifier
-clf = RandomForestClassifier()
 
-# Specify the number of folds
-k_folds = 5
+def scoring_df(X, y):
+    # X = semi_supervised_latent
+    # Split the data into training and test sets
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+    # Define a dictionary of metrics
+    scoring = {
+        "accuracy": make_scorer(metrics.accuracy_score),
+        "precision": make_scorer(metrics.precision_score, average="macro"),
+        "recall": make_scorer(metrics.recall_score, average="macro"),
+        "f1": make_scorer(metrics.f1_score, average="macro"),
+    }
 
-# Perform k-fold cross-validation
-cv_results = cross_validate(
-    estimator=clf,
-    X=X,
-    y=y,
-    cv=KFold(n_splits=k_folds),
-    scoring=scoring,
-    n_jobs=-1,
-    return_train_score=False,
-)
+    # Create a random forest classifier
+    clf = RandomForestClassifier()
 
-# Put the results into a DataFrame
-cv_results_df = pd.DataFrame(cv_results)
+    # Specify the number of folds
+    k_folds = 5
 
+    # Perform k-fold cross-validation
+    cv_results = cross_validate(
+        estimator=clf,
+        X=X,
+        y=y,
+        cv=KFold(n_splits=k_folds),
+        scoring=scoring,
+        n_jobs=-1,
+        return_train_score=False,
+    )
+
+    # Put the results into a DataFrame
+    cv_results_df = pd.DataFrame(cv_results)
+    return cv_results_df
+
+
+mask_embed_score_df = scoring_df(X, y)
 # Print the DataFrame
-print(cv_results_df)
-cv_results_df.to_csv(metadata(f"cv_results.csv"))
+print(mask_embed_score_df)
+mask_embed_score_df.to_csv(metadata(f"mask_embed_score_df.csv"))

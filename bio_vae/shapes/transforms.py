@@ -148,7 +148,7 @@ class DistogramToCoords(torch.nn.Module):
         return torch.tensor(np.array(dist_list))
 
 
-class ImagetoDistogram(torch.nn.Module):
+class ImageToDistogram(torch.nn.Module):
     def __init__(self, size, matrix_normalised=False):
         super().__init__()
         self.size = size
@@ -156,36 +156,86 @@ class ImagetoDistogram(torch.nn.Module):
 
     def forward(self, img):
         # return self.get_distogram(img, self.size)
-        return self.get_distogram_pil(
-            img, self.size, matrix_normalised=self.matrix_normalised
+        return self.pipeline()(img)
+
+    def pipeline(self):
+        components = [
+            ImageToCoords(self.size),
+            CoordsToDistogram(self.size, matrix_normalised=self.matrix_normalised),
+        ]
+        return transforms.Compose(components)
+
+
+class CoordsToDistogram(torch.nn.Module):
+    def __init__(self, size, matrix_normalised=False):
+        super().__init__()
+        self.size = size
+        self.matrix_normalised = matrix_normalised
+
+    def forward(self, coords):
+        # return self.get_distogram(img, self.size)
+        return self.get_distogram(
+            coords, matrix_normalised=self.matrix_normalised
         )
 
     def __repr__(self):
         return self.__class__.__name__ + f"(size={self.size})"
 
-    def get_distogram_pil(self, image, size, matrix_normalised=False):
-        return self.get_distogram(np.array(image), size, matrix_normalised=matrix_normalised)
+    def get_distogram(self, coords, matrix_normalised=False):
 
-    def get_distogram_C(self, tensor, size, matrix_normalised=False):
-        dist_list = []
+        xii, yii = coords
+        # distograms.append(euclidean_distances(np.array([xii,yii]).T))
+        distance_matrix = euclidean_distances(np.array([xii, yii]).T)
+        norm = np.linalg.norm(distance_matrix, "fro")
+        # Fro norm is the same as the L2 norm, but for positive semi-definite matrices
+        # norm = np.linalg.norm(distance_matrix)
+
+        if matrix_normalised:
+            return distance_matrix / norm
+        return distance_matrix
+
+
+class ImageToCoords(torch.nn.Module):
+    def __init__(self, size):
+        super().__init__()
+        self.size = size
+
+    def forward(self, img):
+        # return self.get_distogram(img, self.size)
+        return self.get_coords_pil(
+            img,
+            self.size,
+        )
+
+    def __repr__(self):
+        return self.__class__.__name__ + f"(size={self.size})"
+
+    def get_coords_pil(self, image, size):
+        return self.get_coords(np.array(image), size)
+
+    def get_coords_C(
+        self,
+        tensor,
+        size,
+    ):
+        coords_list = []
         np_tensor = np.array(tensor)
         for i in range(np_tensor.shape[0]):
             image = np_tensor[0, :, :]
-            dist_list.append(
-                self.get_distogram(image, size, matrix_normalised=matrix_normalised)
-            )
-        return torch.tensor(np.array(dist_list))
+            coords_list.append(self.get_coords(image, size))
+        return torch.tensor(np.array(coords_list))
 
-    def get_distogram(self, image, size, matrix_normalised=False):
-        distograms = []
+    def get_coords(self, image, size):
+        coords = []
         np_image = np.array(image)
         scaling = np.linalg.norm(np_image.shape)
+        
         # for i in range(np_image_full.shape[0]):
         # np_image = np_image_full[i]
         # im_height, im_width = np_image.shape
 
         contour = find_contours(np_image)
-        contour_x, contour_y = contour[0][:, 0], contour[0][:, 1]
+        contour_y, contour_x = contour[0][:, 0], contour[0][:, 1]
         # plt.scatter(contour_x,contour_y)
         # plt.show()
         #  %%
@@ -197,17 +247,11 @@ class ImagetoDistogram(torch.nn.Module):
         phi_interp = interp1d(np.linspace(0, 1, len(phi)), phi, kind="cubic")(
             np.linspace(0, 1, size)
         )
-
+    
         xii, yii = np.divide(self.pol2cart(rho_interp, phi_interp), scaling)
+        xii, yii = self.pol2cart(rho_interp, phi_interp)
         # distograms.append(euclidean_distances(np.array([xii,yii]).T))
-        distance_matrix = euclidean_distances(np.array([xii, yii]).T)
-        norm = np.linalg.norm(distance_matrix, "fro")
-        # Fro norm is the same as the L2 norm, but for positive semi-definite matrices
-        # norm = np.linalg.norm(distance_matrix)
-
-        if matrix_normalised:
-            return distance_matrix / norm
-        return distance_matrix
+        return np.array([xii, yii])
 
     def cart2pol(self, x, y):
         return (np.sqrt(x**2 + y**2), np.arctan2(y, x))
@@ -285,7 +329,7 @@ class MaskToDistogramPipeline(torch.nn.Module):
                 CropCentroidPipeline(self.window_size),
                 # transforms.ToTensor(),
                 # transforms.ToPILImage(),
-                ImagetoDistogram(self.interp_size, matrix_normalised=matrix_normalised),
+                ImageToDistogram(self.interp_size, matrix_normalised=matrix_normalised),
                 # transforms.ToTensor(),
                 # transforms.ToPILImage(),
                 # transforms.RandomCrop((512, 512)),
