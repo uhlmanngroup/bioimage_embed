@@ -40,7 +40,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         self.model = self.model.to(self.device)
         if args:
             self.args = SimpleNamespace(**{**vars(args), **vars(self.args)})
-
+        self.save_hyperparameters()
         # self.model.train()
 
     def forward(self, batch):
@@ -55,17 +55,25 @@ class LitAutoEncoderTorch(pl.LightningModule):
 
     def batch_to_tensor(self, batch):
         return {"data": batch}
-    
-    def embedding_from_output(self,model_output):
+
+    def embedding_from_output(self, model_output):
         return model_output.z.view(model_output.z.shape[0], -1)
-    
+
+    def get_model_output(self, x, batch_idx):
+        model_output = self.model(x, epoch=batch_idx)
+        loss = self.loss_function(model_output)
+        return model_output, loss
+
     def training_step(self, batch, batch_idx):
         # results = self.get_results(batch)
         self.model.train()
         x = self.batch_to_tensor(batch)
-        model_output = self.model(x, epoch=batch_idx)
+        model_output, loss = self.get_model_output(
+            x,
+            batch_idx,
+        )
         # loss = self.model.training_step(x)
-        loss = self.loss_function(model_output)
+        # loss = self.loss_function(model_output,optimizer_idx)
 
         # self.log("train_loss", self.loss)
         # self.log("train_loss", loss)
@@ -74,6 +82,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         self.logger.experiment.add_image(
             "input", torchvision.utils.make_grid(x["data"]), batch_idx
         )
+
         # if self.PYTHAE_FLAG:
         self.logger.experiment.add_image(
             "output",
@@ -86,11 +95,24 @@ class LitAutoEncoderTorch(pl.LightningModule):
     def loss_function(self, model_output, *args, **kwargs):
         return model_output.loss
 
-    def validation_step(self, batch, batch_idx):
+    # def logging_step(self, z, loss, x, model_output, batch_idx):
+    #     self.logger.experiment.add_embedding(
+    #         z,
+    #         label_img=x["data"],
+    #         global_step=self.current_epoch,
+    #         tag="z",
+    #         )
 
+    #     self.logger.experiment.add_scalar("Loss/val", loss, batch_idx)
+    #     self.logger.experiment.add_image(
+    #         "val",
+    #         torchvision.utils.make_grid(model_output.recon_x),
+    #         batch_idx,
+    #     )
+        
+    def validation_step(self, batch, batch_idx):
         x = self.batch_to_tensor(batch)
-        model_output = self.model(x, epoch=batch_idx)
-        loss = model_output.loss
+        model_output, loss = self.get_model_output(x, batch_idx)
         z = self.embedding_from_output(model_output)
         # z_indices
         self.logger.experiment.add_embedding(
@@ -117,9 +139,12 @@ class LitAutoEncoderTorch(pl.LightningModule):
     #     for lr_scheduler in self.lr_schedulers():
     #         lr_scheduler.step()
 
-    def configure_optimizers(self):
-        optimizer = optim.create_optimizer(self.args, self.model.parameters())
+    def timm_optimizers(self, model):
+        optimizer = optim.create_optimizer(self.args, model.parameters())
         lr_scheduler = scheduler.create_scheduler(self.args, optimizer)[0]
+        return optimizer, lr_scheduler
+
+    def timm_to_lightning(self, optimizer, lr_scheduler):
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
@@ -127,6 +152,12 @@ class LitAutoEncoderTorch(pl.LightningModule):
                 "interval": "step",  # or 'epoch' for step vs epoch training, respectively
             },
         }
+
+    def configure_optimizers(self):
+        # optimizer = optim.create_optimizer(self.args, self.model.parameters())
+        # lr_scheduler = scheduler.create_scheduler(self.args, optimizer)[0]
+        optimizer, lr_scheduler = self.timm_optimizers(self.model)
+        return self.timm_to_lightning(optimizer, lr_scheduler)
 
     def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
         scheduler.step(epoch=self.current_epoch, metric=metric)
