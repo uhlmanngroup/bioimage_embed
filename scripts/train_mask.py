@@ -1,9 +1,20 @@
 # %%
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_validate, KFold, train_test_split
+from sklearn.metrics import make_scorer
+import pandas as pd
+from sklearn import metrics
+import matplotlib as mpl
+# Use the pgf backend (must be set before pyplot imported)
+mpl.use('pgf')
+
 from pathlib import Path
 import umap
 from torch.autograd import Variable
 from types import SimpleNamespace
 
+import numpy as np
 #  %%
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
@@ -32,7 +43,7 @@ import matplotlib.pyplot as plt
 from bio_vae.lightning import DataModule
 import matplotlib
 
-matplotlib.use("TkAgg")
+# matplotlib.use("TkAgg")
 interp_size = 128 * 2
 
 max_epochs = 100
@@ -87,7 +98,7 @@ dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm"
 model_name = "vqvae"
 
 train_data_path = f"data/{dataset_path}"
-
+metadata = lambda x: f"results/{x}"
 
 # train_dataset_glob = "data-science-bowl-2018/stage1_train/*/masks/*.png"
 # train_dataset_glob = "data/stage1_train/*/masks/*.png"
@@ -152,7 +163,7 @@ train_data = {
 for key, value in train_data.items():
     print(key, len(value))
     plt.imshow(train_data[key][0][0], cmap="gray")
-    plt.imsave(f"{key}.png", train_data[key][0][0], cmap="gray")
+    plt.imsave(metadata(f"transform_{key}.png"), train_data[key][0][0], cmap="gray")
     # plt.show()
     plt.close()
 
@@ -196,8 +207,9 @@ dataloader = DataModule(
 # dataloader = DataLoader(train_dataset, batch_size=batch_size,
 #                         shuffle=True, num_workers=2**4, pin_memory=True, collate_fn=my_collate)
 
-model = bio_vae.models.create_model("resnet50_vqvae_legacy", **vars(args))
+model = bio_vae.models.create_model("resnet18_vqvae_legacy", **vars(args))
 
+lit_model = shapes.MaskEmbedLatentAugment(model, args)
 lit_model = shapes.MaskEmbed(model, args)
 # model = Mask_VAE("VAE", 1, 64,
 #                      #  hidden_dims=[32, 64],
@@ -212,8 +224,8 @@ model.eval()
 # %%
 
 
-model_name = model._get_name()
-model_dir = f"my_models/{dataset_path}_{model_name}"
+# model_name = model._get_name()
+model_dir = f"my_models/{dataset_path}_{model._get_name()}_{lit_model._get_name()}"
 
 tb_logger = pl_loggers.TensorBoardLogger(f"logs/")
 
@@ -270,48 +282,73 @@ latent_space = torch.stack(
 
 idx_to_class = {v: k for k, v in dataset.class_to_idx.items()}
 
-import numpy as np
 
 y = np.array([int(data[-1]) for data in dataloader.predict_dataloader()])[:-1]
-classes = np.array([idx_to_class[i] for i in y]) 
+
+y_partial = y.copy()
+indices = np.random.choice(y.size, int(0.3 * y.size), replace=False)
+
+y_partial[indices] = -1
+
+classes = np.array([idx_to_class[i] for i in y])
+
+
 # y = torch.stack([data[-1] for data in dataloader.dataset[:-1], dim=0)
 # y = torch.stack([prediction.y for prediction in predictions[:-1]], dim=0)
 # umap_space = umap.UMAP().fit(latent_space, y=y)
-umap_space = umap.UMAP().fit_transform(latent_space.numpy(), y=y)
+# umap_space = umap.UMAP().fit_transform(latent_space.numpy(), y=y)
 mapper = umap.UMAP().fit(latent_space.numpy(), y=y)
-
+semi_supervised_latent = mapper.transform(latent_space.numpy())
 import umap.plot
-umap.plot.points(mapper, labels=classes)
 
+umap.plot.points(mapper, labels=classes)
+plt.savefig(metadata(f"umap.png"))
+plt.savefig(metadata(f"umap.pgf"))
+plt.show()
+# fig, ax = plt.subplots(1, figsize=(14, 10))
+# plt.scatter(*mapper.embedding_.T, s=5, c=y, cmap='Spectral', alpha=1.0)
+# plt.setp(ax, xticks=[], yticks=[])
+# cbar = plt.colorbar(boundaries=np.arange(3)-0.5)
+# cbar.set_ticks(np.arange(2))
+# cbar.set_ticklabels(set(classes))
 
 # %%
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
 X = latent_space.numpy()
+# X = semi_supervised_latent
 y = classes
 # Split the data into training and test sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+# Define a dictionary of metrics
+scoring = {
+    "accuracy": make_scorer(metrics.accuracy_score),
+    "precision": make_scorer(metrics.precision_score, average="macro"),
+    "recall": make_scorer(metrics.recall_score, average="macro"),
+    "f1": make_scorer(metrics.f1_score, average="macro"),
+}
 
 # Create a random forest classifier
 clf = RandomForestClassifier()
 
-# Fit the model to the data
-clf.fit(X_train, y_train)
+# Specify the number of folds
+k_folds = 5
 
-# Use the model to make predictions on the test set
-y_pred = clf.predict(X_test)
+# Perform k-fold cross-validation
+cv_results = cross_validate(
+    estimator=clf,
+    X=X,
+    y=y,
+    cv=KFold(n_splits=k_folds),
+    scoring=scoring,
+    n_jobs=-1,
+    return_train_score=False,
+)
 
-# Calculate metric scores
-accuracy = accuracy_score(y_test, y_pred)
-precision = precision_score(y_test, y_pred, average='macro')
-recall = recall_score(y_test, y_pred, average='macro')
-f1 = f1_score(y_test, y_pred, average='macro')
+# Put the results into a DataFrame
+cv_results_df = pd.DataFrame(cv_results)
 
-print(f'Accuracy: {accuracy:.2f}')
-print(f'Precision: {precision:.2f}')
-print(f'Recall: {recall:.2f}')
-print(f'F1 Score: {f1:.2f}')
-
-# %%
-
+# Print the DataFrame
+print(cv_results_df)
+cv_results_df.to_csv(metadata(f"cv_results.csv"))
