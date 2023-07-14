@@ -313,31 +313,40 @@ classes = np.array([idx_to_class[i] for i in y])
 mapper = umap.UMAP().fit(latent_space.numpy(), y=y)
 semi_supervised_latent = mapper.transform(latent_space.numpy())
 
-df = pd.DataFrame(semi_supervised_latent, columns=["umap 0", "umap 1"])
+df = pd.DataFrame(semi_supervised_latent, columns=["umap0", "umap1"])
 df["Class"] = y
 # Map numeric classes to their labels
 idx_to_class = {0: "alive", 1: "dead"}
 df["Class"] = df["Class"].map(idx_to_class)
 
 
-plt.figure(figsize=(width, height))
-sns.scatterplot(
+
+ax = sns.relplot(
     data=df,
-    x="umap 0",
-    y="umap 1",
+    x="umap0",
+    y="umap1",
     hue="Class",
     palette="deep",
     alpha=0.5,
     edgecolor=None,
     s=5,
+    height=height,
+    aspect=0.5*width/height,
 )
-plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-# sns.despine(left=True, bottom=True)
+
+# ax.annotate('', xy=(0, 0.2), xytext=(0, 0), xycoords='axes fraction',
+#              arrowprops=dict(arrowstyle="-|>", color='black', lw=1.5))
+# ax.annotate('', xy=(0.2*height/width, 0), xytext=(0, 0), xycoords='axes fraction',  arrowprops=dict(arrowstyle="-|>", color='black', lw=1.5))
+
+sns.move_legend(ax, "upper center",)
+ax.set(xlabel=None,ylabel=None)
+sns.despine(left=True, bottom=True)
 plt.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
+# plt.legend(loc="upper center", ncol=2,bbox_to_anchor=(0.5, 1.5))
 plt.tight_layout()
 # umap.plot.points(mapper, labels=classes,width=width*dpi, height=height*dpi)
 # plt.savefig(metadata(f"umap.png"))
-plt.savefig(metadata(f"umap.pdf"))
+plt.savefig(metadata(f"umap_no_axes.pdf"))
 # plt.show()
 plt.close()
 
