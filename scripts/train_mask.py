@@ -1,20 +1,22 @@
 # %%
-
+import seaborn as sns
+import pyefd
+import tikzplotlib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_validate, KFold, train_test_split
 from sklearn.metrics import make_scorer
 import pandas as pd
 from sklearn import metrics
 import matplotlib as mpl
-
+import seaborn as sns
 from pathlib import Path
 import umap
 from torch.autograd import Variable
 from types import SimpleNamespace
-
 import numpy as np
+import tikzplotlib
 
-#  %%
+import umap.plot
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
 import torch
@@ -40,15 +42,24 @@ from bio_vae.shapes.transforms import (
 import matplotlib.pyplot as plt
 
 from bio_vae.lightning import DataModule
-import matplotlib
+import matplotlib as mpl
+from matplotlib import rc
+
+# Setting the font size
+mpl.rcParams["font.size"] = 10
+
+rc("text", usetex=True)
+rc("font", **{"family": "sans-serif", "sans-serif": ["Arial"]})
+width = 3.45
+height = width / 1.618
+plt.rcParams["figure.figsize"] = [width, height]
+
+sns.set(style="white", context="notebook", rc={"figure.figsize": (width, height)})
 
 # matplotlib.use("TkAgg")
 interp_size = 128 * 2
-
 max_epochs = 100
-
 window_size = 128 * 2
-
 
 params = {
     "epochs": 100,
@@ -178,7 +189,7 @@ fig.add_axes(ax)
 plt.imshow(crop_image, cmap="gray_r")
 
 # Scatter plot with smaller point size
-plt.scatter(*coords, c=np.arange(interp_size), cmap="rainbow", s=1)
+plt.scatter(*coords, c=np.arange(interp_size), cmap="rainbow", s=2)
 
 # Save the plot as an image without border and coordinate axes
 plt.savefig(metadata(f"transform_coords.png"), bbox_inches="tight", pad_inches=0)
@@ -301,20 +312,38 @@ classes = np.array([idx_to_class[i] for i in y])
 # umap_space = umap.UMAP().fit_transform(latent_space.numpy(), y=y)
 mapper = umap.UMAP().fit(latent_space.numpy(), y=y)
 semi_supervised_latent = mapper.transform(latent_space.numpy())
-import umap.plot
 
-umap.plot.points(mapper, labels=classes)
-plt.savefig(metadata(f"umap.png"))
-plt.savefig(metadata(f"umap.pgf"))
-plt.show()
-# fig, ax = plt.subplots(1, figsize=(14, 10))
-# plt.scatter(*mapper.embedding_.T, s=5, c=y, cmap='Spectral', alpha=1.0)
-# plt.setp(ax, xticks=[], yticks=[])
-# cbar = plt.colorbar(boundaries=np.arange(3)-0.5)
-# cbar.set_ticks(np.arange(2))
-# cbar.set_ticklabels(set(classes))
+df = pd.DataFrame(semi_supervised_latent, columns=["umap 0", "umap 1"])
+df["Class"] = y
+# Map numeric classes to their labels
+idx_to_class = {0: "alive", 1: "dead"}
+df["Class"] = df["Class"].map(idx_to_class)
+
+
+plt.figure(figsize=(width, height))
+sns.scatterplot(
+    data=df,
+    x="umap 0",
+    y="umap 1",
+    hue="Class",
+    palette="deep",
+    alpha=0.5,
+    edgecolor=None,
+    s=5,
+)
+plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+# sns.despine(left=True, bottom=True)
+plt.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
+plt.tight_layout()
+# umap.plot.points(mapper, labels=classes,width=width*dpi, height=height*dpi)
+# plt.savefig(metadata(f"umap.png"))
+plt.savefig(metadata(f"umap.pdf"))
+# plt.show()
+plt.close()
+
 
 # %%
+
 
 X = latent_space.numpy()
 y = classes
@@ -324,7 +353,7 @@ def scoring_df(X, y):
     # X = semi_supervised_latent
     # Split the data into training and test sets
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+        X, y, test_size=0.2, random_state=42, shuffle=True, stratify=y
     )
     # Define a dictionary of metrics
     scoring = {
@@ -352,11 +381,117 @@ def scoring_df(X, y):
     )
 
     # Put the results into a DataFrame
-    cv_results_df = pd.DataFrame(cv_results)
-    return cv_results_df
+    return pd.DataFrame(cv_results)
 
 
-mask_embed_score_df = scoring_df(X, y)
+# mask_embed_score_df = scoring_df(X, y)
 # Print the DataFrame
-print(mask_embed_score_df)
-mask_embed_score_df.to_csv(metadata(f"mask_embed_score_df.csv"))
+# print(mask_embed_score_df)
+# mask_embed_score_df.to_csv(metadata(f"mask_embed_score_df.csv"))
+from skimage import measure
+
+dfs = []
+properties = [
+    "area",
+    "perimeter",
+    "centroid",
+    "major_axis_length",
+    "minor_axis_length",
+    "orientation",
+]
+dfs=[]
+for i, data in enumerate(train_data["transform_crop"]):
+    X, y = data
+    # Do regionprops here
+    # Calculate shape summary statistics using regionprops
+    # We're considering that the mask has only one object, thus we take the first element [0]
+    # props = regionprops(np.array(X).astype(int))[0]
+    props_table = measure.regionprops_table(
+        np.array(X).astype(int), properties=properties
+    )
+
+    # Store shape properties in a dataframe
+    df = pd.DataFrame(props_table)
+
+    # Assuming the class or label is contained in 'y' variable
+    df["class"] = y
+    df.set_index("class", inplace=True)
+    dfs.append(df)
+
+df_regionprops = pd.concat(dfs)
+
+
+# Assuming 'dataset_contour' is your DataLoader for the dataset
+dfs = []
+for i, data in enumerate(train_data["transform_coords"]):
+    # Convert the tensor to a numpy array
+    X, y = data
+
+    # Feed it to PyEFD's calculate_efd function
+    coeffs = pyefd.elliptic_fourier_descriptors(X, order=10, normalize=False)
+    # coeffs_df = pd.DataFrame({'class': [y], 'norm_coeffs': [norm_coeffs.flatten().tolist()]})
+
+    norm_coeffs = pyefd.normalize_efd(coeffs)
+    df = pd.DataFrame(
+        {
+            "norm_coeffs": norm_coeffs.flatten().tolist(),
+            "coeffs": coeffs.flatten().tolist(),
+        }
+    ).T.rename_axis("coeffs")
+    df["class"] = y
+    df.set_index("class", inplace=True, append=True)
+    dfs.append(df)
+
+
+df_pyefd = pd.concat(dfs)
+
+
+trials = [
+    {"name": "mask_embed", "features": latent_space.numpy(), "labels": classes},
+    {
+        "name": "fourier_coeffs",
+        "features": df_pyefd.xs("coeffs", level="coeffs"),
+        "labels": df_pyefd.xs("coeffs", level="coeffs").index,
+    },
+    # {"name": "fourier_norm_coeffs",
+    #  "features": df_pyefd.xs("norm_coeffs", level="coeffs"),
+    #  "labels": df_pyefd.xs("norm_coeffs", level="coeffs").index
+    # }
+    {"name": "regionprops", "features": df_regionprops, "labels": df_regionprops.index},
+]
+
+trial_df = pd.DataFrame()
+for trial in trials:
+    X = trial["features"]
+    y = trial["labels"]
+    trial["score_df"] = scoring_df(X, y)
+    trial["score_df"]["trial"] = trial["name"]
+    print(trial["score_df"])
+    trial["score_df"].to_csv(metadata(f"{trial['name']}_score_df.csv"))
+    trial_df = pd.concat([trial_df, trial["score_df"]])
+trial_df = trial_df.drop(["fit_time", "score_time"], axis=1)
+
+trial_df.to_csv(metadata(f"trial_df.csv"))
+trial_df.groupby("trial").mean().to_csv(metadata(f"trial_df_mean.csv"))
+trial_df.plot(kind="bar")
+
+melted_df = trial_df.melt(id_vars="trial", var_name="Metric", value_name="Score")
+# fig, ax = plt.subplots(figsize=(width, height))
+ax = sns.catplot(
+    data=melted_df,
+    kind="bar",
+    x="trial",
+    hue="Metric",
+    y="Score",
+    errorbar="se",
+    height=height,
+    aspect=width*2**0.5 / height,
+)
+# ax.xtick_params(labelrotation=45)
+# plt.legend(loc='lower center', bbox_to_anchor=(1, 1))
+# sns.move_legend(ax, "lower center", bbox_to_anchor=(1, 1))
+# ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+# plt.tight_layout()
+plt.savefig(metadata(f"trials_barplot.pdf"))
+plt.close()
+# tikzplotlib.save(metadata(f"trials_barplot.tikz"))
