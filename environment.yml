@@ -2,8 +2,6 @@
 channels:
   - bioconda
   - pytorch
-  - idr
-  - ome
   - conda-forge
   # - defaults
   - torch
