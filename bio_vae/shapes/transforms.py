@@ -174,9 +174,7 @@ class CoordsToDistogram(torch.nn.Module):
 
     def forward(self, coords):
         # return self.get_distogram(img, self.size)
-        return self.get_distogram(
-            coords, matrix_normalised=self.matrix_normalised
-        )
+        return self.get_distogram(coords, matrix_normalised=self.matrix_normalised)
 
     def __repr__(self):
         return self.__class__.__name__ + f"(size={self.size})"
@@ -185,15 +183,16 @@ class CoordsToDistogram(torch.nn.Module):
 
         xii, yii = coords
         # distograms.append(euclidean_distances(np.array([xii,yii]).T))
-        distance_matrix = euclidean_distances(np.array([xii, yii]).T)
+        distance_matrix = euclidean_distances(np.array([xii, yii]).T) / self.size**0.5
         norm = np.linalg.norm(distance_matrix, "fro")
         # Fro norm is the same as the L2 norm, but for positive semi-definite matrices
         # norm = np.linalg.norm(distance_matrix)
-
+        # norm_distance_matrix = distance_matrix / self.size**0.5
         if matrix_normalised:
             return distance_matrix / norm
         return distance_matrix
 
+# import numpy as np
 
 class ImageToCoords(torch.nn.Module):
     def __init__(self, size):
@@ -229,7 +228,7 @@ class ImageToCoords(torch.nn.Module):
         coords = []
         np_image = np.array(image)
         scaling = np.linalg.norm(np_image.shape)
-        
+
         # for i in range(np_image_full.shape[0]):
         # np_image = np_image_full[i]
         # im_height, im_width = np_image.shape
@@ -247,7 +246,7 @@ class ImageToCoords(torch.nn.Module):
         phi_interp = interp1d(np.linspace(0, 1, len(phi)), phi, kind="cubic")(
             np.linspace(0, 1, size)
         )
-    
+
         xii, yii = np.divide(self.pol2cart(rho_interp, phi_interp), scaling)
         xii, yii = self.pol2cart(rho_interp, phi_interp)
         # distograms.append(euclidean_distances(np.array([xii,yii]).T))
