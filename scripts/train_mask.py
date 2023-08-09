@@ -62,7 +62,7 @@ max_epochs = 100
 window_size = 128 * 2
 
 params = {
-    "epochs": 100,
+    "epochs": 75,
     "batch_size": 4,
     "num_workers": 2**4,
     # "window_size": 64*2,
@@ -78,6 +78,7 @@ params = {
     # "num_embeddings": 16,
     "commitment_cost": 0.25,
     "decay": 0.99,
+    "loss_weights": [1, 1, 1, 1],
 }
 
 optimizer_params = {
@@ -104,17 +105,23 @@ lr_scheduler_params = {
 args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
 
 dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm"
+dataset_path = "vampire/mefs/data/processed/Control"
+dataset_path = "vampire/torchvision/Control"
 # dataset = "bbbc010"
 model_name = "vqvae"
 
 train_data_path = f"data/{dataset_path}"
-metadata = lambda x: f"results/{x}"
+metadata = lambda x: f"results/{dataset_path}_{model_name}/{x}"
 
+path = Path(metadata(""))
+path.mkdir(parents=True, exist_ok=True)
 model_dir = f"models/{dataset_path}_{model_name}"
 # %%
 
 transform_crop = CropCentroidPipeline(window_size)
-transform_dist = MaskToDistogramPipeline(window_size, interp_size)
+transform_dist = MaskToDistogramPipeline(
+    window_size, interp_size, matrix_normalised=False
+)
 transform_mdscoords = DistogramToCoords(window_size)
 transform_coords = ImageToCoords(window_size)
 
@@ -209,6 +216,18 @@ transform = transforms.Compose([transform_mask_to_dist, transforms.ToTensor()])
 
 dataset = datasets.ImageFolder(train_data_path, transform=transform)
 
+valid_indices = []
+# Iterate through the dataset and apply the transform to each image
+for idx in range(len(dataset)):
+    try:
+        image, label = dataset[idx]
+        # If the transform works without errors, add the index to the list of valid indices
+        valid_indices.append(idx)
+    except Exception as e:
+        print(f"Error occurred for image {idx}: {e}")
+
+# Create a Subset using the valid indices
+dataset = torch.utils.data.Subset(dataset, valid_indices)
 dataloader = DataModule(
     dataset,
     batch_size=args.batch_size,
@@ -217,6 +236,7 @@ dataloader = DataModule(
     # transform=transform,
 )
 
+
 # dataloader = DataLoader(train_dataset, batch_size=batch_size,
 #                         shuffle=True, num_workers=2**4, pin_memory=True, collate_fn=my_collate)
 
@@ -224,6 +244,7 @@ model = bio_vae.models.create_model("resnet18_vqvae_legacy", **vars(args))
 
 lit_model = shapes.MaskEmbedLatentAugment(model, args)
 lit_model = shapes.MaskEmbed(model, args)
+
 # model = Mask_VAE("VAE", 1, 64,
 #                      #  hidden_dims=[32, 64],
 #                      image_dims=(interp_size, interp_size))
@@ -293,7 +314,7 @@ latent_space = torch.stack(
     [prediction.z.flatten() for prediction in predictions[:-1]], dim=0
 )
 
-idx_to_class = {v: k for k, v in dataset.class_to_idx.items()}
+idx_to_class = {v: k for k, v in dataset.dataset.class_to_idx.items()}
 
 
 y = np.array([int(data[-1]) for data in dataloader.predict_dataloader()])[:-1]
@@ -320,7 +341,6 @@ idx_to_class = {0: "alive", 1: "dead"}
 df["Class"] = df["Class"].map(idx_to_class)
 
 
-
 ax = sns.relplot(
     data=df,
     x="umap0",
@@ -331,15 +351,18 @@ ax = sns.relplot(
     edgecolor=None,
     s=5,
     height=height,
-    aspect=0.5*width/height,
+    aspect=0.5 * width / height,
 )
 
 # ax.annotate('', xy=(0, 0.2), xytext=(0, 0), xycoords='axes fraction',
 #              arrowprops=dict(arrowstyle="-|>", color='black', lw=1.5))
 # ax.annotate('', xy=(0.2*height/width, 0), xytext=(0, 0), xycoords='axes fraction',  arrowprops=dict(arrowstyle="-|>", color='black', lw=1.5))
 
-sns.move_legend(ax, "upper center",)
-ax.set(xlabel=None,ylabel=None)
+sns.move_legend(
+    ax,
+    "upper center",
+)
+ax.set(xlabel=None, ylabel=None)
 sns.despine(left=True, bottom=True)
 plt.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
 # plt.legend(loc="upper center", ncol=2,bbox_to_anchor=(0.5, 1.5))
@@ -376,7 +399,7 @@ def scoring_df(X, y):
     clf = RandomForestClassifier()
 
     # Specify the number of folds
-    k_folds = 5
+    k_folds = 10
 
     # Perform k-fold cross-validation
     cv_results = cross_validate(
@@ -408,7 +431,7 @@ properties = [
     "minor_axis_length",
     "orientation",
 ]
-dfs=[]
+dfs = []
 for i, data in enumerate(train_data["transform_crop"]):
     X, y = data
     # Do regionprops here
@@ -494,7 +517,7 @@ ax = sns.catplot(
     y="Score",
     errorbar="se",
     height=height,
-    aspect=width*2**0.5 / height,
+    aspect=width * 2**0.5 / height,
 )
 # ax.xtick_params(labelrotation=45)
 # plt.legend(loc='lower center', bbox_to_anchor=(1, 1))
@@ -503,4 +526,12 @@ ax = sns.catplot(
 # plt.tight_layout()
 plt.savefig(metadata(f"trials_barplot.pdf"))
 plt.close()
+
+avs = (
+    melted_df.set_index(["trial", "Metric"])
+    .xs("test_f1", level="Metric", drop_level=False)
+    .groupby("trial")
+    .mean()
+)
+print(avs)
 # tikzplotlib.save(metadata(f"trials_barplot.tikz"))
