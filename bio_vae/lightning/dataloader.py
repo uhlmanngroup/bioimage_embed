@@ -66,7 +66,7 @@ class DatamoduleGlob(pl.LightningDataModule):
         return train, val, test
 
     def setup(self, stage=None):
-        self.test, self.train, self.predict, self.val = self.splitting(self.dataset)
+        self.train, self.val,  self.test = self.splitting(self.dataset)
 
         # self.test = self.get_dataloader(test)
         # self.predict = self.get_dataloader(predict)
