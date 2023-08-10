@@ -65,7 +65,7 @@ class DataModule(pl.LightningDataModule):
         return train, val, test
 
     def setup(self, stage=None):
-        self.test, self.train, self.predict, self.val = self.splitting(self.dataset)
+        self.train, self.val,  self.test = self.splitting(self.dataset)
 
     def test_dataloader(self):
         return DataLoader(self.test, **self.data_loader_settings)
