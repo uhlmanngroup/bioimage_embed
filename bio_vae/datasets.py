@@ -12,13 +12,16 @@ from PIL import Image
 
 from functools import lru_cache
 
+from albumentations import Compose
+from typing import Callable
+
 
 class DatasetGlob(Dataset):
     def __init__(
         self,
         path_glob,
         over_sampling=1,
-        transform=None,
+        transform: Callable = Compose([]),
         samples=-1,
         shuffle=True,
         **kwargs,
