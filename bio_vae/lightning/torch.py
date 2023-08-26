@@ -1,149 +1,167 @@
-import sys
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pyro.optim import Adam
-from pyro.infer import SVI, Trace_ELBO
-import pyro.distributions as dist
-import pyro
-import pytorch_lightning as pl
-from torch.utils.data import random_split, DataLoader
-import glob
-
-# Note - you must have torchvision installed for this example
-from torchvision import datasets
-from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
-from PIL import Image
-import os
-from skimage.measure import regionprops
-from torchvision.transforms.functional import crop
-from scipy import ndimage
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-from torch import nn
-from pytorch_lightning import loggers as pl_loggers
 import torchvision
-from sklearn.manifold import MDS
-from sklearn.metrics.pairwise import euclidean_distances
-from scipy.ndimage import convolve, sobel
-from skimage.measure import find_contours
-from scipy.interpolate import interp1d
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-import torch.optim as optim
+import pytorch_lightning as pl
+import pythae
+from timm import optim, scheduler
+from types import SimpleNamespace
+import argparse
+import timm
 
 
 class LitAutoEncoderTorch(pl.LightningModule):
-    def __init__(self, model, batch_size=1, learning_rate=1e-4, params=None):
+    args = argparse.Namespace(
+        opt="adamw",
+        weight_decay=0.001,
+        momentum=0.9,
+        sched="cosine",
+        epochs=50,
+        lr=1e-4,
+        min_lr=1e-6,
+        t_initial=10,
+        t_mul=2,
+        lr_min=None,
+        decay_rate=0.1,
+        warmup_lr=1e-6,
+        warmup_lr_init=1e-6,
+        warmup_epochs=5,
+        cycle_limit=None,
+        t_in_epochs=False,
+        noisy=False,
+        noise_std=0.1,
+        noise_pct=0.67,
+        noise_seed=None,
+        cooldown_epochs=5,
+        warmup_t=0,
+    )
+
+    def __init__(self, model, args=None):
         super().__init__()
-        # self.autoencoder = AutoEncoder(batch_size, 1)
         self.model = model
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-        self.loss_fn = torch.nn.MSELoss()
-        self.params = params
-        # self.loss_fn = torch.nn.BCEWithLogitsLoss()
-        # self.vae = VAE()
-        # self.vae_flag = vae_flag
-        # self.loss_fn = torch.nn.BCELoss()
+        self.model = self.model.to(self.device)
+        if args:
+            self.args = SimpleNamespace(**{**vars(args), **vars(self.args)})
+        self.save_hyperparameters()
+        # self.model.train()
 
-    def decoder(self, z):
-        return self.model.decoder(z)
-
-    def encoder(self, img):
-        return self.model.encoder(img)
-
-    def decode(self, z):
-        return self.model.decode(z)
-
-    def encode(self, img):
-        return self.model.encode(img)
-
-    def forward(self, x):
+    def forward(self, batch):
+        x = self.batch_to_tensor(batch)
         return self.model(x)
 
-    def recon(self, x):
-        return self.model.recon(x)
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-
-    def predict_step(self, batch, batch_idx, dataloader_idx=0):
-        return self.recon(batch)
-
-    def get_loss(self, batch):
-        # self.curr_device = real_img.device
-
-        results = self.get_results(batch)
-        recons = self.recon(batch)
-
-        loss = self.model.loss_function(*results, recons=recons, input=batch)
-        return loss["loss"]
-
     def get_results(self, batch):
-        return self.forward(batch)
+        # if self.PYTHAE_FLAG:
+        x = self.batch_to_tensor(batch)
+        return self.model.forward(x)
+        # return self.model.forward(batch)
 
-    def test_step(self, batch, batch_idx):
-        test_loss = self.get_loss(batch)
-        self.log("test_loss", test_loss, on_epoch=True)
-        return test_loss
+    def batch_to_tensor(self, batch):
+        return {"data": batch}
 
-    def validation_step(self, batch, batch_idx):
-        val_loss = self.get_loss(batch)
-        self.log("val_loss", val_loss, on_epoch=True)
-        return val_loss
+    def embedding_from_output(self, model_output):
+        return model_output.z.view(model_output.z.shape[0], -1)
 
-    def training_step(self, batch, batch_idx, optimizer_idx=0):
+    def get_model_output(self, x, batch_idx):
+        model_output = self.model(x, epoch=batch_idx)
+        loss = self.loss_function(model_output)
+        return model_output, loss
 
-        loss = self.get_loss(batch)
-        results = self.get_results(batch)
-
-        self.log("train_loss", loss)
-        # self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
-
-        self.logger.experiment.add_image(
-            "input", torchvision.utils.make_grid(batch), batch_idx
-        )
-        self.logger.experiment.add_image(
-            "output",
-            torchvision.utils.make_grid(self.model.output_from_results(*results)),
+    def training_step(self, batch, batch_idx):
+        # results = self.get_results(batch)
+        self.model.train()
+        x = self.batch_to_tensor(batch)
+        model_output, loss = self.get_model_output(
+            x,
             batch_idx,
         )
+        # loss = self.model.training_step(x)
+        # loss = self.loss_function(model_output,optimizer_idx)
+
+        # self.log("train_loss", self.loss)
+        # self.log("train_loss", loss)
+        self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
+
+        self.logger.experiment.add_image(
+            "input", torchvision.utils.make_grid(x["data"]), batch_idx
+        )
+
+        # if self.PYTHAE_FLAG:
+        self.logger.experiment.add_image(
+            "output",
+            torchvision.utils.make_grid(model_output.recon_x),
+            batch_idx,
+        )
+
         return loss
 
-    def _training_step(self, inputs, batch_idx):
-        vq_loss, output, perplexity = self.forward(inputs)
-        # output = x_recon
-        # loss = self.loss_fn(output, inputs)
+    def loss_function(self, model_output, *args, **kwargs):
+        return model_output.loss
 
-        # vq_loss, data_recon, perplexity = model(inputs)
-        # recon_error = F.mse_loss(output, inputs)
-        recon_error = self.loss_fn(output, inputs)
-        loss = recon_error + vq_loss  # Missing variance bit
-        self.log("train_loss", loss)
-        # tensorboard = self.logger.experiment
-        # self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
+    # def logging_step(self, z, loss, x, model_output, batch_idx):
+    #     self.logger.experiment.add_embedding(
+    #         z,
+    #         label_img=x["data"],
+    #         global_step=self.current_epoch,
+    #         tag="z",
+    #         )
 
-        # torchvision.utils.make_grid(output)
-        self.logger.experiment.add_image(
-            "input", torchvision.utils.make_grid(inputs), batch_idx
+    #     self.logger.experiment.add_scalar("Loss/val", loss, batch_idx)
+    #     self.logger.experiment.add_image(
+    #         "val",
+    #         torchvision.utils.make_grid(model_output.recon_x),
+    #         batch_idx,
+    #     )
+        
+    def validation_step(self, batch, batch_idx):
+        x = self.batch_to_tensor(batch)
+        model_output, loss = self.get_model_output(x, batch_idx)
+        z = self.embedding_from_output(model_output)
+        # z_indices
+        self.logger.experiment.add_embedding(
+            z,
+            label_img=x["data"],
+            global_step=self.current_epoch,
+            tag="z",
         )
-        # self.logger.experiment.add_embedding(
-        #     "input_image", torchvision.utils.make_grid(transformer_image(inputs)), batch_idx)
+
+        self.logger.experiment.add_scalar("Loss/val", loss, batch_idx)
         self.logger.experiment.add_image(
-            "output", torchvision.utils.make_grid(output), batch_idx
+            "val",
+            torchvision.utils.make_grid(model_output.recon_x),
+            batch_idx,
         )
-        # self.logger.experiment.add_embedding(
-        #     "output_image", torchvision.utils.make_grid(transformer_image(output)), batch_idx)
 
-        # tensorboard.add_image("input", transforms.ToPILImage()(output[batch_idx]), batch_idx)
-        # tensorboard.add_image("output", transforms.ToPILImage()(output[batch_idx]), batch_idx)
-        return loss
+    # def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+    #     # Implement your own logic for updating the lr scheduler
+    #     # This method will be called at each training step
+    #     # Update the lr scheduler based on the provided arguments
+    #     # You can access the lr scheduler using `self.lr_schedulers()`
 
-    def get_embedding(self):
-        return self.model.get_embedding()
+    #     # Example:
+    #     for lr_scheduler in self.lr_schedulers():
+    #         lr_scheduler.step()
 
-    def sample(self, *args, **kwargs):
-        return self.model.sample(*args, **kwargs)
+    def timm_optimizers(self, model):
+        optimizer = optim.create_optimizer(self.args, model.parameters())
+        lr_scheduler = scheduler.create_scheduler(self.args, optimizer)[0]
+        return optimizer, lr_scheduler
+
+    def timm_to_lightning(self, optimizer, lr_scheduler):
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": lr_scheduler,
+                "interval": "step",  # or 'epoch' for step vs epoch training, respectively
+            },
+        }
+
+    def configure_optimizers(self):
+        # optimizer = optim.create_optimizer(self.args, self.model.parameters())
+        # lr_scheduler = scheduler.create_scheduler(self.args, optimizer)[0]
+        optimizer, lr_scheduler = self.timm_optimizers(self.model)
+        return self.timm_to_lightning(optimizer, lr_scheduler)
+
+    def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+        scheduler.step(epoch=self.current_epoch, metric=metric)
+
+    # def configure_optimizers(self):
+    #     optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+    #     return optimizer

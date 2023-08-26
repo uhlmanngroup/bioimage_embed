@@ -1,66 +1,33 @@
-name: torch
+# name: torch
 channels:
   - bioconda
   - pytorch
   - idr
   - ome
   - conda-forge
-  - defaults
+  # - defaults
   - torch
 dependencies:
   - cudatoolkit=10.2
-  - python=3.8
-  - scipy
+  - python=3.9
+  - mamba
+  - conda
   - pytest
-  - tqdm
   - poetry
-  - pandas
-  - torchinfo
+  - gcc
   - tensorboard
-  - flake8
   - umap-learn
-  - python
-  - future
   - jupyter
-  - absl-py
-  - pip
-  - torchvision
-  - matplotlib
-  - pyyaml
-  - click
   - black
-  - rope
   - autopep8
   - pytorch
-  - torchvision
-  - numpy
-  - torchaudio
   - pytorch-lightning
-  - scikit-image
   - pytorch-model-summary
   - pyro-ppl
-  - scikit-learn
-  - pandas
   - matplotlib
-  - datashader
-  - bokeh
-  - holoviews 
-  - colorcet 
-  - idr-py
   - torchvision
-  - cudatoolkit=10.2
-  - pytorch
-  - matplotlib
-  - tensorboard
-  - idr-py
-  - pytorch-lightning
-  - matplotlib
-  - scikit-learn
   - gsutil
-  - dask-image
-  - gcsfs
-  - imageio
-  - pip 
+  - pip
   - pip:
-    - -e .
+    - .
     - nonechucks

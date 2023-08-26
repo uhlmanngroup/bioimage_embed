@@ -1,0 +1,70 @@
+# __version__: 1.3.0
+# transform:
+#   __class_fullname__: Compose
+#   additional_targets: {}
+#   bbox_params: null
+#   keypoint_params: null
+#   p: 1.0
+#   transforms:
+#   - __class_fullname__: OneOf
+#     p: 0.5
+#     transforms:
+#     - __class_fullname__: HorizontalFlip
+#       always_apply: false
+#       p: 0.5
+#     - __class_fullname__: VerticalFlip
+#       always_apply: false
+#       p: 0.5
+#   - __class_fullname__: Rotate
+#     always_apply: false
+#     border_mode: 4
+#     crop_border: false
+#     interpolation: 1
+#     limit:
+#     - -45
+#     - 45
+#     mask_value: null
+#     p: 0.5
+#     rotate_method: largest_box
+#     value: null
+#   - __class_fullname__: RandomGamma
+#     always_apply: false
+#     eps: null
+#     gamma_limit:
+#     - 80
+#     - 120
+#     p: 0.5
+#   - __class_fullname__: ElasticTransform
+#     alpha: 1
+#     alpha_affine: 50
+#     always_apply: false
+#     approximate: false
+#     border_mode: 4
+#     interpolation: 1
+#     mask_value: null
+#     p: 0.5
+#     same_dxdy: false
+#     sigma: 50
+#     value: null
+#   - __class_fullname__: GaussNoise
+#     always_apply: false
+#     mean: 0
+#     p: 0.5
+#     per_channel: true
+#     var_limit:
+#     - 10.0
+#     - 50.0
+#   - __class_fullname__: RandomCrop
+#     always_apply: false
+#     height: ${dataset.crop_size[0]}
+#     p: 1
+#     width: ${dataset.crop_size[1]}
+#   - __class_fullname__: Normalize
+#     always_apply: true
+#     p: 1.0
+#     transpose_mask: false
+#   - __class_fullname__: ToTensorV2
+#     always_apply: true
+#     p: 1.0
+#     transpose_mask: false
+
