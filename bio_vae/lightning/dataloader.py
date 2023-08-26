@@ -42,25 +42,35 @@ class DataModule(pl.LightningDataModule):
     def get_dataset(self):
         return self.dataset
 
-    def splitting(self, dataset, split=0.8, seed=42):
-        if len(dataset) < 4:
-            return dataset, dataset, dataset, dataset
-        spliting_shares = [
-            len(dataset) * split * split,  # train
-            len(dataset) * split * (1 - split),  # test
-            len(dataset) * split * (1 - split),  # predict
-            len(dataset) * (1 - split) * (1 - split),  # val
-        ]
 
-        train, test, predict, val = random_split(
+    def splitting(self, dataset, split_train=0.8, split_val=0.1, seed=42):
+        if len(dataset) < 3:
+            return dataset, dataset, dataset
+
+        train_share = int(len(dataset) * split_train)
+        val_share = int(len(dataset) * split_val)
+        test_share = len(dataset) - train_share - val_share
+
+        # Ensure that the splits add up correctly
+        if train_share + val_share + test_share != len(dataset):
+            raise ValueError("The splitting ratios do not add up to the length of the dataset")
+
+        torch.manual_seed(seed)  # for reproducibility
+
+        train, val, test = random_split(
             dataset,
-            list(map(int, saferound(spliting_shares, places=0))),
+            [train_share, val_share, test_share]
         )
 
-        return test, train, predict, val
+        return train, val, test
 
     def setup(self, stage=None):
-        self.test, self.train, self.predict, self.val = self.splitting(self.dataset)
+        self.train, self.val,  self.test = self.splitting(self.dataset)
+
+        # self.test = self.get_dataloader(test)
+        # self.predict = self.get_dataloader(predict)
+        # self.train = self.get_dataloader(train)
+        # self.val = self.get_dataloader(val)
 
     def test_dataloader(self):
         return DataLoader(self.test, **self.data_loader_settings)
@@ -72,7 +82,7 @@ class DataModule(pl.LightningDataModule):
         return DataLoader(self.val, **self.data_loader_settings)
 
     def predict_dataloader(self):
-        return DataLoader(self.predict, **self.data_loader_settings)
+        return DataLoader(self.dataset, **self.data_loader_settings)
 
     # def teardown(self, stage: Optional[str] = None):
     #     # Used to clean-up when the run is finished
