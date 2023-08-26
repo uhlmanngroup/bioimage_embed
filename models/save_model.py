@@ -14,9 +14,9 @@ from pytorch_lightning.callbacks import (
     LearningRateMonitor,
     EarlyStopping,
 )
-from bio_vae_training.bio_vae.lightning.dataloader import DatamoduleGlob
-from bio_vae_training.bio_vae.models import Bio_VAE
-from bio_vae_training.bio_vae.lightning.torch import LitAutoEncoderTorch
+from bioimage_embed_training.bioimage_embed.lightning.dataloader import DatamoduleGlob
+from bioimage_embed_training.bioimage_embed.models import Bio_VAE
+from bioimage_embed_training.bioimage_embed.lightning.torch import LitAutoEncoderTorch
 import json
 # Taking configurations from python file:
 logging.basicConfig(level=logging.INFO)

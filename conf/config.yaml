@@ -10,7 +10,7 @@ defaults:
   - dataloader: default.yaml
   - paths: default.yaml
   - lightning: default.yaml
-  - bio_vae: default.yaml
+  - bioimage_embed: default.yaml
   - logger: default.yaml
   - checkpoints: default.yaml
 
@@ -49,7 +49,7 @@ dataloader:
   persistent_workers: true
 
 model:
-  _target_: bio_vae.models.create_model
+  _target_: bioimage_embed.models.create_model
   name: "resnet18_vqvae_legacy"
   # Dims match ImageNet
   input_dim: [3, 64, 64]
@@ -67,9 +67,9 @@ model:
   cycle_momentum: false
 
 # pythae:
-#   encoder: bio_vae.models.ResNet18VAEEncoder
+#   encoder: bioimage_embed.models.ResNet18VAEEncoder
 #     # _target_: Encoder_ResNet_VQVAE_CELEBA
-#   decoder: bio_vae.models.ResNet18VAEDecoder
+#   decoder: bioimage_embed.models.ResNet18VAEDecoder
 #   model_config:
 #     _target_: pythae.models.VAEConfig
 

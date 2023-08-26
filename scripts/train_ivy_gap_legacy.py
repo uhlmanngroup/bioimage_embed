@@ -2,7 +2,7 @@
 from pathlib import Path
 from torch.autograd import Variable
 import torch
-# from bio_vae.models import Bio_VAE
+# from bioimage_embed.models import Bio_VAE
 import albumentations as A
 
 # import matplotlib.pyplot as plt
@@ -15,12 +15,12 @@ from PIL import Image
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
-from bio_vae.datasets import DatasetGlob
-from bio_vae.lightning import DatamoduleGlob, LitAutoEncoderTorch
+from bioimage_embed.datasets import DatasetGlob
+from bioimage_embed.lightning import DatamoduleGlob, LitAutoEncoderTorch
 from types import SimpleNamespace
 
 # import timm
-from bio_vae.models.legacy import Bio_VAE, VQ_VAE
+from bioimage_embed.models.legacy import Bio_VAE, VQ_VAE
 
 Image.MAX_IMAGE_PIXELS = None
 import warnings
@@ -152,16 +152,16 @@ def main():
     # model_config_vqvae = pythae.models.VQVAEConfig(
     # **vars(args),
     # )
-    import bio_vae
+    import bioimage_embed
     # model = VQ_VAE(model_config=model_config_vqvae, channels=args.channels)
-    # model = bio_vae.models.create_model("resnet150_vqvae_legacy",**vars(args))
-    # model = bio_vae.models.pythae.legacy.vq_vae.VQVAE(model_config=model_config_vqvae,**vars(args))
+    # model = bioimage_embed.models.create_model("resnet150_vqvae_legacy",**vars(args))
+    # model = bioimage_embed.models.pythae.legacy.vq_vae.VQVAE(model_config=model_config_vqvae,**vars(args))
 
-    model = bio_vae.models.create_model("resnet18_vqvae_legacy",**vars(args))
+    model = bioimage_embed.models.create_model("resnet18_vqvae_legacy",**vars(args))
 
 
-    # model = bio_vae.models.create_model("resnet18_vae_legacy",**vars(args))
-    # model = bio_vae.models.create_model("resnet18_vae", **vars(args))
+    # model = bioimage_embed.models.create_model("resnet18_vae_legacy",**vars(args))
+    # model = bioimage_embed.models.create_model("resnet18_vae", **vars(args))
     # model
     # import pythae
 

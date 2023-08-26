@@ -8,11 +8,11 @@ import pytorch_lightning as pl
 # Note - you must have torchvision installed for this example
 from pytorch_lightning import loggers as pl_loggers
 from torchvision import transforms
-from bio_vae.lightning import DatamoduleGlob
+from bioimage_embed.lightning import DatamoduleGlob
 
-from bio_vae.datasets import DatasetGlob
-from bio_vae.models import Bio_VAE
-from bio_vae.lightning import LitAutoEncoderTorch
+from bioimage_embed.datasets import DatasetGlob
+from bioimage_embed.models import Bio_VAE
+from bioimage_embed.lightning import LitAutoEncoderTorch
 import matplotlib.pyplot as plt
 
 

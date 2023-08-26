@@ -1,4 +1,4 @@
-_target_: bio_vae.lightning.DatamoduleGlob
+_target_: bioimage_embed.lightning.DatamoduleGlob
 glob_str: ${dataset.train_dataset_glob}
 batch_size: 32
 num_workers: 4

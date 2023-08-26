@@ -21,27 +21,27 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
 import torch
 
-from bio_vae import shapes
-import bio_vae
+from bioimage_embed import shapes
+import bioimage_embed
 
 # Note - you must have torchvision installed for this example
 
 from pytorch_lightning import loggers as pl_loggers
 from torchvision import transforms
-from bio_vae.lightning import DataModule
+from bioimage_embed.lightning import DataModule
 
 from torchvision import datasets
-from bio_vae.shapes.transforms import (
+from bioimage_embed.shapes.transforms import (
     ImageToCoords,
     CropCentroidPipeline,
     DistogramToCoords,
     MaskToDistogramPipeline,
 )
 
-# from bio_vae.models import Mask_VAE, VQ_VAE, VAE
+# from bioimage_embed.models import Mask_VAE, VQ_VAE, VAE
 import matplotlib.pyplot as plt
 
-from bio_vae.lightning import DataModule
+from bioimage_embed.lightning import DataModule
 import matplotlib as mpl
 from matplotlib import rc
 
@@ -240,7 +240,7 @@ dataloader = DataModule(
 # dataloader = DataLoader(train_dataset, batch_size=batch_size,
 #                         shuffle=True, num_workers=2**4, pin_memory=True, collate_fn=my_collate)
 
-model = bio_vae.models.create_model("resnet18_vqvae_legacy", **vars(args))
+model = bioimage_embed.models.create_model("resnet18_vqvae_legacy", **vars(args))
 
 lit_model = shapes.MaskEmbedLatentAugment(model, args)
 lit_model = shapes.MaskEmbed(model, args)

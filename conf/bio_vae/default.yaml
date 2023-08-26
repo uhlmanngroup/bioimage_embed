@@ -1,4 +1,4 @@
-_target_: bio_vae.models.Bio_VAE
+_target_: bioimage_embed.models.Bio_VAE
 model: "VQVAE"
 input_dim:
   - 3

@@ -14,9 +14,9 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
-from bio_vae.datasets import DatasetGlob
-from bio_vae.lightning import LitAutoEncoderTorch
-from bio_vae.models.legacy import VQ_VAE, Bio_VAE
+from bioimage_embed.datasets import DatasetGlob
+from bioimage_embed.lightning import LitAutoEncoderTorch
+from bioimage_embed.models.legacy import VQ_VAE, Bio_VAE
 
 latent_dim = 64
 window_size = 64 * 2

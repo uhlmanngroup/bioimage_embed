@@ -9,26 +9,26 @@ import pythae
 
 # Note - you must have torchvision installed for this example
 from torch.utils.data import DataLoader
-from bio_vae.models.legacy import vq_vae
+from bioimage_embed.models.legacy import vq_vae
 
-from bio_vae.utils import collate_none, get_test_image
+from bioimage_embed.utils import collate_none, get_test_image
 
-# from bio_vae.datasets import BroadDataset, DatasetGlob
-from bio_vae.shapes.transforms import (
+# from bioimage_embed.datasets import BroadDataset, DatasetGlob
+from bioimage_embed.shapes.transforms import (
     CropCentroidPipeline,
     MaskToDistogramPipeline,
     DistogramToMaskPipeline,
 )
-from bio_vae.shapes.transforms import (
+from bioimage_embed.shapes.transforms import (
     DistogramToCoords,
 )
-from bio_vae.models import MODELS
+from bioimage_embed.models import MODELS
 
-# from bio_vae.models import VQ_VAE, Bio_VAE, VAE
-from bio_vae.lightning import LitAutoEncoderTorch
-from bio_vae.models.legacy import vae
+# from bioimage_embed.models import VQ_VAE, Bio_VAE, VAE
+from bioimage_embed.lightning import LitAutoEncoderTorch
+from bioimage_embed.models.legacy import vae
 import  numpy as np
-from bio_vae.models import create_model, MODELS
+from bioimage_embed.models import create_model, MODELS
 
 
 # @pytest.mark.skip(reason="Crashes github actions")
