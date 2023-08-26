@@ -16,27 +16,28 @@ bioimage_embed includes functions for loading and preprocessing images from micr
    
 ## Usage
 
-### Get data
-
-    make download.data
-
-### Intall
-
-    poetry install
-
-and or:
+### Install:
 
     pip install -e .
 
-### Run
+### CLI
 
     bioimage_embed --help
     
     or
 
     bie --help
+### Get data
 
-### TODO
+    make download.data
 
-- Scale invariant distance matrix encoding (scale by matrix norm)
-- Find better sampling of contour, e.g. using Delaunay triangulation?
+### Dev intall
+
+Uses poetry to manage dependencies and virtualenvs
+
+    poetry env use python 
+
+    poetry install
+
+    poetry shell
+
