@@ -141,7 +141,7 @@ class ModelFactory:
     def resnet101_vqvae_legacy(self):
         return self.resnet_vqvae_legacy(101)
 
-    def resnet150_vqvae_legacy(self):
+    def resnet110_vqvae_legacy(self):
         return self.resnet_vqvae_legacy(150)
 
     def resnet152_vqvae_legacy(self):
@@ -157,8 +157,8 @@ MODELS = [
     "resnet50_vqvae",
     "resnet18_vqvae_legacy",
     "resnet50_vqvae_legacy",
-    "resnet11_vqvae_legacy",
-    "resnet150_vqvae_legacy",
+    "resnet101_vqvae_legacy",
+    "resnet110_vqvae_legacy",
     "resnet152_vqvae_legacy",
     "resnet18_vae_legacy",
     "resnet50_vae_legacy",

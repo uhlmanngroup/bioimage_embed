@@ -3,7 +3,6 @@ from .. import datasets
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
-import math
 from iteround import saferound
 
 
@@ -17,18 +16,18 @@ class SimpleCustomBatch:
         return self
 
 
-class DatamoduleGlob(pl.LightningDataModule):
-    
-    def collate_wrapper(self,batch):
+class DataModule(pl.LightningDataModule):
+    def collate_wrapper(self, batch):
         return SimpleCustomBatch(batch)
 
     def __init__(
-        self, glob_str, batch_size=32, num_workers=2**8, sampler=None, **kwargs
+        self, dataset, batch_size=32, num_workers=2**8, sampler=None, **kwargs
     ):
         super().__init__()
-        self.glob_str = glob_str
+        # self.glob_str = glob_str
         self.batch_size = batch_size
-        self.dataset = datasets.DatasetGlob(glob_str, **kwargs)
+        self.dataset = dataset
+        # TODO this is a hack to get the dataset to work with the dataloader
         self.data_loader_settings = {
             "batch_size": batch_size,
             # batch_size:32,
@@ -63,11 +62,6 @@ class DatamoduleGlob(pl.LightningDataModule):
     def setup(self, stage=None):
         self.test, self.train, self.predict, self.val = self.splitting(self.dataset)
 
-        # self.test = self.get_dataloader(test)
-        # self.predict = self.get_dataloader(predict)
-        # self.train = self.get_dataloader(train)
-        # self.val = self.get_dataloader(val)
-
     def test_dataloader(self):
         return DataLoader(self.test, **self.data_loader_settings)
 
@@ -87,3 +81,18 @@ class DatamoduleGlob(pl.LightningDataModule):
     def collate_filter_for_none(self, batch):
         batch = list(filter(lambda x: x is not None, batch))
         return torch.utils.data.dataloader.default_collate(batch)
+
+
+class DataModuleGlob(DataModule):
+    def __init__(
+        self, glob_str, batch_size=32, num_workers=2**8, sampler=None, **kwargs
+    ):
+        self.dataset = datasets.DatasetGlob(glob_str, **kwargs)
+        super().__init__(
+            dataset=self.dataset,
+            batch_size=32,
+            num_workers=2**8,
+            sampler=None,
+            **kwargs
+        )
+        # self.dataset = datasets.DatasetGlob(glob_str, **kwargs)

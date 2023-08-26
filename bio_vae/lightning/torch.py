@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import argparse
 import timm
 
+
 class LitAutoEncoderTorch(pl.LightningModule):
     args = argparse.Namespace(
         opt="adamw",
@@ -32,38 +33,56 @@ class LitAutoEncoderTorch(pl.LightningModule):
         cooldown_epochs=5,
         warmup_t=0,
     )
-    def __init__(self, model,args=None):
+
+    def __init__(self, model, args=None):
         super().__init__()
         self.model = model
         self.model = self.model.to(self.device)
         if args:
-            self.args = SimpleNamespace(**{**vars(args),**vars(self.args)})
-
+            self.args = SimpleNamespace(**{**vars(args), **vars(self.args)})
+        self.save_hyperparameters()
         # self.model.train()
-        
-    def forward(self, x):
-        return self.model({"data":x}
-                          )
+
+    def forward(self, batch):
+        x = self.batch_to_tensor(batch)
+        return self.model(x)
+
     def get_results(self, batch):
         # if self.PYTHAE_FLAG:
-        return self.model.forward({"data": batch})
+        x = self.batch_to_tensor(batch)
+        return self.model.forward(x)
         # return self.model.forward(batch)
-        
+
+    def batch_to_tensor(self, batch):
+        return {"data": batch}
+
+    def embedding_from_output(self, model_output):
+        return model_output.z.view(model_output.z.shape[0], -1)
+
+    def get_model_output(self, x, batch_idx):
+        model_output = self.model(x, epoch=batch_idx)
+        loss = self.loss_function(model_output)
+        return model_output, loss
+
     def training_step(self, batch, batch_idx):
         # results = self.get_results(batch)
         self.model.train()
-        x = {"data":batch}
-        model_output = self.model(x,epoch=batch_idx)
+        x = self.batch_to_tensor(batch)
+        model_output, loss = self.get_model_output(
+            x,
+            batch_idx,
+        )
         # loss = self.model.training_step(x)
-        loss = model_output.loss
+        # loss = self.loss_function(model_output,optimizer_idx)
 
         # self.log("train_loss", self.loss)
         # self.log("train_loss", loss)
         self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
 
         self.logger.experiment.add_image(
-            "input", torchvision.utils.make_grid(batch), batch_idx
+            "input", torchvision.utils.make_grid(x["data"]), batch_idx
         )
+
         # if self.PYTHAE_FLAG:
         self.logger.experiment.add_image(
             "output",
@@ -72,20 +91,36 @@ class LitAutoEncoderTorch(pl.LightningModule):
         )
 
         return loss
-     
-    def validation_step(self, batch, batch_idx):
 
-        x = {"data":batch}
-        model_output = self.model(x,epoch=batch_idx)
-        loss = model_output.loss
-        z = model_output.z.view(model_output.z.shape[0], -1)
+    def loss_function(self, model_output, *args, **kwargs):
+        return model_output.loss
+
+    # def logging_step(self, z, loss, x, model_output, batch_idx):
+    #     self.logger.experiment.add_embedding(
+    #         z,
+    #         label_img=x["data"],
+    #         global_step=self.current_epoch,
+    #         tag="z",
+    #         )
+
+    #     self.logger.experiment.add_scalar("Loss/val", loss, batch_idx)
+    #     self.logger.experiment.add_image(
+    #         "val",
+    #         torchvision.utils.make_grid(model_output.recon_x),
+    #         batch_idx,
+    #     )
+        
+    def validation_step(self, batch, batch_idx):
+        x = self.batch_to_tensor(batch)
+        model_output, loss = self.get_model_output(x, batch_idx)
+        z = self.embedding_from_output(model_output)
         # z_indices
         self.logger.experiment.add_embedding(
             z,
-            label_img=batch,
+            label_img=x["data"],
             global_step=self.current_epoch,
             tag="z",
-        )       
+        )
 
         self.logger.experiment.add_scalar("Loss/val", loss, batch_idx)
         self.logger.experiment.add_image(
@@ -93,7 +128,6 @@ class LitAutoEncoderTorch(pl.LightningModule):
             torchvision.utils.make_grid(model_output.recon_x),
             batch_idx,
         )
-        
 
     # def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
     #     # Implement your own logic for updating the lr scheduler
@@ -104,24 +138,30 @@ class LitAutoEncoderTorch(pl.LightningModule):
     #     # Example:
     #     for lr_scheduler in self.lr_schedulers():
     #         lr_scheduler.step()
-            
-    def configure_optimizers(self):
-        optimizer = optim.create_optimizer(self.args, self.model.parameters())
-        lr_scheduler = scheduler.create_scheduler(
-            self.args, optimizer
-        )[0]
+
+    def timm_optimizers(self, model):
+        optimizer = optim.create_optimizer(self.args, model.parameters())
+        lr_scheduler = scheduler.create_scheduler(self.args, optimizer)[0]
+        return optimizer, lr_scheduler
+
+    def timm_to_lightning(self, optimizer, lr_scheduler):
         return {
-            'optimizer': optimizer,
-            'lr_scheduler': {
-                'scheduler': lr_scheduler,
-                'interval': 'step', # or 'epoch' for step vs epoch training, respectively
-            }
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": lr_scheduler,
+                "interval": "step",  # or 'epoch' for step vs epoch training, respectively
+            },
         }
-        
+
+    def configure_optimizers(self):
+        # optimizer = optim.create_optimizer(self.args, self.model.parameters())
+        # lr_scheduler = scheduler.create_scheduler(self.args, optimizer)[0]
+        optimizer, lr_scheduler = self.timm_optimizers(self.model)
+        return self.timm_to_lightning(optimizer, lr_scheduler)
+
     def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
-        scheduler.step(epoch=self.current_epoch,metric=metric)
-        
-        
+        scheduler.step(epoch=self.current_epoch, metric=metric)
+
     # def configure_optimizers(self):
     #     optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
     #     return optimizer

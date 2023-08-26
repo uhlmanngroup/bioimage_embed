@@ -311,3 +311,5 @@ outputs
 logs
 my_model
 checkpoints
+my_models
+manuscript

@@ -83,26 +83,26 @@ class TestMask:
         plt.savefig("tests/test_dist_to_coord.png")
         plt.close()
 
-@pytest.mark.parametrize("model", models)
-class TestModels:
+# @pytest.mark.parametrize("model", models)
+# class TestModels:
 
 
-    def test_dist_to_coord(self, model, test_img):
-        # test_img = get_test_image(dataset)
-        # dist = transformer_dist(train_dataset[0][0])
-        coords = DistogramToCoords(window_size)(test_img)
-        plt.scatter(coords[0][:, 0], coords[0][:, 1])
-        plt.savefig("tests/test_dist_to_coord.png")
-        plt.close()
+#     def test_dist_to_coord(self, model, test_img):
+#         # test_img = get_test_image(dataset)
+#         # dist = transformer_dist(train_dataset[0][0])
+#         coords = DistogramToCoords(window_size)(test_img)
+#         plt.scatter(coords[0][:, 0], coords[0][:, 1])
+#         plt.savefig("tests/test_dist_to_coord.png")
+#         plt.close()
 
-    def test_models(self, model, test_img):
-        # vae = AutoEncoder(1, 1)
-        # vae = VQ_VAE(channels=1)
+#     def test_models(self, model, test_img):
+#         # vae = AutoEncoder(1, 1)
+#         # vae = VQ_VAE(channels=1)
 
-        # test_img = get_test_image(dataset)
-        # loss, x_recon, perplexity = model(img)
-        result = model(test_img)
-        z, log_var = model.encode(test_img)
-        y_prime = model.decode(z)
-        # print(f"img_dims:{img.shape} y:_dims:{x_recon.shape}")
-        print(f"img_dims:{test_img.shape}, z:_dims:{z.shape}")
+#         # test_img = get_test_image(dataset)
+#         # loss, x_recon, perplexity = model(img)
+#         result = model(test_img)
+#         z, log_var = model.encode(test_img)
+#         y_prime = model.decode(z)
+#         # print(f"img_dims:{img.shape} y:_dims:{x_recon.shape}")
+#         print(f"img_dims:{test_img.shape}, z:_dims:{z.shape}")

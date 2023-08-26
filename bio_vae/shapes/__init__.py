@@ -1,3 +1,8 @@
+from .lightning import MaskEmbed,MaskEmbedLatentAugment
+import torch 
+import torch.nn.functional as F
+
+
 def mask_from_latent(self, z, window_size):
     # This should be class-method based
     # I.e. self.decoder(z)
@@ -6,7 +11,6 @@ def mask_from_latent(self, z, window_size):
     return mask 
 
 
- 
 def loss_function(self, *args, recons, input, distance_matrix_loss=True, **kwargs):
 
     # decode_z, input, mu, log_var = kwargs
