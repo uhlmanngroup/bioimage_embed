@@ -16,7 +16,7 @@ from bioimage_embed.shapes.transforms import (
     DistogramToCoords,
 )
 
-# from bioimage_embed.models import VQ_VAE, Bio_VAE, VAE
+# from bioimage_embed.models import VQ_VAE, BioimageEmbed, VAE
 # from bioimage_embed.lightning import LitAutoEncoderTorch
 # from bioimage_embed.models.legacy import vae
 

@@ -2,7 +2,7 @@
 from pathlib import Path
 from torch.autograd import Variable
 import torch
-# from bioimage_embed.models import Bio_VAE
+# from bioimage_embed.models import BioimageEmbed
 import albumentations as A
 
 # import matplotlib.pyplot as plt
@@ -20,7 +20,7 @@ from bioimage_embed.lightning import DatamoduleGlob, LitAutoEncoderTorch
 from types import SimpleNamespace
 
 # import timm
-from bioimage_embed.models.legacy import Bio_VAE, VQ_VAE
+from bioimage_embed.models.legacy import BioimageEmbed, VQ_VAE
 
 Image.MAX_IMAGE_PIXELS = None
 import warnings

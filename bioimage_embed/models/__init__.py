@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 # from .utils import BaseVAE
 # from .legacy.vae import VAE
 # from .vq_vae import VQ_VAE
-from .legacy import Bio_VAE
+from .legacy import BioimageEmbed
 
 
 from .bolts import ResNet18VAEEncoder, ResNet18VAEDecoder

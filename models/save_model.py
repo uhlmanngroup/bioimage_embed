@@ -15,7 +15,7 @@ from pytorch_lightning.callbacks import (
     EarlyStopping,
 )
 from bioimage_embed_training.bioimage_embed.lightning.dataloader import DatamoduleGlob
-from bioimage_embed_training.bioimage_embed.models import Bio_VAE
+from bioimage_embed_training.bioimage_embed.models import BioimageEmbed
 from bioimage_embed_training.bioimage_embed.lightning.torch import LitAutoEncoderTorch
 import json
 # Taking configurations from python file:
@@ -123,7 +123,7 @@ if cfg.mode == "hpt":
     #     persistent_workers=cfg.persistent_workers,
     # )
     ## Hyperparameterize models i.e., VQ_VAE, VAE
-    model = Bio_VAE(
+    model = BioimageEmbed(
         "VQ_VAE",
         channels=1,
         num_residual_layers=num_residual_layers,
@@ -149,7 +149,7 @@ elif cfg.mode == "scale":
     #     timeout=cfg.timeout,
     #     persistent_workers=cfg.persistent_workers,
     # )
-    model = Bio_VAE(
+    model = BioimageEmbed(
         "VQ_VAE",
         channels=1,
         num_residual_layers=num_residual_layers,

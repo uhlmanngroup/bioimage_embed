@@ -11,7 +11,7 @@ from torchvision import transforms
 from bioimage_embed.lightning import DatamoduleGlob
 
 from bioimage_embed.datasets import DatasetGlob
-from bioimage_embed.models import Bio_VAE
+from bioimage_embed.models import BioimageEmbed
 from bioimage_embed.lightning import LitAutoEncoderTorch
 import matplotlib.pyplot as plt
 
@@ -97,9 +97,9 @@ dataloader = DatamoduleGlob(
 # dataloader = DataLoader(train_dataset, batch_size=batch_size,
 #                         shuffle=True, num_workers=2**4, pin_memory=True, collate_fn=my_collate)
 
-model = Bio_VAE("VQ_VAE", channels=1, num_residual_layers=8, num_residual_hiddens=64)
+model = BioimageEmbed("VQ_VAE", channels=1, num_residual_layers=8, num_residual_hiddens=64)
 
-model = Bio_VAE("VQ_VAE", channels=1)
+model = BioimageEmbed("VQ_VAE", channels=1)
 
 # model = Mask_VAE("VAE", 1, 64,
 #                      #  hidden_dims=[32, 64],

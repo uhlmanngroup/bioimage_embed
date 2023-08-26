@@ -11,7 +11,7 @@ from torchvision import transforms
 from bioimage_embed.lightning import DatamoduleGlob
 
 from bioimage_embed.datasets import DatasetGlob
-from bioimage_embed.models import Bio_VAE
+from bioimage_embed.models import BioimageEmbed
 from bioimage_embed.lightning import LitAutoEncoderTorch
 import matplotlib.pyplot as plt
 from pythae.models import VAE, VAEConfig
@@ -141,7 +141,7 @@ model_dir = f"models/{dataset}_{model_name}"
 #     eval_data=eval_data
 # )
 
-# model = Bio_VAE("VQ_VAE", channels=1)
+# model = BioimageEmbed("VQ_VAE", channels=1)
 
 # model = Mask_VAE("VAE", 1, 64,
 #                      #  hidden_dims=[32, 64],

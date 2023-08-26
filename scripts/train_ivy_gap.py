@@ -1,7 +1,7 @@
 # %%
 from pathlib import Path
 
-# from bioimage_embed.models import Bio_VAE
+# from bioimage_embed.models import BioimageEmbed
 import albumentations as A
 
 # import matplotlib.pyplot as plt
@@ -20,7 +20,7 @@ from bioimage_embed.lightning import DatamoduleGlob, LitAutoEncoderTorch
 from types import SimpleNamespace
 
 # import timm
-# from bioimage_embed.models import VQ_VAE, Bio_VAE
+# from bioimage_embed.models import VQ_VAE, BioimageEmbed
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -133,7 +133,7 @@ dataloader = DatamoduleGlob(
 # )
 
 
-# model = Bio_VAE("VQ_VAE", model_config=model_config_vqvae, channels=args.channels)
+# model = BioimageEmbed("VQ_VAE", model_config=model_config_vqvae, channels=args.channels)
 
 from bioimage_embed.models import create_model
 model = create_model("resnet18_vqvae", input_dim=input_dim, latent_dim=args.latent_dim)
