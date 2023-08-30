@@ -5,7 +5,7 @@ description = ""
 authors = ["Craig <ctr26@ebi.ac.uk>"]
 
 [tool.poetry.scripts]
-bioimage_emebed = "main:main"
+bioimage_embed = "main:main"
 bie = "main:main"
 
 [tool.poetry.dependencies]
