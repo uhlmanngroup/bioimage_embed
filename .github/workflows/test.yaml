@@ -30,12 +30,12 @@ jobs:
       #----------------------------------------------
       #       load cached venv if cache exists
       #----------------------------------------------
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v2
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+    #   - name: Load cached venv
+    #     id: cached-poetry-dependencies
+    #     uses: actions/cache@v2
+    #     with:
+    #       path: .venv
+    #       key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
       #----------------------------------------------
       # install dependencies if cache does not exist
       #----------------------------------------------
@@ -44,7 +44,8 @@ jobs:
         run: poetry install --no-interaction --no-root
       #----------------------------------------------
       # install your root project, if required
-      #----------------------------------------------
+      - name: Poetry lock
+        run: poetry lock     
       - name: Install library
         run: poetry install --no-interaction
       #----------------------------------------------
