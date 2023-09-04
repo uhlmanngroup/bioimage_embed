@@ -47,7 +47,7 @@ If you don't have a Kaggle account you must create one and then follow the next 
 2. To use the Kaggle API you need also to create an API token. You can found how to do it in their [documentation](https://github.com/Kaggle/kaggle-api#api-credentials)
 3. After that you will need to add your user and key in a file called `kaggle.json` in this location in your home directory `chmod 600 ~/.kaggle/kaggle.json`
 
-### Intall
+### Install
 
     poetry install
 
