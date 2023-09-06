@@ -1,0 +1,42 @@
+import numpy as np
+import json
+from snakemake.remote.HTTP import RemoteProvider as HTTPRemoteProvider
+
+HTTP = HTTPRemoteProvider()
+
+arr = np.load("label_dict.npy", allow_pickle=True)
+json.dump(arr.item(), open("label_dict.json", "w"))
+# json.load(open("label_dict.json", "r"))
+
+mapper = lambda x: "alive" if x else "dead"
+
+# map true/false value in dictionary to string
+(images,) = glob_wildcards("BBBC010_v1_foreground_eachworm/{image}.png")
+labels = [mapper(v) for k, v in arr.item().items()]
+files_list = expand(
+    "BBBC010_v1_foreground_eachworm_live_dead/{label}/{image}.png",
+    zip,
+    image=images,
+    label=labels,
+)
+
+rule all:
+    input:
+        files_list,
+
+rule copy_files:
+    input:
+        image="BBBC010_v1_foreground_eachworm/{image}.png",
+        folder="BBBC010_v1_foreground_eachworm/",
+    output:
+        image="BBBC010_v1_foreground_eachworm_live_dead/{label}/{image}.png",
+    shell:
+        "cp {input.image} {output.image}"
+
+rule download:
+    input:
+        remote=HTTP.remote("https://data.broadinstitute.org/bbbc/BBBC010/BBBC010_v1_foreground_eachworm.zip",keep_local=True),
+    output:
+        folder=directory("BBBC010_v1_foreground_eachworm"),
+    shell:
+        "unzip {input.remote} -d {output.folder}"
