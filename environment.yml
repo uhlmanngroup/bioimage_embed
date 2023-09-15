@@ -13,6 +13,7 @@ dependencies:
   - gcc
   - libgcc
   - pytorch
+  - pillow=9.5.0
   - pip
   - pip:
     - -e .

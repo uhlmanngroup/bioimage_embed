@@ -42,6 +42,7 @@ torchvision = "^0.15.2"
 torchmetrics = "0.11.4"
 # pytorch-lightning-bolts = "^0.3.2.post1"
 lightning-bolts = "^0.7.0"
+Pillow = "9.5.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.1"
