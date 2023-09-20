@@ -314,7 +314,7 @@ checkpoints
 my_models
 manuscript
 
-*/
+/*
 !.gitignore
 !trainer
 !tests
