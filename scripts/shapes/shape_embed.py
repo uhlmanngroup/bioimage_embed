@@ -16,6 +16,7 @@ from types import SimpleNamespace
 import numpy as np
 import tikzplotlib
 
+from skimage import measure
 import umap.plot
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
@@ -42,12 +43,44 @@ from bioimage_embed.shapes.transforms import (
     MaskToDistogramPipeline,
 )
 
-# from bioimage_embed.models import Mask_VAE, VQ_VAE, VAE
 import matplotlib.pyplot as plt
 
 from bioimage_embed.lightning import DataModule
 import matplotlib as mpl
 from matplotlib import rc
+
+def scoring_df(X, y):
+    # Split the data into training and test sets
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, shuffle=True, stratify=y
+    )
+    # Define a dictionary of metrics
+    scoring = {
+        "accuracy": make_scorer(metrics.accuracy_score),
+        "precision": make_scorer(metrics.precision_score, average="macro"),
+        "recall": make_scorer(metrics.recall_score, average="macro"),
+        "f1": make_scorer(metrics.f1_score, average="macro"),
+    }
+
+    # Create a random forest classifier
+    clf = RandomForestClassifier()
+
+    # Specify the number of folds
+    k_folds = 10
+
+    # Perform k-fold cross-validation
+    cv_results = cross_validate(
+        estimator=clf,
+        X=X,
+        y=y,
+        cv=KFold(n_splits=k_folds),
+        scoring=scoring,
+        n_jobs=-1,
+        return_train_score=False,
+    )
+
+    # Put the results into a DataFrame
+    return pd.DataFrame(cv_results)
 
 def shape_embed_process():
     # Setting the font size
@@ -155,11 +188,6 @@ def shape_embed_process():
         ]
     )
 
-    # train_data = torchvision.datasets.ImageFolder(
-    # "/home/ctr26/gdrive/+projects/idr_autoencode_torch/data/bbbc010"
-    # )
-    # train_dataset_crop = DatasetGlob(
-    #     train_dataset_glob, transform=CropCentroidPipeline(window_size))
     transforms_dict = {
         "none": transform_mask_to_gray,
         "transform_crop": transform_mask_to_crop,
@@ -211,13 +239,7 @@ def shape_embed_process():
     # Close the plot
     plt.close()
 
-    # img_squeeze = train_dataset[0].unsqueeze(0)
     # %%
-
-
-    # def my_collate(batch):
-    #     batch = list(filter(lambda x: x is not None, batch))
-    #     return torch.utils.data.dataloader.default_collate(batch)
 
     transform = transforms.Compose([transform_mask_to_dist, transforms.ToTensor()])
 
@@ -231,6 +253,7 @@ def shape_embed_process():
             # If the transform works without errors, add the index to the list of valid indices
             valid_indices.append(idx)
         except Exception as e:
+            # A better way to do with would be with batch collation
             print(f"Error occurred for image {idx}: {e}")
 
     # Create a Subset using the valid indices
@@ -240,32 +263,17 @@ def shape_embed_process():
         batch_size=args.batch_size,
         shuffle=True,
         num_workers=args.num_workers,
-        # transform=transform,
     )
 
-
-    # dataloader = DataLoader(train_dataset, batch_size=batch_size,
-    #                         shuffle=True, num_workers=2**4, pin_memory=True, collate_fn=my_collate)
 
     model = bioimage_embed.models.create_model("resnet18_vqvae_legacy", **vars(args))
 
     lit_model = shapes.MaskEmbedLatentAugment(model, args)
     lit_model = shapes.MaskEmbed(model, args)
 
-    # model = Mask_VAE("VAE", 1, 64,
-    #                      #  hidden_dims=[32, 64],
-    #                      image_dims=(interp_size, interp_size))
-
-    # model = Mask_VAE(VAE())
-    # %%
-    # lit_model = LitAutoEncoderTorch(model)
-
     dataloader.setup()
     model.eval()
-    # %%
 
-
-    # model_name = model._get_name()
     model_dir = f"my_models/{dataset_path}_{model._get_name()}_{lit_model._get_name()}"
 
     tb_logger = pl_loggers.TensorBoardLogger(f"logs/")
@@ -284,7 +292,7 @@ def shape_embed_process():
         callbacks=[checkpoint_callback],
         min_epochs=50,
         max_epochs=args.epochs,
-    )  # .from_argparse_args(args)
+    ) 
 
     # %%
 
@@ -299,19 +307,20 @@ def shape_embed_process():
     # testing = trainer.test(lit_model, datamodule=dataloader)
     example_input = Variable(torch.rand(1, *args.input_dim))
 
-    # torch.jit.save(lit_model.to_torchscript(), f"{model_dir}/model.pt")
-    # torch.onnx.export(lit_model, example_input, f"{model_dir}/model.onnx")
+    torch.jit.save(lit_model.to_torchscript(), f"{model_dir}/model.pt")
+    torch.onnx.export(lit_model, example_input, f"{model_dir}/model.onnx")
 
     # %%
     # Inference
-    # predict_dataloader = DataLoader(dataset, batch_size=1)
-
 
     dataloader = DataModule(
         dataset,
         batch_size=1,
         shuffle=False,
         num_workers=args.num_workers,
+        # Transform is commented here to avoid augmentations in real data
+        # HOWEVER, applying a the transform multiple times and averaging the results might produce better latent embeddings
+        # transform=transform,
         # transform=transform,
     )
     dataloader.setup()
@@ -333,11 +342,6 @@ def shape_embed_process():
 
     classes = np.array([idx_to_class[i] for i in y])
 
-
-    # y = torch.stack([data[-1] for data in dataloader.dataset[:-1], dim=0)
-    # y = torch.stack([prediction.y for prediction in predictions[:-1]], dim=0)
-    # umap_space = umap.UMAP().fit(latent_space, y=y)
-    # umap_space = umap.UMAP().fit_transform(latent_space.numpy(), y=y)
     mapper = umap.UMAP().fit(latent_space.numpy(), y=y)
     semi_supervised_latent = mapper.transform(latent_space.numpy())
 
@@ -361,10 +365,6 @@ def shape_embed_process():
         aspect=0.5 * width / height,
     )
 
-    # ax.annotate('', xy=(0, 0.2), xytext=(0, 0), xycoords='axes fraction',
-    #              arrowprops=dict(arrowstyle="-|>", color='black', lw=1.5))
-    # ax.annotate('', xy=(0.2*height/width, 0), xytext=(0, 0), xycoords='axes fraction',  arrowprops=dict(arrowstyle="-|>", color='black', lw=1.5))
-
     sns.move_legend(
         ax,
         "upper center",
@@ -372,10 +372,7 @@ def shape_embed_process():
     ax.set(xlabel=None, ylabel=None)
     sns.despine(left=True, bottom=True)
     plt.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
-    # plt.legend(loc="upper center", ncol=2,bbox_to_anchor=(0.5, 1.5))
     plt.tight_layout()
-    # umap.plot.points(mapper, labels=classes,width=width*dpi, height=height*dpi)
-    # plt.savefig(metadata(f"umap.png"))
     plt.savefig(metadata(f"umap_no_axes.pdf"))
     # plt.show()
     plt.close()
@@ -383,51 +380,12 @@ def shape_embed_process():
 
     # %%
 
-
     X = latent_space.numpy()
     y = classes
 
 
-    def scoring_df(X, y):
-        # X = semi_supervised_latent
-        # Split the data into training and test sets
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, shuffle=True, stratify=y
-        )
-        # Define a dictionary of metrics
-        scoring = {
-            "accuracy": make_scorer(metrics.accuracy_score),
-            "precision": make_scorer(metrics.precision_score, average="macro"),
-            "recall": make_scorer(metrics.recall_score, average="macro"),
-            "f1": make_scorer(metrics.f1_score, average="macro"),
-        }
-
-        # Create a random forest classifier
-        clf = RandomForestClassifier()
-
-        # Specify the number of folds
-        k_folds = 10
-
-        # Perform k-fold cross-validation
-        cv_results = cross_validate(
-            estimator=clf,
-            X=X,
-            y=y,
-            cv=KFold(n_splits=k_folds),
-            scoring=scoring,
-            n_jobs=-1,
-            return_train_score=False,
-        )
-
-        # Put the results into a DataFrame
-        return pd.DataFrame(cv_results)
 
 
-    # mask_embed_score_df = scoring_df(X, y)
-    # Print the DataFrame
-    # print(mask_embed_score_df)
-    # mask_embed_score_df.to_csv(metadata(f"mask_embed_score_df.csv"))
-    from skimage import measure
 
     dfs = []
     properties = [
