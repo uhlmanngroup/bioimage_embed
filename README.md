@@ -11,11 +11,10 @@ bio_vae includes functions for loading and preprocessing images from microscopy 
 
 # Installation
 
-    pip install git+https://github.com/ctr26/bio_vae
+    pip install git+https://github.com/ctr26/bioimage_embed
     
-   
 
-# Mask-VAE
+# Shape-Embed
 
 This project attempts to using modern auto-encoding CNNs to access the latent shape space of a given dataset.
 We demonstrate this on microscopy images of nuclei and C. Elegans (worms).
@@ -44,9 +43,11 @@ Potential uses for this projects are:
 
 If you don't have a Kaggle account you must create one and then follow the next steps:
 1. Install the Kaggle API package so you can download the data from the Makefile you have all the information in their [Github repository](https://github.com/Kaggle/kaggle-api).
-2. To use the Kaggle API you need also to create an API token. You can found how to do it in their [documentation](https://github.com/Kaggle/kaggle-api#api-credentials)
-3. After that you will need to add your user and key in a file called `kaggle.json` in this location in your home directory `chmod 600 ~/.kaggle/kaggle.json`
-4. Don't forget to accept the conditions for the "2018 Data Science Bowl" on the Kaggle website. Otherwise you would not be able to pull this data from the command line. 
+2. To use the Kaggle API you need also to create an API token.
+   You can found how to do it in their [documentation](https://github.com/Kaggle/kaggle-api#api-credentials)
+4. After that you will need to add your user and key in a file called `kaggle.json` in this location in your home directory `chmod 600 ~/.kaggle/kaggle.json`
+5. Don't forget to accept the conditions for the "2018 Data Science Bowl" on the Kaggle website.
+   Otherwise you would not be able to pull this data from the command line. 
 
 ### Install
 
