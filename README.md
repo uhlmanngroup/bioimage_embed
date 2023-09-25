@@ -1,60 +1,91 @@
-bio_vae is a Python package that provides a convenient way to train and use autoencoders on biological image data. It includes functions for loading and preprocessing images from common sources such as microscopy, and tools for visualizing the results of the autoencoder's encoding and decoding process.
+# bioimage_embed: Autoencoders for Biological Image Data
 
-Installation
-To install bio_vae, use pip:
+bioimage_embed is an all-in-one Python package designed to cater to the needs of computational biologists, data scientists, and researchers working on biological image data. With specialized functions to handle, preprocess, and visualize microscopy datasets, this tool is tailored to streamline the embedding process for biological imagery.
 
-Copy code
-pip install bio_vae
-Usage
-Loading and Preprocessing Images
-bio_vae includes functions for loading and preprocessing images from microscopy datasets, such as those in the BioImage Data Resource and Cell Image Library.
+[![Build Status](https://img.shields.io/badge/build-passing-green.svg)](https://github.com/ctr26/bioimage_embed)
+[![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)](https://github.com/ctr26/bioimage_embed)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/ctr26/bioimage_embed)
 
-# Installation
+---
 
-    pip install git+https://github.com/ctr26/bio_vae
-    
-   
+## Features
 
-# Mask-VAE
+- Seamless loading of microscopy datasets, compatible with the BioImage Data Resource and Cell Image Library.
+- Built-in preprocessing functions to ensure your images are primed for encoding.
+- Visual tools to dive deep into the encoding and decoding processes of your autoencoders.
 
-This project attempts to using modern auto-encoding CNNs to access the latent shape space of a given dataset.
-We demonstrate this on microscopy images of nuclei and C. Elegans (worms).
-The project includes some sensible tricks such as including symmetry $\min|M^T - M|_2^2$ and $\min|diag(M)|$ constraints to help the model learn that it's using distance matrices.
+---
 
-## How it works
+## Installation
 
-- Take image masks (white on black)
-- Find their contour (thx [scikit image]((https://scikit-image.org/docs/dev/api/skimage.measure.html#skimage.measure.find_contours)))
-- Resample the contour to a standard length
-- Create euclidean distance matrix
-- Feed matrix as image into VAE
-- Train model on distance matrix
-- Opt. Convert distance matrix back to mask using MultiDimensionalScaling
+To get started with bioimage_embed, you can install it directly via pip or from the GitHub repository.
 
-Potential uses for this projects are:
+### From PyPI:
 
-- Synthetic shape generation for dataset augmentation
-- Shape-based phenotyping in the latent space
+```bash
+pip install bioimage_embed
+```
+
+### From GitHub:
+
+```bash
+pip install git+https://github.com/ctr26/bioimage_embed
+```
+
+---
 
 ## Usage
 
-### Get data
+### 1. Basic Installation:
 
-    make download.data
+```bash
+pip install -e .
+```
 
-### Intall
+### 2. Command Line Interface (CLI):
 
-    poetry install
+To get a list of all commands and functions:
 
-and or:
+```bash
+bioimage_embed --help
+```
 
-    pip install -e .
+OR 
 
-### Run
+```bash
+bie --help
+```
 
-    python train.py
+### 3. Fetching Data:
 
-### TODO
+This utility makes it simple to fetch the necessary datasets:
 
-- Scale invariant distance matrix encoding (scale by matrix norm)
-- Find better sampling of contour, e.g. using Delaunay triangulation?
+```bash
+make download.data
+```
+
+### 4. Developer Installation:
+
+For those intending to contribute or looking for a deeper dive into the codebase, we use `poetry` to manage our dependencies and virtual environments:
+
+```bash
+poetry env use python 
+poetry install
+poetry shell
+```
+
+---
+
+## Support & Contribution
+
+For any issues, please refer to our [issues page](https://github.com/ctr26/bioimage_embed/issues). Contributions are more than welcome! Please submit pull requests to the master branch.
+
+---
+
+## License
+
+bioimage_embed is licensed under the MIT License. Please refer to the [LICENSE](https://github.com/ctr26/bioimage_embed/LICENSE) for more details.
+
+---
+
+Happy Embedding! 🧬🔬

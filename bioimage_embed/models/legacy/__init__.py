@@ -13,7 +13,7 @@ from .vq_vae import VQ_VAE
 
 from ..bolts import ResNet18VAEEncoder,ResNet18VAEDecoder
 from torch import nn
-class Bio_VAE(nn.Module):
+class BioimageEmbed(nn.Module):
     model_lookup = {
         "vq_vae": VQ_VAE,
         "vae": VAE,
@@ -33,7 +33,7 @@ class Bio_VAE(nn.Module):
         # return model
               
     def __init__(self, model="VQ_VAE", backend="", *args, **kwargs):
-        super(Bio_VAE, self).__init__()
+        super(BioimageEmbed, self).__init__()
         # if backend=="":
         self.model = self.init_model(model,*args,**kwargs)
         self.model_name = self.model._get_name()

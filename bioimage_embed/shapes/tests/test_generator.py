@@ -1,5 +1,5 @@
 #  %%
-import bio_vae
+import bioimage_embed
 import torch
 import matplotlib.pyplot as plt
 
@@ -11,11 +11,11 @@ import os
 import matplotlib.pyplot as plt
 import torch
 
-from bio_vae.shapes.transforms import (
+from bioimage_embed.shapes.transforms import (
     DistogramToCoords,
     CropCentroidPipeline,
 )
-from bio_vae.shapes.transforms import (
+from bioimage_embed.shapes.transforms import (
     DistogramToCoords,
     MaskToDistogramPipeline,
     AsymmetricDistogramToMaskPipeline,
@@ -58,7 +58,7 @@ train_dataset_crop = None
 
 input_dim = (3, window_size, window_size)
 latent_dim = 16
-model = bio_vae.models.create_model(
+model = bioimage_embed.models.create_model(
     "resnet18_vqvae_legacy", input_dim, latent_dim, pretrained=False, progress=False
 )
 

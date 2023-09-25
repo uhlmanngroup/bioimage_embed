@@ -1,29 +1,54 @@
 #  %%
-import bioimage_embed
 import torch
 import matplotlib.pyplot as plt
+from torch.utils.data import DataLoader
 
 
 #  %%
+from torch.utils.data import DataLoader
 
 # Note - you must have torchvision installed for this example
+from torchvision import transforms
+from torch.utils.data import Dataset, DataLoader
 import os
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
+import torch
+from torch.utils.data import DataLoader
 
-from bioimage_embed.shapes.transforms import (
+from bio_vae.datasets import BroadDataset
+from bio_vae.transforms import (
     DistogramToCoords,
     CropCentroidPipeline,
 )
-from bioimage_embed.shapes.transforms import (
+from bio_vae.transforms import (
     DistogramToCoords,
     MaskToDistogramPipeline,
     AsymmetricDistogramToMaskPipeline,
 )
 
+from bio_vae.models import VQ_VAE, Mask_VAE
+from bio_vae.lightning import LitAutoEncoderTorch
 
 interp_size = 128 * 4
+
 window_size = 128 - 32
+batch_size = 32
+num_training_updates = 15000
+
+num_hiddens = 64
+num_residual_hiddens = 32
+num_residual_layers = 2
+
+embedding_dim = 64
+num_embeddings = 512
+
+commitment_cost = 0.25
+
+decay = 0.99
+
+learning_rate = 1e-3
 
 # train_dataset_glob = "data/stage1_train/*/masks/*.png"
 # train_dataset_glob = "data/BBBC010_v1_foreground_eachworm/*.png"
@@ -40,27 +65,41 @@ transformer_coords = DistogramToCoords(window_size)
 #     train_dataset_glob, transform=CropCentroidPipeline(window_size))
 # train_dataset = DatasetGlob(train_dataset_glob, transform=transformer_dist)
 # train_dataset_crop = DatasetGlob(train_dataset_glob, transform=transformer_crop)
-train_dataset = None
-transformer_dist = None
-train_dataset_crop = None
-# transformer_crop)
+train_dataset = BroadDataset(
+    "BBBC010", download=True, transform=transformer_dist)
+train_dataset_crop = BroadDataset(
+    "BBBC010", download=True, transform=transformer_crop)
+
+
+assert len(train_dataset) > 0
+assert len(train_dataset_crop) > 0
+
+
+def test_glob():
+    assert len(train_dataset) > 0
+    assert len(train_dataset_crop) > 0
+    plt.imshow(test_img[0][0])
+    plt.close()
 
 
 # img_squeeze = train_dataset_crop[0].unsqueeze(0)
 # img_crop = train_dataset_crop[0]
 
+dataloader = DataLoader(
+    train_dataset, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True
+)
 
-# test_img = train_dataset[1].unsqueeze(0)
-# # img_squeeze = train_dataset_crop[1].unsqueeze(0)
-# img_crop = train_dataset_crop[1].unsqueeze(0)
+ckpt_file = "checkpoints/last.ckpt"
+
+
+model = Mask_VAE(VQ_VAE(channels=1))
+model = LitAutoEncoderTorch(model).load_from_checkpoint(ckpt_file, model=model)
+
+test_img = train_dataset[1].unsqueeze(0)
+# img_squeeze = train_dataset_crop[1].unsqueeze(0)
+img_crop = train_dataset_crop[1].unsqueeze(0)
 
 # train_dataset = train_dataset_dist
-
-input_dim = (3, window_size, window_size)
-latent_dim = 16
-model = bioimage_embed.models.create_model(
-    "resnet18_vqvae_legacy", input_dim, latent_dim, pretrained=False, progress=False
-)
 
 
 def test_img_test():
@@ -71,10 +110,14 @@ def test_img_test():
 
 def test_forward_test():
     plt.close()
-    results = model.forward(test_img)
-    # y_prime = y_prime.detach().numpy()
-    # plt.imshow(y_prime[0][0])
-    # plt.close()
+    (
+        loss,
+        y_prime,
+        _,
+    ) = model.forward(test_img)
+    y_prime = y_prime.detach().numpy()
+    plt.imshow(y_prime[0][0])
+    plt.close()
 
 
 def test_encoder_decoder():

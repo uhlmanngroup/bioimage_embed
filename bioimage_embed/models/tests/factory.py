@@ -1,8 +1,8 @@
-from bio_vae.models import create_model
+from bioimage_embed.models import create_model
 import pytest
 import torch
 
-from bio_vae.models import MODELS
+from bioimage_embed.models import MODELS
 
 # MODELS = ["resnet18_vae", "resnet50_vae", "resnet18_vqvae", "resnet50_vqvae"]
 

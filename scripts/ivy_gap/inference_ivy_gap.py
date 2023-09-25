@@ -6,7 +6,6 @@ import torch
 import umap
 import umap.plot
 
-
 #  %%
 from torch.utils.data import DataLoader, Dataset
 
@@ -14,9 +13,9 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
-from bio_vae.datasets import DatasetGlob
-from bio_vae.lightning import LitAutoEncoderTorch
-from bio_vae.models.legacy import VQ_VAE, Bio_VAE
+from bioimage_embed.datasets import DatasetGlob
+from bioimage_embed.lightning import LitAutoEncoderTorch
+from bioimage_embed.models.legacy import VQ_VAE, BioimageEmbed
 
 latent_dim = 64
 window_size = 64 * 2
@@ -44,13 +43,12 @@ input_dim = (channels, window_size, window_size)
 model_name = "VQ_VAE"
 train_dataset_glob = f"{data_dir}/{dataset}/random/*png"
 model_dir = f"models/{dataset}_{model_name}"
-ckpt_file = "models/ivy_gap_Bio_VAE/last.ckpt"
+ckpt_file = "models/ivy_gap_BioimageEmbed/last.ckpt"
 
 model_config_vqvae = pythae.models.VQVAEConfig(
     input_dim=input_dim, latent_dim=latent_dim, num_embeddings=num_embeddings
 )
-model = Bio_VAE("VQ_VAE", model_config=model_config_vqvae, channels=channels)
-# model = Mask_VAE(VAE(1, 64, image_dims=(interp_size, interp_size)))
+model = BioimageEmbed("VQ_VAE", model_config=model_config_vqvae, channels=channels)
 
 args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
 lit_model = LitAutoEncoderTorch(model,args)
@@ -75,7 +73,6 @@ for i, ax in enumerate(grid):
 plt.show()
 plt.close()
 # %%
-
 
 image_index = 5
 test_img_in = train_dataset[image_index][:,0:window_size,0:window_size].unsqueeze(0)
@@ -103,10 +100,6 @@ axd = plt.figure(constrained_layout=True, figsize=(12, 8)).subplot_mosaic(
 
 axd["A"].imshow(test_img_in[0][0])
 axd["A"].set_title("test_img_in")
-
-# axd["a"].imshow(test_img_out[0][0])
-# axd["a"].set_title("test_img_out")
-
 
 plt.show()
 plt.close()
@@ -141,7 +134,6 @@ plt.show()
 plt.close()
 # %%
 # Sorted images
-
 
 fig = plt.figure(figsize=(4.0, 4.0))
 grid = ImageGrid(

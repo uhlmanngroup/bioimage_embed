@@ -4,7 +4,7 @@
 # Note - you must have torchvision installed for this example
 # from torch.utils.data import DataLoader
 
-# from bio_vae.transforms import DistogramToMaskPipeline
+# from bioimage_embed.transforms import DistogramToMaskPipeline
 
 
 # from .vae_bio import Mask_VAE, Image_VAE

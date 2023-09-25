@@ -7,12 +7,12 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from albumentations.pytorch.transforms import ToTensorV2
 
-from bio_vae.models.bolts import ResNet18VAEEncoder, ResNet18VAEDecoder
+from bioimage_embed.models.bolts import ResNet18VAEEncoder, ResNet18VAEDecoder
 from pythae.models import VQVAE, VQVAEConfig, VAE, VAEConfig
-from bio_vae.lightning import LitAutoEncoderTorch
+from bioimage_embed.lightning import LitAutoEncoderTorch
 from pytorch_lightning import seed_everything
 import torch
-from bio_vae.datasets import DatasetGlob
+from bioimage_embed.datasets import DatasetGlob
 
 import pytorch_lightning as pl
 

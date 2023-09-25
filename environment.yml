@@ -1,31 +1,20 @@
-# name: torch
+# name: bioimage_embed
 channels:
-  - bioconda
+  # - bioconda
   - pytorch
   - conda-forge
   # - defaults
   - torch
 dependencies:
-  - cudatoolkit=10.2
+  - cudatoolkit-dev=10
   - python=3.9
   - mamba
-  - conda
-  - pytest
   - poetry
   - gcc
-  - tensorboard
-  - umap-learn
-  - jupyter
-  - black
-  - autopep8
+  - libgcc
   - pytorch
-  - pytorch-lightning
-  - pytorch-model-summary
-  - pyro-ppl
-  - matplotlib
-  - torchvision
-  - gsutil
+  - pillow=9.5.0
   - pip
   - pip:
-    - .
+    - -e .
     - nonechucks

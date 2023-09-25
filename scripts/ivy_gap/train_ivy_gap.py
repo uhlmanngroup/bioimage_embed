@@ -1,10 +1,10 @@
 # %%
 from pathlib import Path
 
-# from bio_vae.models import Bio_VAE
+from bioimage_embed.models import create_model
 import albumentations as A
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import pythae
 import pytorch_lightning as pl
 import torch
@@ -15,12 +15,9 @@ from PIL import Image
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
-from bio_vae.datasets import DatasetGlob
-from bio_vae.lightning import DatamoduleGlob, LitAutoEncoderTorch
+from bioimage_embed.datasets import DatasetGlob
+from bioimage_embed.lightning import DatamoduleGlob, LitAutoEncoderTorch
 from types import SimpleNamespace
-
-# import timm
-# from bio_vae.models import VQ_VAE, Bio_VAE
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -56,16 +53,9 @@ lr_scheduler_params = {
     "cycle_momentum": False,
 }
 args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
-
-# num_embeddings = 128
-# decay = 0.99
-# learning_rate = 1e-2
-
 channels = 3
 
 input_dim = (args.channels, args.window_size, args.window_size)
-# latent_dim = 64
-
 
 transform = A.Compose(
     [
@@ -107,9 +97,7 @@ transform = A.Compose(
     ]
 )
 
-# train_dataset = DatasetGlob(train_dataset_glob)
 train_dataset = DatasetGlob(train_dataset_glob, transform=transform)
-# train_dataset = DatasetGlob(train_dataset_glob )
 
 # plt.imshow(train_dataset[100][0], cmap="gray")
 # plt.show()
@@ -128,62 +116,20 @@ dataloader = DatamoduleGlob(
 )
 
 
-# model_config_vqvae = pythae.models.VQVAEConfig(
-#     input_dim=input_dim, latent_dim=args.latent_dim, num_embeddings=args.num_embeddings
-# )
-
-
-# model = Bio_VAE("VQ_VAE", model_config=model_config_vqvae, channels=args.channels)
-
-from bio_vae.models import create_model
 model = create_model("resnet18_vqvae", input_dim=input_dim, latent_dim=args.latent_dim)
 lit_model = LitAutoEncoderTorch(model, args)
 
-# %%
-
-
-# def vqvae_to_latent(model: VQ_VAE, img: torch.Tensor) -> torch.Tensor:
-
-#     vq = model.get_model().model._vq_vae
-#     embedding_torch = vq._embedding
-#     embedding_in = model.get_model().model.encoder_z(img)
-#     embedding_out = vq(embedding_in)
-#     latent = embedding_torch(embedding_out[-1].argmax(axis=1))
-
-#     return latent
-
-
-# tensor = vqvae_to_latent(lit_model, train_dataset[0].unsqueeze(0))
-# pipeline = TrainingPipeline(training_config=training_config, model=model)
-
 dataloader.setup()
 model.eval()
-# %%
 
-
-# class AECustom(Dataset):
-# def __init__(self, dataset):
-#     self.dataset = dataset
-#     self.size = len(self.dataset)
-
-# def __len__(self):
-#     return self.size
-
-# def __getitem__(self, index):
-#     X = self.dataset[index]
-#     return DatasetOutput(data=X)
 
 
 model_name = model._get_name()
 model_dir = f"models/{dataset}_{model_name}"
 
-# %%
 lit_model = LitAutoEncoderTorch(
     model,
     args
-    # learning_rate=learning_rate,
-    # optimizer_params=optimizer_params,
-    # lr_scheduler_params=lr_scheduler_params,
 )
 
 tb_logger = pl_loggers.TensorBoardLogger(f"{model_dir}/runs/")
@@ -202,7 +148,7 @@ trainer = pl.Trainer(
     callbacks=[checkpoint_callback],
     min_epochs=50,
     max_epochs=args.epochs,
-)  # .from_argparse_args(args)
+)
 
 # %%
 

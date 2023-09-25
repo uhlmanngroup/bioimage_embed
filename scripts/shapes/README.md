@@ -1,17 +1,17 @@
-bio_vae is a Python package that provides a convenient way to train and use autoencoders on biological image data. It includes functions for loading and preprocessing images from common sources such as microscopy, and tools for visualizing the results of the autoencoder's encoding and decoding process.
+bioimage_embed is a Python package that provides a convenient way to train and use autoencoders on biological image data. It includes functions for loading and preprocessing images from common sources such as microscopy, and tools for visualizing the results of the autoencoder's encoding and decoding process.
 
 Installation
-To install bio_vae, use pip:
+To install bioimage_embed, use pip:
 
 Copy code
-pip install bio_vae
+pip install bioimage_embed
 Usage
 Loading and Preprocessing Images
-bio_vae includes functions for loading and preprocessing images from microscopy datasets, such as those in the BioImage Data Resource and Cell Image Library.
+bioimage_embed includes functions for loading and preprocessing images from microscopy datasets, such as those in the BioImage Data Resource and Cell Image Library.
 
 # Installation
 
-    pip install git+https://github.com/ctr26/bio_vae
+    pip install git+https://github.com/ctr26/bioimage_embed
     
    
 

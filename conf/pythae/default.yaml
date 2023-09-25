@@ -4,10 +4,10 @@
 _target_: pythae.models.VAE
 # model_config: $(model.model_config)
 encoder: 
-  _target_: bio_vae.models.ResNet18VAEEncoder
+  _target_: bioimage_embed.models.ResNet18VAEEncoder
   model_config: ${pythae.model_config}
 decoder:
-  _target_: bio_vae.models.ResNet18VAEDecoder
+  _target_: bioimage_embed.models.ResNet18VAEDecoder
   model_config: ${pythae.model_config}
 
 model_config:
