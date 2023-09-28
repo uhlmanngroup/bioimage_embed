@@ -24,7 +24,8 @@ import torch
 
 # Deal with the filesystem
 import torch.multiprocessing
-torch.multiprocessing.set_sharing_strategy('file_system')
+
+torch.multiprocessing.set_sharing_strategy("file_system")
 
 from bioimage_embed import shapes
 import bioimage_embed
@@ -48,6 +49,7 @@ import matplotlib.pyplot as plt
 from bioimage_embed.lightning import DataModule
 import matplotlib as mpl
 from matplotlib import rc
+
 
 def scoring_df(X, y):
     # Split the data into training and test sets
@@ -81,6 +83,7 @@ def scoring_df(X, y):
 
     # Put the results into a DataFrame
     return pd.DataFrame(cv_results)
+
 
 def shape_embed_process():
     # Setting the font size
@@ -138,18 +141,17 @@ def shape_embed_process():
 
     # channels = 3
 
-
     # input_dim = (params["channels"], params["window_size"], params["window_size"])
     args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
 
     dataset_path = "bbbc010"
-    #dataset_path = "vampire/mefs/data/processed/Control"
-    #dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm"
+    # dataset_path = "vampire/mefs/data/processed/Control"
+    # dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm"
     # dataset_path = "vampire/torchvision/Control"
     # dataset = "bbbc010"
     model_name = "vqvae"
 
-    #train_data_path = f"scripts/shapes/data/{dataset_path}"
+    # train_data_path = f"scripts/shapes/data/{dataset_path}"
     train_data_path = f"data/{dataset_path}"
     metadata = lambda x: f"results/{dataset_path}_{model_name}/{x}"
 
@@ -207,7 +209,6 @@ def shape_embed_process():
         # plt.show()
         plt.close()
 
-
     # plt.scatter(*train_data["transform_coords"][0][0])
     # plt.savefig(metadata(f"transform_coords.png"))
     # plt.show()
@@ -216,7 +217,6 @@ def shape_embed_process():
     # plt.scatter(*train_data["transform_coords"][0][0],c=np.arange(interp_size), cmap='rainbow', s=1)
     # plt.show()
     # plt.savefig(metadata(f"transform_coords.png"))
-
 
     # Retrieve the coordinates and cropped image
     coords = train_data["transform_coords"][0][0]
@@ -265,7 +265,6 @@ def shape_embed_process():
         num_workers=args.num_workers,
     )
 
-
     model = bioimage_embed.models.create_model("resnet18_vqvae_legacy", **vars(args))
 
     lit_model = shapes.MaskEmbedLatentAugment(model, args)
@@ -292,12 +291,14 @@ def shape_embed_process():
         callbacks=[checkpoint_callback],
         min_epochs=50,
         max_epochs=args.epochs,
-    ) 
+    )
 
     # %%
 
     try:
-        trainer.fit(lit_model, datamodule=dataloader, ckpt_path=f"{model_dir}/last.ckpt")
+        trainer.fit(
+            lit_model, datamodule=dataloader, ckpt_path=f"{model_dir}/last.ckpt"
+        )
     except:
         trainer.fit(lit_model, datamodule=dataloader)
 
@@ -307,7 +308,7 @@ def shape_embed_process():
     # testing = trainer.test(lit_model, datamodule=dataloader)
     example_input = Variable(torch.rand(1, *args.input_dim))
 
-    torch.jit.save(lit_model.to_torchscript(), f"{model_dir}/model.pt")
+    # torch.jit.save(lit_model.to_torchscript(), f"{model_dir}/model.pt")
     torch.onnx.export(lit_model, example_input, f"{model_dir}/model.onnx")
 
     # %%
@@ -332,7 +333,6 @@ def shape_embed_process():
 
     idx_to_class = {v: k for k, v in dataset.dataset.class_to_idx.items()}
 
-
     y = np.array([int(data[-1]) for data in dataloader.predict_dataloader()])[:-1]
 
     y_partial = y.copy()
@@ -350,7 +350,6 @@ def shape_embed_process():
     # Map numeric classes to their labels
     idx_to_class = {0: "alive", 1: "dead"}
     df["Class"] = df["Class"].map(idx_to_class)
-
 
     ax = sns.relplot(
         data=df,
@@ -377,15 +376,10 @@ def shape_embed_process():
     # plt.show()
     plt.close()
 
-
     # %%
 
     X = latent_space.numpy()
     y = classes
-
-
-
-
 
     dfs = []
     properties = [
@@ -417,7 +411,6 @@ def shape_embed_process():
 
     df_regionprops = pd.concat(dfs)
 
-
     # Assuming 'dataset_contour' is your DataLoader for the dataset
     dfs = []
     for i, data in enumerate(train_data["transform_coords"]):
@@ -439,9 +432,7 @@ def shape_embed_process():
         df.set_index("class", inplace=True, append=True)
         dfs.append(df)
 
-
     df_pyefd = pd.concat(dfs)
-
 
     trials = [
         {"name": "mask_embed", "features": latent_space.numpy(), "labels": classes},
@@ -454,7 +445,11 @@ def shape_embed_process():
         #  "features": df_pyefd.xs("norm_coeffs", level="coeffs"),
         #  "labels": df_pyefd.xs("norm_coeffs", level="coeffs").index
         # }
-        {"name": "regionprops", "features": df_regionprops, "labels": df_regionprops.index},
+        {
+            "name": "regionprops",
+            "features": df_regionprops,
+            "labels": df_regionprops.index,
+        },
     ]
 
     trial_df = pd.DataFrame()
@@ -500,6 +495,7 @@ def shape_embed_process():
     )
     print(avs)
     # tikzplotlib.save(metadata(f"trials_barplot.tikz"))
+
 
 if __name__ == "__main__":
     shape_embed_process()
