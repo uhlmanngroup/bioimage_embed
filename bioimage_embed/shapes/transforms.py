@@ -270,7 +270,7 @@ class CropCentroidPipeline(torch.nn.Module):
         # except:
         # return None
 
-
+        
 class MaskToDistogramPipeline(torch.nn.Module):
     def __init__(self, window_size, interp_size=128, matrix_normalised=False):
         super().__init__()
@@ -279,13 +279,7 @@ class MaskToDistogramPipeline(torch.nn.Module):
         self.pipeline = transforms.Compose(
             [
                 CropCentroidPipeline(self.window_size),
-                # transforms.ToTensor(),
-                # transforms.ToPILImage(),
                 ImageToDistogram(self.interp_size, matrix_normalised=matrix_normalised),
-                # transforms.ToTensor(),
-                # transforms.ToPILImage(),
-                # transforms.RandomCrop((512, 512)),
-                # transforms.ConvertImageDtype(torch.float32),
             ]
         )
 
