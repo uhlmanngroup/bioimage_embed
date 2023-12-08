@@ -35,7 +35,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         warmup_t=0,
     )
 
-    def __init__(self, model,args,**kwargs):
+    def __init__(self, model, args={}, **kwargs):
         super().__init__()
         self.model = model
         self.model = self.model.to(self.device)
@@ -47,7 +47,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         if kwargs:
             merged_kwargs = {k: v for d in kwargs.values() for k, v in d.items()}
             self.args = SimpleNamespace(**{**merged_kwargs, **vars(self.args)})
-        self.save_hyperparameters(self.args)
+        self.save_hyperparameters(vars(self.args))
         # self.model.train()
 
     def forward(self, batch):
