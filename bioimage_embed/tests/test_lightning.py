@@ -2,7 +2,7 @@ from bioimage_embed.models import create_model
 import pytest
 import torch
 
-# from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 import pythae
 
@@ -109,7 +109,7 @@ def data(input_dim):
 
 @pytest.fixture()
 def dataset(data):
-    return data
+    return data.unsqueeze(0)
 
 
 @pytest.fixture()
@@ -134,7 +134,7 @@ def test_trainer_fit(trainer, lit_model, dataloader):
     trainer.fit(lit_model, dataloader)
 
 def test_dataset_trainer(trainer, lit_model, dataset):
-    trainer.test(lit_model, dataset)
+    trainer.test(lit_model, dataset.unsqueeze(0))
 
 def test_dataloader_trainer(trainer, lit_model, dataloader):
     trainer.test(lit_model, dataloader)
