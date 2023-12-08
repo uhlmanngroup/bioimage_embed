@@ -35,7 +35,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         warmup_t=0,
     )
 
-    def __init__(self, model, args={}, **kwargs):
+    def __init__(self, model, args=SimpleNamespace()):
         super().__init__()
         self.model = model
         self.model = self.model.to(self.device)
@@ -44,9 +44,9 @@ class LitAutoEncoderTorch(pl.LightningModule):
         self.decoder = self.model.decoder
         if args:
             self.args = SimpleNamespace(**{**vars(args), **vars(self.args)})
-        if kwargs:
-            merged_kwargs = {k: v for d in kwargs.values() for k, v in d.items()}
-            self.args = SimpleNamespace(**{**merged_kwargs, **vars(self.args)})
+        # if kwargs:
+            # merged_kwargs = {k: v for d in kwargs.values() for k, v in d.items()}
+            # self.args = SimpleNamespace(**{**merged_kwargs, **vars(self.args)})
         self.save_hyperparameters(vars(self.args))
         # self.model.train()
 
@@ -64,7 +64,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         return ModelOutput(data=batch)
 
     def embedding_from_output(self, model_output):
-        return model_output.z.view(model_output.z.shape[0], -1)
+        return model_output["z"].view(model_output["z"].shape[0], -1)
 
     def get_model_output(self, x, batch_idx):
         model_output = self.model(x, epoch=batch_idx)

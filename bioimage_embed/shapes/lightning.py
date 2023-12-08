@@ -8,9 +8,10 @@ from torch import nn
 from ..lightning import LitAutoEncoderTorch
 from . import loss_functions as lf
 from pythae.models.base.base_utils import ModelOutput
-
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from types import SimpleNamespace
 class MaskEmbed(LitAutoEncoderTorch):
-    def __init__(self, model, args={}):
+    def __init__(self, model, args=SimpleNamespace()):
         super().__init__(model, args)
 
     def batch_to_tensor(self, batch):
@@ -54,8 +55,8 @@ class FixedOutput(nn.Module):
 
 
 class MaskEmbedLatentAugment(MaskEmbed):
-    def __init__(self, model, args=None):
-        super().__init__(model, args)
+    def __init__(self, model, args_dict):
+        super().__init__(model, **args_dict)
 
     def get_model_output(self, x, batch_idx, optimizer_idx=0):
         # Janky!
