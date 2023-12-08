@@ -10,7 +10,7 @@ from . import loss_functions as lf
 from pythae.models.base.base_utils import ModelOutput
 
 class MaskEmbed(LitAutoEncoderTorch):
-    def __init__(self, model, args=None):
+    def __init__(self, model, args={}):
         super().__init__(model, args)
 
     def batch_to_tensor(self, batch):
