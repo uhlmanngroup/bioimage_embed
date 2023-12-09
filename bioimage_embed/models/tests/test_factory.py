@@ -25,7 +25,7 @@ def test_create_model(model, c,idim, ld, pretrained, progress):
     generated_model = create_model(model, input_dim, ld, pretrained, progress)
     data = torch.rand(1, *input_dim)
     output = generated_model({"data": data})
-    assert output["z"].shape[1] == ld
-    assert output["recon_x"].shape == data.shape
-    if len(output["z"].flatten()) != ld:
+    assert output.z.shape[1] == ld
+    assert output.recon_x.shape == data.shape
+    if len(output.z.flatten()) != ld:
         pytest.skip("Not an exact latent dimension match")
