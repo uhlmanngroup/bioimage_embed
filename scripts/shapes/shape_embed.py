@@ -303,13 +303,13 @@ def shape_embed_process():
         min_epochs=50,
         max_epochs=args.epochs,
     )
-    # # %%
-    # try:
-    #     trainer.fit(
-    #         lit_model, datamodule=dataloader, ckpt_path=f"{model_dir}/last.ckpt"
-    #     )
-    # except:
-    #     trainer.fit(lit_model, datamodule=dataloader)
+    # %%
+    try:
+        trainer.fit(
+            lit_model, datamodule=dataloader, ckpt_path=f"{model_dir}/last.ckpt"
+        )
+    except:
+        trainer.fit(lit_model, datamodule=dataloader)
 
     lit_model.eval()
 
