@@ -19,6 +19,7 @@ import umap.plot
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
 import torch
+from types import SimpleNamespace
 
 # Deal with the filesystem
 import torch.multiprocessing
@@ -105,7 +106,7 @@ def shape_embed_process():
     window_size = 128 * 2
 
     params = {
-        "model":"resnet50_vqvae",
+        "model":"resnet18_vqvae_legacy",
         "epochs": 75,
         "batch_size": 4,
         "num_workers": 2**4,
@@ -142,14 +143,15 @@ def shape_embed_process():
 
     args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
 
-    dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm"
+    #dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm"
+    dataset_path = "shape_embed_data/data/bbbc010/BBBC010_v1_foreground_eachworm/"
     # dataset_path = "vampire/mefs/data/processed/Control"
     # dataset_path = "shape_embed_data/data/vampire/torchvision/Control/"
     # dataset_path = "vampire/torchvision/Control"
     # dataset = "bbbc010"
 
     # train_data_path = f"scripts/shapes/data/{dataset_path}"
-    train_data_path = f"data/{dataset_path}"
+    train_data_path = f"scripts/shapes/data/{dataset_path}"
     metadata = lambda x: f"results/{dataset_path}_{args.model}/{x}"
 
     path = Path(metadata(""))
@@ -336,8 +338,10 @@ def shape_embed_process():
     dataloader.setup()
 
     predictions = trainer.predict(lit_model, datamodule=dataloader)
-    latent_space = torch.stack([d["z"].flatten() for d in predictions])
-    scalings = torch.stack([d["scalings"].flatten() for d in predictions])
+
+    # Use the namespace variables
+    latent_space = torch.stack([d.out.z.flatten() for d in predictions])
+    scalings = torch.stack([d.x.scalings.flatten() for d in predictions])
 
     idx_to_class = {v: k for k, v in dataset.dataset.class_to_idx.items()}
 
@@ -366,7 +370,7 @@ def shape_embed_process():
     # Map numeric classes to their labels
     idx_to_class = {0: "alive", 1: "dead"}
     df["Class"] = df["Class"].map(idx_to_class)
-    df["Scale"] = scalings
+    df["Scale"] = scalings[:, 0].squeeze()
     df = df.set_index("Class")
     df_shape_embed = df.copy()
 
