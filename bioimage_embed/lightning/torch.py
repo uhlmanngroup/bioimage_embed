@@ -197,3 +197,16 @@ class LitAutoEncoderTorch(pl.LightningModule):
 
         # Return whatever data you need, for example, the loss
         return loss
+
+    def validation_step(self, batch, batch_idx):
+        x = self.batch_to_tensor(batch)
+        model_output = self.model(x)  # Forward pass with the test batch
+
+        # Optionally compute a loss or metric if relevant
+        loss = self.loss_function(model_output)
+
+        # Log test metrics
+        self.log("validation_loss", loss)
+
+        # Return whatever data you need, for example, the loss
+        return loss

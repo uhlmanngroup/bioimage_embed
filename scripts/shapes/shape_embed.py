@@ -19,6 +19,7 @@ import umap.plot
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
 import torch
+#import wandb
 from types import SimpleNamespace
 
 # Deal with the filesystem
@@ -105,8 +106,15 @@ def shape_embed_process():
     max_epochs = 100
     window_size = 128 * 2
 
+
+    # Wandb initializer
+    # wandb.init(name='test_run', 
+    #        project='shape_embed',
+    #        notes='This is a test run', 
+    #        tags=['BBBC010', 'Test Run'])
+
     params = {
-        "model":"resnet18_vqvae_legacy",
+        "model":"resnet18_vae_bolt",
         "epochs": 75,
         "batch_size": 4,
         "num_workers": 2**4,
@@ -122,6 +130,7 @@ def shape_embed_process():
         "commitment_cost": 0.25,
         "decay": 0.99,
         "loss_weights": [1, 1, 1, 1],
+        # "wandb": wandb
     }
 
     optimizer_params = {
@@ -143,7 +152,6 @@ def shape_embed_process():
 
     args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
 
-    #dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm"
     dataset_path = "shape_embed_data/data/bbbc010/BBBC010_v1_foreground_eachworm/"
     # dataset_path = "vampire/mefs/data/processed/Control"
     # dataset_path = "shape_embed_data/data/vampire/torchvision/Control/"
@@ -266,22 +274,20 @@ def shape_embed_process():
         num_workers=args.num_workers,
     )
 
-    # model = bioimage_embed.models.create_model("resnet18_vqvae_legacy", **vars(args))
-    # 
     model = bioimage_embed.models.create_model(
         model=args.model,
         input_dim=args.input_dim,
         latent_dim=args.latent_dim,
-        pretrained=args.pretrained,
+        pretrained=args.pretrained
     )
 
-    # model = bioimage_embed.models.factory.ModelFactory(**vars(args)).resnet50_vqvae_legacy()
-
-    # lit_model = shapes.MaskEmbedLatentAugment(model, args)
+    
     lit_model = shapes.MaskEmbed(model, args)
     test_data = dataset[0][0].unsqueeze(0)
-    # test_lit_data = 2*(dataset[0][0].unsqueeze(0).repeat_interleave(3, dim=1),)
     test_output = lit_model.forward((test_data,))
+    print("Full loss: ", test_output["out"].logs["loss"])
+    print("Recon loss: ", test_output["out"].logs["recon_loss"])
+    print("KL loss: ", test_output["out"].logs["kl"])
 
     dataloader.setup()
     model.eval()
@@ -303,7 +309,7 @@ def shape_embed_process():
         accumulate_grad_batches=4,
         callbacks=[checkpoint_callback],
         min_epochs=50,
-        max_epochs=args.epochs,
+        max_epochs=args.epochs
     )
     # %%
     try:
@@ -316,15 +322,14 @@ def shape_embed_process():
     lit_model.eval()
 
     validation = trainer.validate(lit_model, datamodule=dataloader)
-    # testing = trainer.test(lit_model, datamodule=dataloader)
+    print(trainer.logged_metrics["val_loss"])
+    testing = trainer.test(lit_model, datamodule=dataloader)
+    np.save("testing.npy", testing)
     example_input = Variable(torch.rand(1, *args.input_dim))
 
-    # torch.jit.save(lit_model.to_torchscript(), f"{model_dir}/model.pt")
-    # torch.onnx.export(lit_model, example_input, f"{model_dir}/model.onnx")
 
     # %%
     # Inference
-
     dataloader = DataModule(
         dataset,
         batch_size=1,
@@ -354,18 +359,20 @@ def shape_embed_process():
     umap_labels = y_blind
     classes = np.array([idx_to_class[i] for i in y])
 
-    n_components = 64  # Number of UMAP components
-    component_names = [f"umap{i}" for i in range(n_components)]  # List of column names
+    # Need to uncomment this two lines for obtain the names
+    n_components = latent_space.shape[1]  # Number of UMAP components
+    component_names = [f"{i}" for i in range(n_components)]  # List of column names
 
-    logger.info("UMAP fitting")
-    mapper = umap.UMAP(n_components=64, random_state=42).fit(
-        latent_space.numpy(), y=umap_labels
-    )
+    # logger.info("UMAP fitting")
+    # mapper = umap.UMAP(n_components=64, random_state=42).fit(
+    #     latent_space.numpy(), y=umap_labels
+    # )
 
-    logger.info("UMAP transforming")
-    semi_supervised_latent = mapper.transform(latent_space.numpy())
+    # logger.info("UMAP transforming")
+    # semi_supervised_latent = mapper.transform(latent_space.numpy())
 
-    df = pd.DataFrame(semi_supervised_latent, columns=component_names)
+    # Removing the dimensionality reduction (all the comments above)
+    df = pd.DataFrame(latent_space, columns=component_names)
     df["Class"] = y
     # Map numeric classes to their labels
     idx_to_class = {0: "alive", 1: "dead"}
@@ -374,30 +381,30 @@ def shape_embed_process():
     df = df.set_index("Class")
     df_shape_embed = df.copy()
 
-    ax = sns.relplot(
-        data=df,
-        x="umap0",
-        y="umap1",
-        hue="Class",
-        palette="deep",
-        alpha=0.5,
-        edgecolor=None,
-        s=5,
-        height=height,
-        aspect=0.5 * width / height,
-    )
+    # ax = sns.relplot(
+    #     data=df,
+    #     x="umap0",
+    #     y="umap1",
+    #     hue="Class",
+    #     palette="deep",
+    #     alpha=0.5,
+    #     edgecolor=None,
+    #     s=5,
+    #     height=height,
+    #     aspect=0.5 * width / height,
+    # )
 
-    sns.move_legend(
-        ax,
-        "upper center",
-    )
-    ax.set(xlabel=None, ylabel=None)
-    sns.despine(left=True, bottom=True)
-    plt.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
-    plt.tight_layout()
-    plt.savefig(metadata(f"umap_no_axes.pdf"))
-    # plt.show()
-    plt.close()
+    # sns.move_legend(
+    #     ax,
+    #     "upper center",
+    # )
+    # ax.set(xlabel=None, ylabel=None)
+    # sns.despine(left=True, bottom=True)
+    # plt.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
+    # plt.tight_layout()
+    # plt.savefig(metadata(f"umap_no_axes.pdf"))
+    # # plt.show()
+    # plt.close()
 
     # %%
 

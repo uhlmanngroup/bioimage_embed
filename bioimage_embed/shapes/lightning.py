@@ -3,6 +3,7 @@ import torchvision
 import pytorch_lightning as pl
 import torch.nn.functional as F
 import numpy as np
+#import wandb
 
 from torch import nn
 from ..lightning import LitAutoEncoderTorch
@@ -10,9 +11,12 @@ from . import loss_functions as lf
 from pythae.models.base.base_utils import ModelOutput
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from types import SimpleNamespace
+
 class MaskEmbed(LitAutoEncoderTorch):
     def __init__(self, model, args=SimpleNamespace()):
         super().__init__(model, args)
+        #self.wandb = args.wandb
+        #self.wandb.watch(model)
 
     def batch_to_tensor(self, batch):
         x = batch[0].float()
@@ -43,7 +47,11 @@ class MaskEmbed(LitAutoEncoderTorch):
         # loss += lf.triangle_inequality_loss(model_output.recon_x)
         # loss += lf.non_negative_loss(model_output.recon_x)
         return loss
-
+    
+    def training_step(self, batch, batch_idx):
+        super().training_step(batch, batch_idx)
+        #self.wandb.log({"Epoch": self.epoch,
+                        #"train_loss": self.loss})
 
 class FixedOutput(nn.Module):
     def __init__(self, tensor):
