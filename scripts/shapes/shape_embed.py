@@ -19,7 +19,8 @@ import umap.plot
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
 import torch
-#import wandb
+
+import wandb
 from types import SimpleNamespace
 
 # Deal with the filesystem
@@ -31,7 +32,6 @@ from bioimage_embed import shapes
 import bioimage_embed
 
 # Note - you must have torchvision installed for this example
-
 from pytorch_lightning import loggers as pl_loggers
 from torchvision import transforms
 from bioimage_embed.lightning import DataModule
@@ -108,10 +108,10 @@ def shape_embed_process():
 
 
     # Wandb initializer
-    # wandb.init(name='test_run', 
-    #        project='shape_embed',
-    #        notes='This is a test run', 
-    #        tags=['BBBC010', 'Test Run'])
+    wandb.init(name='test_run', 
+            project='shape_embed',
+            notes='This is a test run', 
+            tags=['BBBC010', 'Test Run'])
 
     params = {
         "model":"resnet18_vae_bolt",
@@ -130,7 +130,6 @@ def shape_embed_process():
         "commitment_cost": 0.25,
         "decay": 0.99,
         "loss_weights": [1, 1, 1, 1],
-        # "wandb": wandb
     }
 
     optimizer_params = {
@@ -282,7 +281,7 @@ def shape_embed_process():
     )
 
     
-    lit_model = shapes.MaskEmbed(model, args)
+    lit_model = shapes.MaskEmbed(model, args, wandb=wandb)
     test_data = dataset[0][0].unsqueeze(0)
     test_output = lit_model.forward((test_data,))
     print("Full loss: ", test_output["out"].logs["loss"])

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import argparse
 import timm
 from pythae.models.base.base_utils import ModelOutput
+import wandb
 
 
 class LitAutoEncoderTorch(pl.LightningModule):
@@ -35,7 +36,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         warmup_t=0,
     )
 
-    def __init__(self, model, args=SimpleNamespace()):
+    def __init__(self, model, args=SimpleNamespace(), wandb=None):
         super().__init__()
         self.model = model
         self.model = self.model.to(self.device)
@@ -44,21 +45,19 @@ class LitAutoEncoderTorch(pl.LightningModule):
         self.decoder = self.model.decoder
         if args:
             self.args = SimpleNamespace(**{**vars(args), **vars(self.args)})
-        # if kwargs:
-            # merged_kwargs = {k: v for d in kwargs.values() for k, v in d.items()}
-            # self.args = SimpleNamespace(**{**merged_kwargs, **vars(self.args)})
+
         self.save_hyperparameters(vars(self.args))
-        # self.model.train()
+        self.wandb = wandb
+        self.wandb.watch(model)
+
 
     def forward(self, batch):
         x = self.batch_to_tensor(batch)
         return ModelOutput(x=x, out=self.model(x))
 
     def get_results(self, batch):
-        # if self.PYTHAE_FLAG:
         x = self.batch_to_tensor(batch)
         return self.model.forward(x)
-        # return self.model.forward(batch)
 
     def batch_to_tensor(self, batch):
         return ModelOutput(data=batch)

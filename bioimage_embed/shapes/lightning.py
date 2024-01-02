@@ -3,7 +3,7 @@ import torchvision
 import pytorch_lightning as pl
 import torch.nn.functional as F
 import numpy as np
-#import wandb
+
 
 from torch import nn
 from ..lightning import LitAutoEncoderTorch
@@ -13,11 +13,9 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from types import SimpleNamespace
 
 class MaskEmbed(LitAutoEncoderTorch):
-    def __init__(self, model, args=SimpleNamespace()):
-        super().__init__(model, args)
-        #self.wandb = args.wandb
-        #self.wandb.watch(model)
-
+    def __init__(self, model, args=SimpleNamespace(), wandb=None):
+        super().__init__(model, args, wandb=wandb)
+        
     def batch_to_tensor(self, batch):
         x = batch[0].float()
         output = super().batch_to_tensor(x)
@@ -37,21 +35,17 @@ class MaskEmbed(LitAutoEncoderTorch):
                     loss_ops.symmetry_loss(),
                     loss_ops.triangle_inequality(),
                     loss_ops.non_negative_loss(),
-                    # loss_ops.clockwise_order_loss(),
                 ]
             )
         )
 
-        # loss += lf.diagonal_loss(model_output.recon_x)
-        # loss += lf.symmetry_loss(model_output.recon_x)
-        # loss += lf.triangle_inequality_loss(model_output.recon_x)
-        # loss += lf.non_negative_loss(model_output.recon_x)
         return loss
     
-    def training_step(self, batch, batch_idx):
-        super().training_step(batch, batch_idx)
-        #self.wandb.log({"Epoch": self.epoch,
-                        #"train_loss": self.loss})
+    # Try to add all to the upper class
+    # def training_step(self, batch, batch_idx):
+    #     super().training_step(batch, batch_idx)
+    #     #self.wandb.log({"test": "Hello!"})
+    #                     #"train_loss": self.loss})
 
 class FixedOutput(nn.Module):
     def __init__(self, tensor):
