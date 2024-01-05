@@ -107,14 +107,8 @@ def shape_embed_process():
     window_size = 128 * 2
 
 
-    # Wandb initializer
-    wandb.init(name='test_run', 
-            project='shape_embed',
-            notes='This is a test run', 
-            tags=['BBBC010', 'Test Run'])
-
     params = {
-        "model":"resnet18_vae_bolt",
+        "model":"resnet18_vqvae",
         "epochs": 75,
         "batch_size": 4,
         "num_workers": 2**4,
@@ -155,7 +149,7 @@ def shape_embed_process():
     # dataset_path = "vampire/mefs/data/processed/Control"
     # dataset_path = "shape_embed_data/data/vampire/torchvision/Control/"
     # dataset_path = "vampire/torchvision/Control"
-    # dataset = "bbbc010"
+    dataset_name = "bbbc010"
 
     # train_data_path = f"scripts/shapes/data/{dataset_path}"
     train_data_path = f"scripts/shapes/data/{dataset_path}"
@@ -165,6 +159,12 @@ def shape_embed_process():
     path.mkdir(parents=True, exist_ok=True)
     model_dir = f"models/{dataset_path}_{args.model}"
     # %%
+
+    # Wandb initializer
+    wandb.init(name=f'{args.model}_{interp_size}_{dataset_name}', 
+            project='shape_embed',
+            notes='This is a test run', 
+            tags=[f'{dataset_name}', 'Test Run'])
 
     transform_crop = CropCentroidPipeline(window_size)
     transform_dist = MaskToDistogramPipeline(
@@ -284,9 +284,9 @@ def shape_embed_process():
     lit_model = shapes.MaskEmbed(model, args, wandb=wandb)
     test_data = dataset[0][0].unsqueeze(0)
     test_output = lit_model.forward((test_data,))
-    print("Full loss: ", test_output["out"].logs["loss"])
-    print("Recon loss: ", test_output["out"].logs["recon_loss"])
-    print("KL loss: ", test_output["out"].logs["kl"])
+    # print("Full loss: ", test_output["out"].logs["loss"])
+    # print("Recon loss: ", test_output["out"].logs["recon_loss"])
+    # print("KL loss: ", test_output["out"].logs["kl"])
 
     dataloader.setup()
     model.eval()
@@ -321,7 +321,6 @@ def shape_embed_process():
     lit_model.eval()
 
     validation = trainer.validate(lit_model, datamodule=dataloader)
-    print(trainer.logged_metrics["val_loss"])
     testing = trainer.test(lit_model, datamodule=dataloader)
     np.save("testing.npy", testing)
     example_input = Variable(torch.rand(1, *args.input_dim))
@@ -493,11 +492,18 @@ def shape_embed_process():
         print(trial["score_df"])
         trial["score_df"].to_csv(metadata(f"{trial['name']}_score_df.csv"))
         trial_df = pd.concat([trial_df, trial["score_df"]])
+        #wandb.log(trial["score_df"].to_dict())
+        #for k, v in trial["score_df"].to_dict().items():
+        #    wandb.Histogram(v)
     trial_df = trial_df.drop(["fit_time", "score_time"], axis=1)
+
+
 
     trial_df.to_csv(metadata(f"trial_df.csv"))
     trial_df.groupby("trial").mean().to_csv(metadata(f"trial_df_mean.csv"))
     trial_df.plot(kind="bar")
+
+    wandb.log({"trial_df": wandb.Table(dataframe=trial_df)})
 
     melted_df = trial_df.melt(id_vars="trial", var_name="Metric", value_name="Score")
     # fig, ax = plt.subplots(figsize=(width, height))

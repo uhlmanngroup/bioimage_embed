@@ -173,6 +173,10 @@ class LitAutoEncoderTorch(pl.LightningModule):
         # Log test metrics
         self.log("test_loss", loss)
 
+        log_dict = {"test_loss_step": loss}
+
+        self.wandb.log(log_dict)
+
         # Optionally you can add more logging, for example, visualizations:
         self.logger.experiment.add_image(
             "test_input",
