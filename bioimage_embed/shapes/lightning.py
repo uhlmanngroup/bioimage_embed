@@ -7,14 +7,21 @@ import numpy as np
 from torch import nn
 from ..lightning import LitAutoEncoderTorch
 from . import loss_functions as lf
-
-
+from pythae.models.base.base_utils import ModelOutput
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from types import SimpleNamespace
 class MaskEmbed(LitAutoEncoderTorch):
-    def __init__(self, model, args=None):
+    def __init__(self, model, args=SimpleNamespace()):
         super().__init__(model, args)
 
     def batch_to_tensor(self, batch):
-        return super().batch_to_tensor(batch[0].float())
+        x = batch[0].float()
+        output = super().batch_to_tensor(x)
+        froebenius_norm = torch.norm(
+            output["data"], p="fro", dim=(-2, -1), keepdim=True
+        )
+        normalised_data = x.shape[-1]*x/froebenius_norm
+        return ModelOutput(data=normalised_data,scalings=froebenius_norm)
 
     def loss_function(self, model_output, *args, **kwargs):
         loss_ops = lf.DistanceMatrixLoss(model_output.recon_x, norm=True)
@@ -48,8 +55,8 @@ class FixedOutput(nn.Module):
 
 
 class MaskEmbedLatentAugment(MaskEmbed):
-    def __init__(self, model, args=None):
-        super().__init__(model, args)
+    def __init__(self, model, args_dict):
+        super().__init__(model, **args_dict)
 
     def get_model_output(self, x, batch_idx, optimizer_idx=0):
         # Janky!
@@ -110,4 +117,3 @@ class MaskEmbedLatentAugment(MaskEmbed):
     def configure_optimizers(self):
         opt_ed, lr_s_ed = self.timm_optimizers(self.model)
         return self.timm_to_lightning(optimizer=opt_ed, lr_scheduler=lr_s_ed)
-

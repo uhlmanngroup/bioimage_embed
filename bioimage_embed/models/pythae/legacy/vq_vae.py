@@ -16,20 +16,25 @@ from pythae.models.base.base_utils import ModelOutput
 # import VQVAE, Encoder, Decoder
 from pythae.models.nn import BaseDecoder, BaseEncoder
 from ...nets.resnet import ResnetDecoder, ResnetEncoder
-from ....models import legacy
+from ....models.legacy import vq_vae
 
 
 from pythae.models import VQVAEConfig, VAEConfig
 
 
 class Encoder(BaseEncoder):
-    def __init__(self, model_config, **kwargs):
+    def __init__(
+        self, model_config, num_hiddens, num_residual_hiddens, num_residual_layers
+    ):
         super(Encoder, self).__init__()
         embedding_dim = model_config.latent_dim
         input_dim = model_config.input_dim[1:]
 
         self.model = ResnetEncoder(
-            in_channels=model_config.input_dim[0], **{**vars(model_config), **kwargs}
+            in_channels=model_config.input_dim[0],
+            num_hiddens=num_hiddens,
+            num_residual_hiddens=num_residual_hiddens,
+            num_residual_layers=num_residual_layers,
         )
 
 
@@ -44,12 +49,16 @@ class VQVAEEncoder(Encoder):
 
 
 class VAEDecoder(BaseDecoder):
-    def __init__(self, model_config, **kwargs):
+    def __init__(
+        self, model_config, num_hiddens, num_residual_hiddens, num_residual_layers
+    ):
         super(VAEDecoder, self).__init__()
         self.model = ResnetDecoder(
             in_channels=model_config.latent_dim,
             out_channels=model_config.input_dim[0],
-            **{**vars(model_config), **kwargs}
+            num_hiddens=num_hiddens,
+            num_residual_layers=num_residual_layers,
+            num_residual_hiddens=num_residual_hiddens,
         )
 
     def forward(self, x):
@@ -58,7 +67,7 @@ class VAEDecoder(BaseDecoder):
 
 
 class VQVAE(models.VQVAE):
-    def __init__(self, model_config: VQVAEConfig, **kwargs):
+    def __init__(self, model_config: VQVAEConfig, depth, encoder=None, decoder=None):
         super(models.BaseAE, self).__init__()
         # super(nn.Module)
         # input_dim (tuple) – The input_data dimension.
@@ -69,23 +78,29 @@ class VQVAE(models.VQVAE):
         if self.model_config.decay > 0.0:
             self.model_config.use_ema = True
 
-        self.model = legacy.vq_vae.VQ_VAE(
+        self.model = vq_vae.VQ_VAE(
             channels=model_config.input_dim[0],
             embedding_dim=model_config.latent_dim,
-            **{**vars(model_config), **kwargs}
+            num_hiddens=model_config.latent_dim,
+            num_residual_layers=depth,
         )
         self.encoder = self.model._encoder
         self.decoder = self.model._decoder
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         # This isn't completely necessary for training I don't think
         # self._set_quantizer(model_config)
-        self.quantizer = self.model._vq_vae
 
     def forward(self, x, epoch=None):
         # loss, x_recon, perplexity = self.model.forward(x["data"])
         z = self.model.encoder(x["data"])
         z = self.model._pre_vq_conv(z)
+
+        proper_shape = z.shape
+        z = self.avgpool(z)
+
         loss, quantized, perplexity, encodings = self.model._vq_vae(z)
-        x_recon = self.model._decoder(quantized)
+        expanded_q = quantized.expand(-1, -1, *proper_shape[-2:])
+        x_recon = self.model._decoder(expanded_q)
         # return loss, x_recon, perplexity
         loss_dict = self.model.loss_function(
             loss,
@@ -106,23 +121,41 @@ class VQVAE(models.VQVAE):
             recon_x=x_recon,
             z=quantized,
             quantized_indices=indices[0],
-            **loss_dict
+            **loss_dict,
         )
         # return ModelOutput(reconstruction=x_recon, **loss_dict)
 
 
 class VAE(models.VAE):
-    def __init__(self, model_config: VAEConfig, **kwargs):
+    def __init__(
+        self,
+        model_config: VAEConfig,
+        num_hiddens=64,
+        num_residual_hiddens=18,
+        num_residual_layers=2,
+        encoder=None,
+        decoder=None,
+    ):
         super(models.BaseAE, self).__init__()
         # super(nn.Module)
         # input_dim (tuple) – The input_data dimension.
 
         self.model_name = "VAE"
         self.model_config = model_config
-        self.encoder = VAEEncoder(model_config, **kwargs)
-        self.decoder = VAEDecoder(model_config, **kwargs)
+        self.encoder = VAEEncoder(
+            model_config,
+            num_hiddens=num_hiddens,
+            num_residual_hiddens=num_residual_hiddens,
+            num_residual_layers=num_residual_layers,
+        )
+        self.decoder = VAEDecoder(
+            model_config,
+            num_hiddens=num_hiddens,
+            num_residual_hiddens=num_residual_hiddens,
+            num_residual_layers=num_residual_layers,
+        )
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(kwargs["num_hiddens"], model_config.latent_dim * 2)
+        self.fc = nn.Linear(num_hiddens, model_config.latent_dim * 2)
         # shape is (batch_size, model_config.num_hiddens, 1, 1)
 
     def reparameterize(self, mu, log_var):

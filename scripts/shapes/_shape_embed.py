@@ -19,7 +19,6 @@ import umap.plot
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
 import torch
-from types import SimpleNamespace
 
 # Deal with the filesystem
 import torch.multiprocessing
@@ -90,10 +89,8 @@ def scoring_df(X, y):
 
 def shape_embed_process():
     # Setting the font size
-    mpl.rcParams["font.size"] = 10
 
     # rc("text", usetex=True)
-    rc("font", **{"family": "sans-serif", "sans-serif": ["Arial"]})
     width = 3.45
     height = width / 1.618
     plt.rcParams["figure.figsize"] = [width, height]
@@ -106,19 +103,15 @@ def shape_embed_process():
     window_size = 128 * 2
 
     params = {
-        "model":"resnet18_vqvae_legacy",
+        "model": "resnet18_vqvae_legacy",
         "epochs": 75,
-        "batch_size": 4,
+        "batch_size": 3,
         "num_workers": 2**4,
         "input_dim": (3, interp_size, interp_size),
-        "latent_dim": interp_size,
-        "num_embeddings": interp_size,
-        "num_hiddens": interp_size,
-        "num_residual_hiddens": 32,
-        "num_residual_layers": 150,
+        "latent_dim": (interp_size) * 8,
+        "num_embeddings": 16,
+        "num_hiddens": 16,
         "pretrained": True,
-        # "embedding_dim": 32,
-        # "num_embeddings": 16,
         "commitment_cost": 0.25,
         "decay": 0.99,
         "loss_weights": [1, 1, 1, 1],
@@ -143,15 +136,14 @@ def shape_embed_process():
 
     args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
 
-    #dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm"
-    dataset_path = "shape_embed_data/data/bbbc010/BBBC010_v1_foreground_eachworm/"
+    dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm"
     # dataset_path = "vampire/mefs/data/processed/Control"
     # dataset_path = "shape_embed_data/data/vampire/torchvision/Control/"
     # dataset_path = "vampire/torchvision/Control"
     # dataset = "bbbc010"
 
     # train_data_path = f"scripts/shapes/data/{dataset_path}"
-    train_data_path = f"scripts/shapes/data/{dataset_path}"
+    train_data_path = f"data/{dataset_path}"
     metadata = lambda x: f"results/{dataset_path}_{args.model}/{x}"
 
     path = Path(metadata(""))
@@ -266,16 +258,8 @@ def shape_embed_process():
         num_workers=args.num_workers,
     )
 
-    # model = bioimage_embed.models.create_model("resnet18_vqvae_legacy", **vars(args))
-    # 
-    model = bioimage_embed.models.create_model(
-        model=args.model,
-        input_dim=args.input_dim,
-        latent_dim=args.latent_dim,
-        pretrained=args.pretrained,
-    )
-
-    # model = bioimage_embed.models.factory.ModelFactory(**vars(args)).resnet50_vqvae_legacy()
+    model = bioimage_embed.models.create_model(**vars(args))
+    logger.info(model)
 
     # lit_model = shapes.MaskEmbedLatentAugment(model, args)
     lit_model = shapes.MaskEmbed(model, args)
@@ -285,12 +269,17 @@ def shape_embed_process():
 
     dataloader.setup()
     model.eval()
+    # Model
+    lit_model.eval()
+
+    logger.info(f"Saving model to {model_dir}")
 
     model_dir = f"my_models/{dataset_path}_{model._get_name()}_{lit_model._get_name()}"
-
-    tb_logger = pl_loggers.TensorBoardLogger(f"logs/")
-
     Path(f"{model_dir}/").mkdir(parents=True, exist_ok=True)
+
+    tb_logger = pl_loggers.TensorBoardLogger(f"logs/",
+                                             name=f"{dataset_path}_{args.model}_{model._get_name()}_{lit_model._get_name()}",
+                                             )
 
     checkpoint_callback = ModelCheckpoint(dirpath=f"{model_dir}/", save_last=True)
 
@@ -300,12 +289,16 @@ def shape_embed_process():
         enable_checkpointing=True,
         devices=1,
         accelerator="gpu",
+        precision=16,  # Use mixed precision
         accumulate_grad_batches=4,
         callbacks=[checkpoint_callback],
         min_epochs=50,
         max_epochs=args.epochs,
     )
-    # %%
+    # # %%
+
+    testing = trainer.test(lit_model, datamodule=dataloader)
+
     try:
         trainer.fit(
             lit_model, datamodule=dataloader, ckpt_path=f"{model_dir}/last.ckpt"
@@ -313,16 +306,23 @@ def shape_embed_process():
     except:
         trainer.fit(lit_model, datamodule=dataloader)
 
-    lit_model.eval()
+    logger.info(f"Saving model to {model_dir}")
+    try:
+        example_input = Variable(torch.rand(2, 1, *args.input_dim))
+        torch.onnx.export(lit_model, example_input, f"{model_dir}/model.onnx")
+        torch.jit.save(lit_model.to_torchscript(), f"{model_dir}/model.pt")
+
+    except:
+        logger.info("Model ")
 
     validation = trainer.validate(lit_model, datamodule=dataloader)
     # testing = trainer.test(lit_model, datamodule=dataloader)
+
     example_input = Variable(torch.rand(1, *args.input_dim))
+    logger.info(f"Saving model to {model_dir}")
+    torch.jit.save(lit_model.to_torchscript(), f"{model_dir}/model.pt")
+    torch.onnx.export(lit_model, example_input, f"{model_dir}/model.onnx")
 
-    # torch.jit.save(lit_model.to_torchscript(), f"{model_dir}/model.pt")
-    # torch.onnx.export(lit_model, example_input, f"{model_dir}/model.onnx")
-
-    # %%
     # Inference
 
     dataloader = DataModule(
@@ -333,15 +333,12 @@ def shape_embed_process():
         # Transform is commented here to avoid augmentations in real data
         # HOWEVER, applying a the transform multiple times and averaging the results might produce better latent embeddings
         # transform=transform,
-        # transform=transform,
     )
     dataloader.setup()
 
     predictions = trainer.predict(lit_model, datamodule=dataloader)
-
-    # Use the namespace variables
-    latent_space = torch.stack([d.out.z.flatten() for d in predictions])
-    scalings = torch.stack([d.x.scalings.flatten() for d in predictions])
+    latent_space = torch.stack([d["z"].flatten() for d in predictions])
+    scalings = torch.stack([d["scalings"].flatten() for d in predictions])
 
     idx_to_class = {v: k for k, v in dataset.dataset.class_to_idx.items()}
 
@@ -370,7 +367,7 @@ def shape_embed_process():
     # Map numeric classes to their labels
     idx_to_class = {0: "alive", 1: "dead"}
     df["Class"] = df["Class"].map(idx_to_class)
-    df["Scale"] = scalings[:, 0].squeeze()
+    df["Scale"] = scalings
     df = df.set_index("Class")
     df_shape_embed = df.copy()
 
