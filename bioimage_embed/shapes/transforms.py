@@ -159,8 +159,13 @@ class CoordsToDistogram(torch.nn.Module):
     def get_distogram(self, coords, matrix_normalised=False):
 
         xii, yii = coords
-        distance_matrix = euclidean_distances(np.array([xii, yii]).T)
-        # Fro norm is the same as the L2 norm, but for positive semi-definite matrices
+        distance_matrix = euclidean_distances(np.array([xii, yii]).T) / (
+            np.sqrt(2) * self.size
+        )
+        # TODO size should be shape of matrix and the normalisation should be
+        # D / (np.linalg.norm(x.shape[-2:]))
+
+        norm = np.linalg.norm(distance_matrix, "fro")
         if matrix_normalised:
             return distance_matrix / np.linalg.norm(distance_matrix, "fro")
         if not matrix_normalised:
@@ -365,3 +370,20 @@ class AsymmetricDistogramToSymmetricDistogram(torch.nn.Module):
 
         sym_dist = np.max(dist_stack, axis=0)
         return torch.tensor(np.array(sym_dist))
+
+
+class RotateIndexingClockwise(nn.Module):
+    def __init__(self, max_rotations=None, p=1.0):
+        super(RotateIndexingClockwise, self).__init__()
+        self.max_rotations = max_rotations
+        self.probability = p
+
+    def forward(self, img):
+        if np.random.rand() < self.probability:
+            if self.max_rotations is None:
+                self.max_rotations = img.shape[0]
+            num_rotations = np.random.randint(0, self.max_rotations)
+            img = np.roll(
+                img.numpy(), shift=[num_rotations, num_rotations], axis=[0, 1]
+            )
+        return torch.from_numpy(img)
