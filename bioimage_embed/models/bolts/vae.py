@@ -2,6 +2,9 @@ from torch import nn
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn import BaseDecoder, BaseEncoder
 
+
+from pythae import models
+from pythae.models import VQVAEConfig, VAEConfig
 from pl_bolts.models import autoencoders
 from pythae.models import VQVAE, VQVAEConfig, VAE, VAEConfig
 
@@ -34,9 +37,7 @@ class ResNet50VAEEncoder(BaseEncoder):
         output = ModelOutput()
         x = self.encoder(x)
         # x = self.fc1(x)
-        output["embedding"] = self.embedding(x)
-        output["log_covariance"] = self.log_var(x)
-        return output
+        return ModelOutput(embedding=self.embedding(x), log_covariance=self.log_var(x))
 
 
 class ResNet50VAEDecoder(BaseDecoder):
