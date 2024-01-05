@@ -58,22 +58,34 @@ class ResNet18VQVAEEncoder(BaseResNetVQVAEEncoder):
 
 class BaseResNetVQVAEDecoder(BaseDecoder):
     def __init__(
-        self, model_config: VAEConfig, resnet_decoder, first_conv=False, maxpool1=False, **kwargs
+        self,
+        model_config: VAEConfig,
+        resnet_decoder,
+        first_conv=False,
+        maxpool1=False,
+        **kwargs
     ):
         super(BaseResNetVQVAEDecoder, self).__init__()
         self.model_config = model_config
         self.latent_dim = model_config.latent_dim
         self.input_height = model_config.input_dim[-2]
-        self.decoder = resnet_decoder(self.latent_dim, self.input_height, first_conv, maxpool1)
-        self.postquantized = nn.Conv2d(self.latent_dim, self.latent_dim, 1, 1)
+        # self.postquantized = nn.Conv2d(self.enc_out_dim, self.latent_dim, 1, 1)
+        self.postquantized = nn.Conv2d(self.latent_dim, self.enc_out_dim, 1, 1)
+        self.decoder = resnet_decoder(
+            self.enc_out_dim, self.input_height, first_conv, maxpool1
+        )
+        # Activation layer might be useful here
+        # https://github.com/AntixK/PyTorch-VAE/blob/a6896b944c918dd7030e7d795a8c13e5c6345ec7/models/vq_vae.py#L166
 
     def forward(self, x):
         x = self.postquantized(x)
-        x = x.view(-1, self.latent_dim)
+        x = x.view(-1, self.enc_out_dim)
         x = self.decoder(x)
         return ModelOutput(reconstruction=x)
 
+
 class ResNet50VQVAEDecoder(BaseResNetVQVAEDecoder):
+    enc_out_dim = 2048
     def __init__(
         self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
     ):
@@ -81,7 +93,9 @@ class ResNet50VQVAEDecoder(BaseResNetVQVAEDecoder):
             model_config, resnet50_decoder, first_conv, maxpool1, **kwargs
         )
 
+
 class ResNet18VQVAEDecoder(BaseResNetVQVAEDecoder):
+    enc_out_dim = 512
     def __init__(
         self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
     ):
