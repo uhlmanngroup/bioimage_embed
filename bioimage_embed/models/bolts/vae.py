@@ -40,21 +40,20 @@ class ResNet50VAEEncoder(BaseEncoder):
 
 
 class ResNet50VAEDecoder(BaseDecoder):
+    enc_out_dim = 2048
     def __init__(
         self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
     ):
         super(ResNet50VAEDecoder, self).__init__()
         latent_dim = model_config.latent_dim
         input_height = model_config.input_dim[-2]
-        self.decoder = resnet50_decoder(latent_dim, input_height, first_conv, maxpool1)
+        self.embedding = nn.Linear(latent_dim, self.enc_out_dim)
+        self.decoder = resnet50_decoder(self.enc_out_dim, input_height, first_conv, maxpool1)
 
     def forward(self, x):
-        output = ModelOutput()
-        # output = ModelOutput()
+        x = self.embedding(x)
         x = self.decoder(x)
-        # x = self.fc1(x)
-        output["reconstruction"] = x
-        return output
+        return ModelOutput(reconstruction=x)
 
 
 class ResNet18VAEEncoder(BaseEncoder):
@@ -82,75 +81,23 @@ class ResNet18VAEEncoder(BaseEncoder):
 
 
 class ResNet18VAEDecoder(BaseDecoder):
+    enc_out_dim = 512
+
     def __init__(
         self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
     ):
         super(ResNet18VAEDecoder, self).__init__()
         latent_dim = model_config.latent_dim
         input_height = model_config.input_dim[-2]
-        self.decoder = resnet18_decoder(latent_dim, input_height, first_conv, maxpool1)
+        self.decoder = resnet18_decoder(
+            self.enc_out_dim, input_height, first_conv, maxpool1
+        )
+        self.embedding = nn.Linear(latent_dim, self.enc_out_dim)
 
     def forward(self, x):
+        x = self.embedding(x)
         x = self.decoder(x)
-        # x = self.fc1(x)
         return ModelOutput(reconstruction=x)
-
-
-# class ResNetVAEEncoder(BaseEncoder):
-#     def __init__(self, model_config: VAEConfig, encoder_fn, enc_out_dim, first_conv=False, maxpool1=False, **kwargs):
-#         super(ResNetVAEEncoder, self).__init__()
-
-#         input_height = model_config.input_dim[-2]
-#         latent_dim = model_config.latent_dim
-
-#         self.encoder = encoder_fn(first_conv, maxpool1)
-#         self.embedding = nn.Linear(enc_out_dim, latent_dim)
-#         self.log_var = nn.Linear(enc_out_dim, latent_dim)
-
-#     def forward(self, x):
-#         output = ModelOutput()
-#         x = self.encoder(x)
-#         output["embedding"] = self.embedding(x)
-#         output["log_covariance"] = self.log_var(x)
-#         return output
-
-
-# class ResNetVAEDecoder(BaseDecoder):
-#     def __init__(self, model_config: VAEConfig, decoder_fn, first_conv=False, maxpool1=False, **kwargs):
-#         super(ResNetVAEDecoder, self).__init__()
-
-#         latent_dim = model_config.latent_dim
-#         input_height = model_config.input_dim[-2]
-#         self.decoder = decoder_fn(latent_dim, input_height, first_conv, maxpool1)
-
-#     def forward(self, x):
-#         output = ModelOutput()
-#         x = self.decoder(x)
-#         output["reconstruction"] = x
-#         return output
-
-
-# class ResNet50VAEEncoder(ResNetVAEEncoder):
-#     def __init__(self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs):
-#         super().__init__(model_config, resnet50_encoder, enc_out_dim=2048, first_conv=first_conv, maxpool1=maxpool1, **kwargs)
-
-
-# class ResNet50VAEDecoder(ResNetVAEDecoder):
-#     def __init__(self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs):
-#         super().__init__(model_config, resnet50_decoder, first_conv=first_conv, maxpool1=maxpool1, **kwargs)
-
-
-# class ResNet18VAEEncoder(ResNetVAEEncoder):
-#     def __init__(self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs):
-#         super().__init__(model_config, resnet18_encoder, enc_out_dim=512, first_conv=first_conv, maxpool1=maxpool1, **kwargs)
-
-
-# class ResNet18VAEDecoder(ResNetVAEDecoder):
-#     def __init__(self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs):
-#         super().__init__(model_config, resnet18_decoder, first_conv=first_conv, maxpool1=maxpool1, **kwargs)
-
-from pythae import models
-from pythae.models import VQVAEConfig, VAEConfig
 
 
 class VAEPythaeWrapper(models.VAE):
