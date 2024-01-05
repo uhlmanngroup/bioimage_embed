@@ -11,9 +11,16 @@ from pl_bolts.models.autoencoders import (
     resnet50_encoder,
 )
 
+
 class BaseResNetVQVAEEncoder(BaseEncoder):
     def __init__(
-        self, model_config: VAEConfig, resnet_encoder, enc_out_dim, first_conv=False, maxpool1=False, **kwargs
+        self,
+        model_config: VAEConfig,
+        resnet_encoder,
+        enc_out_dim,
+        first_conv=False,
+        maxpool1=False,
+        **kwargs
     ):
         super(BaseResNetVQVAEEncoder, self).__init__()
 
@@ -22,17 +29,17 @@ class BaseResNetVQVAEEncoder(BaseEncoder):
         self.enc_out_dim = enc_out_dim
 
         self.encoder = resnet_encoder(first_conv, maxpool1)
-        self.embedding = nn.Linear(self.enc_out_dim, self.latent_dim)
-        self.log_var = nn.Linear(self.enc_out_dim, self.latent_dim)
+        # self.embedding = nn.Linear(self.enc_out_dim, self.latent_dim)
+        # self.log_var = nn.Linear(self.enc_out_dim, self.latent_dim)
         self.prequantized = nn.Conv2d(self.enc_out_dim, self.latent_dim, 1, 1)
 
     def forward(self, inputs):
         x = self.encoder(inputs)
-        log_covariance = self.log_var(x)
+        # log_covariance = self.log_var(x)
         x = x.view(-1, self.enc_out_dim, 1, 1)
         embedding = self.prequantized(x)
-        return ModelOutput(embedding=embedding, log_covariance=log_covariance)
-
+        return ModelOutput(embedding=embedding)
+        # return ModelOutput(embedding=embedding, log_covariance=log_covariance)
 
 class ResNet50VQVAEEncoder(BaseResNetVQVAEEncoder):
     enc_out_dim = 2048
@@ -41,7 +48,12 @@ class ResNet50VQVAEEncoder(BaseResNetVQVAEEncoder):
         self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
     ):
         super(ResNet50VQVAEEncoder, self).__init__(
-            model_config, resnet50_encoder, self.enc_out_dim, first_conv, maxpool1, **kwargs
+            model_config,
+            resnet50_encoder,
+            self.enc_out_dim,
+            first_conv,
+            maxpool1,
+            **kwargs
         )
 
 
@@ -52,7 +64,12 @@ class ResNet18VQVAEEncoder(BaseResNetVQVAEEncoder):
         self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
     ):
         super(ResNet18VQVAEEncoder, self).__init__(
-            model_config, resnet18_encoder, self.enc_out_dim, first_conv, maxpool1, **kwargs
+            model_config,
+            resnet18_encoder,
+            self.enc_out_dim,
+            first_conv,
+            maxpool1,
+            **kwargs
         )
 
 
