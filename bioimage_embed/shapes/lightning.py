@@ -10,18 +10,29 @@ from . import loss_functions as lf
 from pythae.models.base.base_utils import ModelOutput
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from types import SimpleNamespace
+
+def frobenius_norm_2D_torch(tensor: torch.Tensor) -> torch.Tensor:
+    return torch.norm(tensor, p="fro", dim=(-2, -1), keepdim=True)
+
+
 class MaskEmbed(LitAutoEncoderTorch):
     def __init__(self, model, args=SimpleNamespace()):
         super().__init__(model, args)
 
     def batch_to_tensor(self, batch):
+        """
+        Converts a batch of data to a tensor
+        Batch is expected to be normalised to the window size which will be the same or smaller than the image size in question.
+        The batch is also optionally frobenius normalised to make the loss function invariant to the size of the shape.
+        """
         x = batch[0].float()
         output = super().batch_to_tensor(x)
-        froebenius_norm = torch.norm(
-            output["data"], p="fro", dim=(-2, -1), keepdim=True
-        )
-        normalised_data = x.shape[-1]*x/froebenius_norm
-        return ModelOutput(data=normalised_data,scalings=froebenius_norm)
+        normalised_data = output["data"]
+        if self.args.frobenius_norm:
+            scalings = frobenius_norm_2D_torch(output["data"])
+        else:
+            scalings = torch.ones_like(output["data"])
+        return ModelOutput(data=normalised_data / scalings, scalings=scalings)
 
     def loss_function(self, model_output, *args, **kwargs):
         loss_ops = lf.DistanceMatrixLoss(model_output.recon_x, norm=True)
