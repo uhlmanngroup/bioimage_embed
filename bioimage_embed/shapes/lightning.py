@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 import torch.nn.functional as F
 import numpy as np
 
+
 from torch import nn
 from ..lightning import LitAutoEncoderTorch
 from . import loss_functions as lf
@@ -14,11 +15,10 @@ from types import SimpleNamespace
 def frobenius_norm_2D_torch(tensor: torch.Tensor) -> torch.Tensor:
     return torch.norm(tensor, p="fro", dim=(-2, -1), keepdim=True)
 
-
 class MaskEmbed(LitAutoEncoderTorch):
-    def __init__(self, model, args=SimpleNamespace()):
-        super().__init__(model, args)
-
+    def __init__(self, model, args=SimpleNamespace(), wandb=None):
+        super().__init__(model, args, wandb=wandb)
+        
     def batch_to_tensor(self, batch):
         """
         Converts a batch of data to a tensor
@@ -44,17 +44,17 @@ class MaskEmbed(LitAutoEncoderTorch):
                     loss_ops.symmetry_loss(),
                     loss_ops.triangle_inequality(),
                     loss_ops.non_negative_loss(),
-                    # loss_ops.clockwise_order_loss(),
                 ]
             )
         )
 
-        # loss += lf.diagonal_loss(model_output.recon_x)
-        # loss += lf.symmetry_loss(model_output.recon_x)
-        # loss += lf.triangle_inequality_loss(model_output.recon_x)
-        # loss += lf.non_negative_loss(model_output.recon_x)
         return loss
-
+    
+    # Try to add all to the upper class
+    # def training_step(self, batch, batch_idx):
+    #     super().training_step(batch, batch_idx)
+    #     #self.wandb.log({"test": "Hello!"})
+    #                     #"train_loss": self.loss})
 
 class FixedOutput(nn.Module):
     def __init__(self, tensor):

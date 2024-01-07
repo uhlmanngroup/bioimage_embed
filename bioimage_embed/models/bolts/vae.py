@@ -136,5 +136,7 @@ class VAEPythaeWrapper(models.VAE):
         x_recon = self.model(x)
         z, recon_x, p, q = self.model._run_step(x)
         loss, logs = self.model.step((x, x), batch_idx=epoch)
-
         return ModelOutput(recon_x=recon_x, z=z, logs=logs, loss=loss)
+    
+    def validation_step(self, batch, batch_idx):
+        return self.log_dict({"test key": 44})
