@@ -41,6 +41,7 @@ from bioimage_embed.shapes.transforms import (
     CropCentroidPipeline,
     DistogramToCoords,
     MaskToDistogramPipeline,
+    RotateIndexingClockwise,
 )
 
 import matplotlib.pyplot as plt
