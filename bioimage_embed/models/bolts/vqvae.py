@@ -102,7 +102,7 @@ class BaseResNetVQVAEDecoder(BaseDecoder):
 
 
 class ResNet50VQVAEDecoder(BaseResNetVQVAEDecoder):
-    enc_out_dim = 2048
+    enc_out_dim = 512
     def __init__(
         self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
     ):
