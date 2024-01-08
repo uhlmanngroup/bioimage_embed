@@ -31,7 +31,7 @@ class MaskEmbed(LitAutoEncoderTorch):
                 [
                     loss_ops.diagonal_loss(),
                     loss_ops.symmetry_loss(),
-                    loss_ops.triangle_inequality(),
+                    # loss_ops.triangle_inequality(),
                     loss_ops.non_negative_loss(),
                     # loss_ops.clockwise_order_loss(),
                 ]
