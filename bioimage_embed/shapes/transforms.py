@@ -180,19 +180,18 @@ class CoordsToDistogram(torch.nn.Module):
         return self.__class__.__name__ + f"(size={self.size})"
 
     def get_distogram(self, coords, matrix_normalised=False):
-
         xii, yii = coords
-        # distograms.append(euclidean_distances(np.array([xii,yii]).T))
-        distance_matrix = euclidean_distances(np.array([xii, yii]).T) / self.size**0.5
+        distance_matrix = euclidean_distances(np.array([xii, yii]).T) / (
+            np.sqrt(2) * self.size
+        )
+        # TODO size should be shape of matrix and the normalisation should be
+        # D / (np.linalg.norm(x.shape[-2:]))
+
         norm = np.linalg.norm(distance_matrix, "fro")
-        # Fro norm is the same as the L2 norm, but for positive semi-definite matrices
-        # norm = np.linalg.norm(distance_matrix)
-        # norm_distance_matrix = distance_matrix / self.size**0.5
         if matrix_normalised:
             return distance_matrix / norm
         return distance_matrix
 
-# import numpy as np
 
 class ImageToCoords(torch.nn.Module):
     def __init__(self, size):
@@ -272,7 +271,6 @@ class VerticesToMask(torch.nn.Module):
         return torch.tensor(np.array(mask_list))
 
     def vertices_to_mask_BC(self, vertices, mask_shape=(128, 128)):
-
         flat = np.reshape(vertices, (-1, vertices.shape[-2], vertices.shape[-1]))
         masks = np.stack([polygon2mask(mask_shape, arr) for arr in flat]).reshape(
             *vertices.shape[-4:-2], *mask_shape
@@ -408,3 +406,20 @@ class AsymmetricDistogramToSymmetricDistogram(torch.nn.Module):
 
         sym_dist = np.max(dist_stack, axis=0)
         return torch.tensor(np.array(sym_dist))
+
+
+class RotateIndexingClockwise(nn.Module):
+    def __init__(self, max_rotations=None, p=1.0):
+        super(RotateIndexingClockwise, self).__init__()
+        self.max_rotations = max_rotations
+        self.probability = p
+
+    def forward(self, img):
+        if np.random.rand() < self.probability:
+            if self.max_rotations is None:
+                self.max_rotations = img.shape[0]
+            num_rotations = np.random.randint(0, self.max_rotations)
+            img = np.roll(
+                img.numpy(), shift=[num_rotations, num_rotations], axis=[0, 1]
+            )
+        return torch.from_numpy(img)
