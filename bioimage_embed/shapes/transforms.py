@@ -10,17 +10,10 @@ import torch
 from sklearn.manifold import MDS
 from sklearn.metrics.pairwise import euclidean_distances
 from skimage.measure import find_contours
-from scipy.interpolate import interp1d, splprep, splev
 import torch
 import torch.nn.functional as F
 
-
-def cart2pol(x, y):
-    return (np.sqrt(x**2 + y**2), np.arctan2(y, x))
-
-
-def pol2cart(rho, phi):
-    return (rho * np.cos(phi), rho * np.sin(phi))
+from . import contours
 
 
 class cropCentroid(torch.nn.Module):
@@ -176,51 +169,6 @@ class CoordsToDistogram(torch.nn.Module):
         return distance_matrix
 
 
-def cubic_polar_resample_contour(contour: np.Array, size: int) -> np.Array:
-    """Star convex resampling of a contour using cubic interpolation
-
-    Args:
-        contour (np.Array): scikit image contour
-        size (int): control points to interpolate to
-
-    Returns:
-        np.Array: new contour
-    """
-    contour_y, contour_x = contour[0][:, 0], contour[0][:, 1]
-    rho, phi = cart2pol(contour_x, contour_y)
-
-    rho_interp = interp1d(np.linspace(0, 1, len(rho)), rho, kind="cubic")(
-        np.linspace(0, 1, size)
-    )
-    phi_interp = interp1d(np.linspace(0, 1, len(phi)), phi, kind="cubic")(
-        np.linspace(0, 1, size)
-    )
-
-    xii, yii = pol2cart(rho_interp, phi_interp)
-    return np.array([xii, yii])
-
-
-def contour_to_xy(contour: np.Array):
-    return contour[0][:, 0], contour[0][:, 1]
-
-
-def uniform_spline_resample_contour(contour: np.Array, size: int) -> np.Array:
-    """Resample a contour using a uniform spline
-    Author: @afoix
-
-    Args:
-        contour (np.Array): scikit image contour
-        size (int): Control points to interpolate to
-
-    Returns:
-        np.Array: new contour
-    """
-    contour_y, contour_x = contour_to_xy(contour)
-    tck, u = splprep([contour_x, contour_y], s=0)
-    u_new = np.linspace(u.min(), u.max(), size)
-    return np.array(splev(u_new, tck))
-
-
 class ImageToCoords(torch.nn.Module):
     def __init__(self, size):
         super().__init__()
@@ -252,12 +200,11 @@ class ImageToCoords(torch.nn.Module):
         return torch.tensor(np.array(coords_list))
 
     def get_coords(self, image, size, method="uniform_spline", contour_level=0.8):
-        coords = []
         contour = find_contours(np.array(image), contour_level)
         if method == "uniform_spline":
-            return uniform_spline_resample_contour(contour=contour, size=size)
+            return contours.uniform_spline_resample_contour(contour=contour, size=size)
         if method == "cubic_polar":
-            return cubic_polar_resample_contour(contour=contour, size=size)
+            return contours.cubic_polar_resample_contour(contour=contour, size=size)
 
 
 class VerticesToMask(torch.nn.Module):
