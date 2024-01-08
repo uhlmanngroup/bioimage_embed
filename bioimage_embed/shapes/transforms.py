@@ -11,6 +11,7 @@ from sklearn.manifold import MDS
 from sklearn.metrics.pairwise import euclidean_distances
 from skimage.measure import find_contours
 import torch
+from torch import nn
 import torch.nn.functional as F
 
 from . import contours
