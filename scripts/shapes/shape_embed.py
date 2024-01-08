@@ -109,7 +109,7 @@ def shape_embed_process():
 
 
     params = {
-        "model":"resnet18_vqvae",
+        "model":"resnet18_vae",
         "epochs": 75,
         "batch_size": 4,
         "num_workers": 2**4,
