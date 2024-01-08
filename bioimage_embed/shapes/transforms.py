@@ -150,23 +150,21 @@ class CoordsToDistogram(torch.nn.Module):
         self.matrix_normalised = matrix_normalised
 
     def forward(self, coords):
-        # return self.get_distogram(img, self.size)
-        return self.get_distogram(coords, matrix_normalised=self.matrix_normalised)
+        return self.get_distogram(coords,
+                                matrix_normalised=self.matrix_normalised)
 
     def __repr__(self):
         return self.__class__.__name__ + f"(size={self.size})"
 
     def get_distogram(self, coords, matrix_normalised=False):
+
         xii, yii = coords
-        # distograms.append(euclidean_distances(np.array([xii,yii]).T))
-        distance_matrix = euclidean_distances(np.array([xii, yii]).T) / self.size**0.5
-        norm = np.linalg.norm(distance_matrix, "fro")
+        distance_matrix = euclidean_distances(np.array([xii, yii]).T)
         # Fro norm is the same as the L2 norm, but for positive semi-definite matrices
-        # norm = np.linalg.norm(distance_matrix)
-        # norm_distance_matrix = distance_matrix / self.size**0.5
         if matrix_normalised:
-            return distance_matrix / norm
-        return distance_matrix
+            return distance_matrix / np.linalg.norm(distance_matrix, "fro")
+        if not matrix_normalised:
+            return distance_matrix / np.linalg.norm([self.size, self.size])
 
 
 class ImageToCoords(torch.nn.Module):
