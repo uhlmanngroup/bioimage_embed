@@ -270,7 +270,7 @@ def shape_embed_process():
             # A better way to do with would be with batch collation
             print(f"Error occurred for image {idx}: {e}")
 
-    # Create a Subset using the valid indices
+    # Create a Subset using the valid indices 
     dataset = torch.utils.data.Subset(dataset, valid_indices)
     dataloader = DataModule(
         dataset,

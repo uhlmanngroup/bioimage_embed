@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import argparse
 import timm
 from pythae.models.base.base_utils import ModelOutput
+import torch.nn.functional as F
 import wandb
 
 
@@ -95,7 +96,13 @@ class LitAutoEncoderTorch(pl.LightningModule):
             batch_idx,
         )
 
-        log_dict = {"train_loss_step": loss}
+        #log_dict = {"train_loss_step": loss}
+
+        mse_loss = F.mse_loss(model_output["recon_x"], x["data"])
+
+        self.log("mse_train_loss", mse_loss)
+
+        log_dict = {"mse_train_loss": mse_loss}
 
         #self.wandb.log({"train_loss_step": loss})
         if batch_idx == 0 and len(self.train_epoch_loss) > 0:
@@ -132,7 +139,14 @@ class LitAutoEncoderTorch(pl.LightningModule):
         # Log test metrics
         self.log("validation_loss", loss)
 
-        log_dict = {"val_loss_epoch": loss}
+        #log_dict = {"val_loss_epoch": loss}
+
+        #self.wandb.log(log_dict)
+        mse_loss = F.mse_loss(model_output["recon_x"], x["data"])
+
+        self.log("mse_validation_loss", mse_loss)
+
+        log_dict = {"mse_validation_loss": mse_loss}
 
         self.wandb.log(log_dict)
 
@@ -173,7 +187,13 @@ class LitAutoEncoderTorch(pl.LightningModule):
         # Log test metrics
         self.log("test_loss", loss)
 
-        log_dict = {"test_loss_step": loss}
+        mse_loss = F.mse_loss(model_output["recon_x"], x["data"])
+
+        self.log("mse_test_loss", mse_loss)
+
+        log_dict = {"mse_test_loss": mse_loss}
+
+        #log_dict = {"test_loss_step": loss}
 
         self.wandb.log(log_dict)
 
