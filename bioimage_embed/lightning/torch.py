@@ -105,9 +105,9 @@ class LitAutoEncoderTorch(pl.LightningModule):
         log_dict = {"mse_train_loss_step": mse_loss}
 
         #self.wandb.log({"train_loss_step": loss})
-        if batch_idx == 0 and len(self.train_epoch_loss) > 0:
-            log_dict["train_epoch_loss"] = sum(self.train_epoch_loss) / len(self.train_epoch_loss)
-            self.train_epoch_loss = []
+        #if batch_idx == 0 and len(self.train_epoch_loss) > 0:
+        #    log_dict["train_epoch_loss"] = sum(self.train_epoch_loss) / len(self.train_epoch_loss)
+        #    self.train_epoch_loss = []
         
         self.train_epoch_loss.append(loss)
         
