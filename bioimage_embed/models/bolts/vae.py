@@ -14,8 +14,11 @@ from pl_bolts.models.autoencoders import (
     resnet50_decoder,
     resnet50_encoder,
 )
+
+
 def count_params(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 
 class ResNet50VAEEncoder(BaseEncoder):
     enc_out_dim = 2048
@@ -42,6 +45,7 @@ class ResNet50VAEEncoder(BaseEncoder):
 
 class ResNet50VAEDecoder(BaseDecoder):
     enc_out_dim = 512
+
     def __init__(
         self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
     ):
@@ -49,7 +53,9 @@ class ResNet50VAEDecoder(BaseDecoder):
         latent_dim = model_config.latent_dim
         input_height = model_config.input_dim[-2]
         self.embedding = nn.Linear(latent_dim, self.enc_out_dim)
-        self.decoder = resnet50_decoder(self.enc_out_dim, input_height, first_conv, maxpool1)
+        self.decoder = resnet50_decoder(
+            self.enc_out_dim, input_height, first_conv, maxpool1
+        )
 
     def forward(self, x):
         x = self.embedding(x)
