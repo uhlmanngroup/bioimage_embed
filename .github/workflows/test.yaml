@@ -9,7 +9,7 @@ jobs:
         shell: ${{ matrix.shell }}
     strategy:
       matrix:
-        os: [ubuntu]
+        os: [ubuntu, windows, macos]
         python-version: ["3.9"]
         include:
         - os: ubuntu
