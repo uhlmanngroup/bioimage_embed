@@ -13,7 +13,6 @@ dependencies:
 - libgcc
 - pytorch
 - pillow=9.5.0
-- snakemake-minimal
 - pip
 - pip:
   - -e .
