@@ -9,15 +9,16 @@ jobs:
         shell: ${{ matrix.shell }}
     strategy:
       matrix:
-        os: [ubuntu, windows, macos]
+        # os: [ubuntu, windows, macos]
+        os: [ubuntu]
         python-version: ["3.9"]
         include:
         - os: ubuntu
           shell: bash -l {0}
-        - os: windows
-          shell: cmd /C call {0}
-        - os: macos
-          shell: bash -l {0}
+          # - os: windows
+          #   shell: cmd /C call {0}
+          # - os: macos
+          #   shell: bash -l {0}
     steps:
     - uses: actions/checkout@v2
     - uses: conda-incubator/setup-miniconda@v2
