@@ -1,36 +1,34 @@
-# https://github.com/marketplace/actions/install-poetry-action
-name: test
-
-on: [pull_request,push]
-
+name: conda
+on: [push]
 jobs:
-  test:
+  constructor:
+    name: conda build (${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}-latest
     defaults:
       run:
-        shell: bash -l {0}
+        shell: ${{ matrix.shell }}
     strategy:
-      fail-fast: false
       matrix:
+        os: [ubuntu]
         python-version: ["3.9"]
-        os: [ubuntu-latest]
-        # os: [ubuntu-18.04, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+        - os: ubuntu
+          shell: bash -l {0}
+        - os: windows
+          shell: cmd /C call {0}
+        - os: macos
+          shell: bash -l {0}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          use-mamba: true
-          environment-file: environment.yml
-          python-version: ${{ matrix.python-version }}
-      - name: poetry env
-        run: poetry env use python
-      - name: Poetry lock
-        run: poetry lock     
-      - name: Install library
-        run: poetry install --no-interaction
-      # - name: Run tests
-      #   run: |
-      #     source .venv/bin/activate
-      #     pytest tests/
+    - uses: actions/checkout@v2
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        environment-file: environment.yml
+        miniforge-variant: Mambaforge
+        miniforge-version: latest
+        mamba-version: "*"
+        use-mamba: true
+        python-version: ${{ matrix.python-version }}
+    - name: Run tests
+      run: |
+        source .venv/bin/activate
+        make test
