@@ -342,30 +342,15 @@ def shape_embed_process():
     # Use the namespace variables
     latent_space = torch.stack([d.out.z.flatten() for d in predictions])
     scalings = torch.stack([d.x.scalings.flatten() for d in predictions])
-
     idx_to_class = {v: k for k, v in dataset.dataset.class_to_idx.items()}
-
     y = np.array([int(data[-1]) for data in dataloader.predict_dataloader()])
 
     y_partial = y.copy()
     indices = np.random.choice(y.size, int(0.3 * y.size), replace=False)
     y_partial[indices] = -1
     y_blind = -1 * np.ones_like(y)
-    umap_labels = y_blind
-    classes = np.array([idx_to_class[i] for i in y])
-
-    n_components = 64  # Number of UMAP components
-    component_names = [f"umap{i}" for i in range(n_components)]  # List of column names
-
-    logger.info("UMAP fitting")
-    mapper = umap.UMAP(n_components=64, random_state=42).fit(
-        latent_space.numpy(), y=umap_labels
-    )
-
-    logger.info("UMAP transforming")
-    semi_supervised_latent = mapper.transform(latent_space.numpy())
-
-    df = pd.DataFrame(semi_supervised_latent, columns=component_names)
+    
+    df = pd.DataFrame(latent_space.numpy())
     df["Class"] = y
     # Map numeric classes to their labels
     idx_to_class = {0: "alive", 1: "dead"}
