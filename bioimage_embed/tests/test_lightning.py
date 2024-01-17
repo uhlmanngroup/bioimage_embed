@@ -109,7 +109,7 @@ def data(input_dim):
 
 @pytest.fixture()
 def dataset(data):
-    return data.unsqueeze(0)
+    return data
 
 
 @pytest.fixture()
