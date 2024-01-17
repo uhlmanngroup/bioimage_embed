@@ -41,6 +41,7 @@ from bioimage_embed.shapes.transforms import (
     CropCentroidPipeline,
     DistogramToCoords,
     MaskToDistogramPipeline,
+    RotateIndexingClockwise,
 )
 
 import matplotlib.pyplot as plt
@@ -241,7 +242,12 @@ def shape_embed_process():
     # %%
     gray2rgb = transforms.Lambda(lambda x: x.repeat(3, 1, 1))
     transform = transforms.Compose(
-        [transform_mask_to_dist, transforms.ToTensor(), gray2rgb]
+        [
+            transform_mask_to_dist,
+            transforms.ToTensor(),
+            RotateIndexingClockwise(p=1),
+            gray2rgb,
+        ]
     )
 
     dataset = datasets.ImageFolder(train_data_path, transform=transform)
