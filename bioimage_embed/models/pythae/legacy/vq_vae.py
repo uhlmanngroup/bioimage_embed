@@ -66,8 +66,19 @@ class VAEDecoder(BaseDecoder):
         return ModelOutput(reconstruction=reconstruction)
 
 
+def count_params(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
 class VQVAE(models.VQVAE):
-    def __init__(self, model_config: VQVAEConfig, depth, encoder=None, decoder=None):
+    def __init__(
+        self,
+        model_config: VQVAEConfig,
+        depth,
+        encoder=None,
+        decoder=None,
+        strict_latent_size=True,
+    ):
         super(models.BaseAE, self).__init__()
         # super(nn.Module)
         # input_dim (tuple) – The input_data dimension.
@@ -78,6 +89,7 @@ class VQVAE(models.VQVAE):
         if self.model_config.decay > 0.0:
             self.model_config.use_ema = True
 
+        self.strict_latent_size = strict_latent_size
         self.model = vq_vae.VQ_VAE(
             channels=model_config.input_dim[0],
             embedding_dim=model_config.latent_dim,
@@ -94,15 +106,23 @@ class VQVAE(models.VQVAE):
         # loss, x_recon, perplexity = self.model.forward(x["data"])
         z = self.model.encoder(x["data"])
         z = self.model._pre_vq_conv(z)
-
         proper_shape = z.shape
-        z = self.avgpool(z)
+
+        if self.strict_latent_size:
+            z = self.avgpool(z)
+            # Features need to be in the right order for the quantizer
+            z = z.permute(0, 2, 3, 1)
 
         loss, quantized, perplexity, encodings = self.model._vq_vae(z)
-        expanded_q = quantized.expand(-1, -1, *proper_shape[-2:])
-        x_recon = self.model._decoder(expanded_q)
+        z = quantized.flatten(1)
+        if self.strict_latent_size:
+            quantized = quantized.permute(0, 3, 1, 2)
+            quantized = quantized.expand(-1, *proper_shape[-3:])
+
+        x_recon = self.model._decoder(quantized)
         # return loss, x_recon, perplexity
-        loss_dict = self.model.loss_function(
+
+        legacy_loss_dict = self.model.loss_function(
             loss,
             x_recon,
             perplexity,
@@ -111,19 +131,24 @@ class VQVAE(models.VQVAE):
             recons=x_recon,
             input=x["data"],
         )
-        indices = (encodings == 1).nonzero(as_tuple=True)
-        # self.model.encode()
+        # This matches how pythae returns the loss
+        recon_loss = F.mse_loss(x_recon, x["data"], reduction="sum")
+        mse_loss = F.mse_loss(x_recon, x["data"])
 
-        return ModelOutput(
-            # recon_loss=recon_loss,
-            vq_loss=loss,
-            # loss=loss,
-            recon_x=x_recon,
-            z=quantized,
-            quantized_indices=indices[0],
-            **loss_dict,
-        )
-        # return ModelOutput(reconstruction=x_recon, **loss_dict)
+        indices = (encodings == 1).nonzero(as_tuple=True)
+        variational_loss = loss-mse_loss
+         
+        pythae_loss_dict = {
+            "recon_loss": mse_loss,
+            "vq_loss": variational_loss,
+            # TODO check this proppperppply 
+            "loss": recon_loss + variational_loss,
+            "recon_x": x_recon,
+            "z": z,
+            "quantized_indices": indices[0],
+            "indices": indices,
+        }
+        return ModelOutput(**{**legacy_loss_dict, **pythae_loss_dict})
 
 
 class VAE(models.VAE):

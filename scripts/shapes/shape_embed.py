@@ -121,7 +121,7 @@ def shape_embed_process():
         # "num_embeddings": 16,
         "commitment_cost": 0.25,
         "decay": 0.99,
-        "loss_weights": [1, 1, 1, 1],
+        "frobenius_norm": False,
     }
 
     optimizer_params = {
