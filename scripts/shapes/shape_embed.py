@@ -50,6 +50,8 @@ from bioimage_embed.lightning import DataModule
 import matplotlib as mpl
 from matplotlib import rc
 
+import wandb
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -107,7 +109,7 @@ def shape_embed_process():
     window_size = 128 * 2
 
     params = {
-        "model":"resnet18_vqvae_legacy",
+        "model":"resnet18_vae",
         "epochs": 75,
         "batch_size": 4,
         "num_workers": 2**4,
@@ -144,21 +146,23 @@ def shape_embed_process():
 
     args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
 
-    #dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm"
-    dataset_path = "shape_embed_data/data/bbbc010/BBBC010_v1_foreground_eachworm/"
-    # dataset_path = "vampire/mefs/data/processed/Control"
-    # dataset_path = "shape_embed_data/data/vampire/torchvision/Control/"
-    # dataset_path = "vampire/torchvision/Control"
-    # dataset = "bbbc010"
+    dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm/"
+    dataset = "bbbc010"
 
     # train_data_path = f"scripts/shapes/data/{dataset_path}"
-    train_data_path = f"scripts/shapes/data/{dataset_path}"
+    train_data_path = f"/nfs/research/uhlmann/afoix/{dataset_path}"
     metadata = lambda x: f"results/{dataset_path}_{args.model}/{x}"
 
     path = Path(metadata(""))
     path.mkdir(parents=True, exist_ok=True)
     model_dir = f"models/{dataset_path}_{args.model}"
     # %%
+    
+    # Wandb initializer
+    wandb.init(name=f'{args.model}_{interp_size}_{dataset}', 
+            project='shape_embed',
+            notes='This is the run to compare models', 
+            tags=[f'{dataset}', f'{interp_size}', f'{args.model}', 'Comparing models'])
 
     transform_crop = CropCentroidPipeline(window_size)
     transform_dist = MaskToDistogramPipeline(
@@ -284,7 +288,7 @@ def shape_embed_process():
     # model = bioimage_embed.models.factory.ModelFactory(**vars(args)).resnet50_vqvae_legacy()
 
     # lit_model = shapes.MaskEmbedLatentAugment(model, args)
-    lit_model = shapes.MaskEmbed(model, args)
+    lit_model = shapes.MaskEmbed(model, args, wandb=wandb)
     test_data = dataset[0][0].unsqueeze(0)
     # test_lit_data = 2*(dataset[0][0].unsqueeze(0).repeat_interleave(3, dim=1),)
     test_output = lit_model.forward((test_data,))
@@ -483,6 +487,8 @@ def shape_embed_process():
     trial_df.to_csv(metadata(f"trial_df.csv"))
     trial_df.groupby("trial").mean().to_csv(metadata(f"trial_df_mean.csv"))
     trial_df.plot(kind="bar")
+    
+    wandb.log({"trial_df": wandb.Table(dataframe=trial_df)})
 
     melted_df = trial_df.melt(id_vars="trial", var_name="Metric", value_name="Score")
     # fig, ax = plt.subplots(figsize=(width, height))

@@ -7,6 +7,8 @@ from types import SimpleNamespace
 import argparse
 import timm
 from pythae.models.base.base_utils import ModelOutput
+import torch.nn.functional as F
+import wandb
 
 
 class LitAutoEncoderTorch(pl.LightningModule):
@@ -35,7 +37,7 @@ class LitAutoEncoderTorch(pl.LightningModule):
         warmup_t=0,
     )
 
-    def __init__(self, model, args=SimpleNamespace()):
+    def __init__(self, model, args=SimpleNamespace(), wandb=None):
         super().__init__()
         self.model = model
         self.model = self.model.to(self.device)
@@ -48,7 +50,10 @@ class LitAutoEncoderTorch(pl.LightningModule):
             # merged_kwargs = {k: v for d in kwargs.values() for k, v in d.items()}
             # self.args = SimpleNamespace(**{**merged_kwargs, **vars(self.args)})
         self.save_hyperparameters(vars(self.args))
-        # self.model.train()
+        
+        # Login parameters for wandb
+        self.wandb = wandb
+        self.wandb.watch(model)
 
     def forward(self, batch):
         x = self.batch_to_tensor(batch)
@@ -96,6 +101,13 @@ class LitAutoEncoderTorch(pl.LightningModule):
             torchvision.utils.make_grid(model_output.recon_x),
             batch_idx,
         )
+        
+        # Logging the mse loss in wandb
+        mse_loss = F.mse_loss(model_output["recon_x"], x["data"])
+        self.log("mse_train_loss_step", mse_loss)
+        log_dict = {"mse_train_loss_step": mse_loss}
+        
+        self.wandb.log(log_dict)
 
         return loss
 
@@ -135,6 +147,12 @@ class LitAutoEncoderTorch(pl.LightningModule):
             torchvision.utils.make_grid(model_output["recon_x"]),
             batch_idx,
         )
+        
+        # Logging the mse loss in wandb
+        mse_loss = F.mse_loss(model_output["recon_x"], x["data"])
+        self.log("mse_validation_loss_step", mse_loss)
+        log_dict = {"mse_validation_loss_step": mse_loss}
+        self.wandb.log(log_dict)
 
     # def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
     #     # Implement your own logic for updating the lr scheduler
@@ -194,6 +212,12 @@ class LitAutoEncoderTorch(pl.LightningModule):
             torchvision.utils.make_grid(model_output.recon_x),
             batch_idx,
         )
+        
+        # Logging the mse loss in wandb
+        mse_loss = F.mse_loss(model_output["recon_x"], x["data"])
+        self.log("mse_test_loss_step", mse_loss)
+        log_dict = {"mse_test_loss_step": mse_loss}
+        self.wandb.log(log_dict)
 
         # Return whatever data you need, for example, the loss
         return loss

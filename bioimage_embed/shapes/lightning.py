@@ -16,8 +16,8 @@ def frobenius_norm_2D_torch(tensor: torch.Tensor) -> torch.Tensor:
 
 
 class MaskEmbed(LitAutoEncoderTorch):
-    def __init__(self, model, args=SimpleNamespace()):
-        super().__init__(model, args)
+    def __init__(self, model, args=SimpleNamespace(), wandb=None):
+        super().__init__(model, args, wandb=wandb)
 
     def batch_to_tensor(self, batch):
         """
