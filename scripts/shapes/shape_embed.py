@@ -52,15 +52,51 @@ import matplotlib.pyplot as plt
 
 from matplotlib import rc
 
-import pickle
+import logging
+import pickle 
 import base64
 import hashlib
 
 logger = logging.getLogger(__name__)
 
-# Seed everything
-np.random.seed(42)
-pl.seed_everything(42)
+def hashing_fn(args):
+    serialized_args = pickle.dumps(vars(args))
+    hash_object = hashlib.sha256(serialized_args)
+    hashed_string = base64.urlsafe_b64encode(hash_object.digest()).decode()
+    return hashed_string
+
+def scoring_df(X, y):
+    # Split the data into training and test sets
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, shuffle=True, stratify=y
+    )
+    # Define a dictionary of metrics
+    scoring = {
+        "accuracy": make_scorer(metrics.accuracy_score),
+        "precision": make_scorer(metrics.precision_score, average="macro"),
+        "recall": make_scorer(metrics.recall_score, average="macro"),
+        "f1": make_scorer(metrics.f1_score, average="macro"),
+    }
+
+    # Create a random forest classifier
+    clf = RandomForestClassifier()
+
+    # Specify the number of folds
+    k_folds = 10
+
+    # Perform k-fold cross-validation
+    cv_results = cross_validate(
+        estimator=clf,
+        X=X,
+        y=y,
+        cv=KFold(n_splits=k_folds),
+        scoring=scoring,
+        n_jobs=-1,
+        return_train_score=False,
+    )
+
+    # Put the results into a DataFrame
+    return pd.DataFrame(cv_results)
 
 
 def hashing_fn(args):
@@ -124,7 +160,6 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
 
     path = Path(metadata(""))
     path.mkdir(parents=True, exist_ok=True)
-    model_dir = f"models/{dataset_path}_{args.model}"
     # %%
 
     transform_crop = CropCentroidPipeline(window_size)
@@ -259,7 +294,7 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
     dataloader.setup()
     model.eval()
 
-    model_dir = f"my_models/{dataset_path}_{model._get_name()}_{lit_model._get_name()}"
+    model_dir = f"checkpoints/{hashing_fn(args)}"
 
     tb_logger = pl_loggers.TensorBoardLogger(f"logs/")
     wandb = pl_loggers.WandbLogger(project="bioimage-embed", name="shapes")
