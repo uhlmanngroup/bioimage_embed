@@ -21,8 +21,9 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
 import torch
 from types import SimpleNamespace
-from umap import UMAP
-import os
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+
+# Deal with the filesystem
 import torch.multiprocessing
 import logging
 from tqdm import tqdm
@@ -361,6 +362,7 @@ def shape_embed_process():
         callbacks=[checkpoint_callback],
         min_epochs=50,
         max_epochs=args.epochs,
+        callbacks=[EarlyStopping(monitor="loss/val", mode="min")],
         log_every_n_steps=1,
     )
     # %%
