@@ -1,8 +1,0 @@
-_target_: bioimage_embed.models.BioimageEmbed
-model: "VQVAE"
-input_dim:
-  - 3
-  - 128
-  - 128
-latent_dim: 64
-model_config: ${pythae.model_config}

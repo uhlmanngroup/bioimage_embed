@@ -116,11 +116,7 @@ def shape_embed_process():
         "latent_dim": interp_size,
         "num_embeddings": interp_size,
         "num_hiddens": interp_size,
-        "num_residual_hiddens": 32,
-        "num_residual_layers": 150,
         "pretrained": True,
-        # "embedding_dim": 32,
-        # "num_embeddings": 16,
         "commitment_cost": 0.25,
         "decay": 0.99,
         "frobenius_norm": False,
@@ -153,7 +149,7 @@ def shape_embed_process():
     # dataset = "bbbc010"
 
     # train_data_path = f"scripts/shapes/data/{dataset_path}"
-    train_data_path = f"scripts/shapes/data/{dataset_path}"
+    train_data_path = f"data/{dataset_path}"
     metadata = lambda x: f"results/{dataset_path}_{args.model}/{x}"
 
     path = Path(metadata(""))
@@ -360,7 +356,7 @@ def shape_embed_process():
     indices = np.random.choice(y.size, int(0.3 * y.size), replace=False)
     y_partial[indices] = -1
     y_blind = -1 * np.ones_like(y)
-    
+
     df = pd.DataFrame(latent_space.numpy())
     df["Class"] = y
     # Map numeric classes to their labels
@@ -369,31 +365,6 @@ def shape_embed_process():
     df["Scale"] = scalings[:, 0].squeeze()
     df = df.set_index("Class")
     df_shape_embed = df.copy()
-
-    ax = sns.relplot(
-        data=df,
-        x="umap0",
-        y="umap1",
-        hue="Class",
-        palette="deep",
-        alpha=0.5,
-        edgecolor=None,
-        s=5,
-        height=height,
-        aspect=0.5 * width / height,
-    )
-
-    sns.move_legend(
-        ax,
-        "upper center",
-    )
-    ax.set(xlabel=None, ylabel=None)
-    sns.despine(left=True, bottom=True)
-    plt.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
-    plt.tight_layout()
-    plt.savefig(metadata(f"umap_no_axes.pdf"))
-    # plt.show()
-    plt.close()
 
     # %%
 
