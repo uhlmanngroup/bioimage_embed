@@ -23,7 +23,7 @@ import pytorch_lightning as pl
 import torch
 from types import SimpleNamespace
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from umap import UMAP
+
 # Deal with the filesystem
 import torch.multiprocessing
 import logging
@@ -77,7 +77,268 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
     semi_labels = df["Class"].copy()
     semi_labels[~mask] = -1  # Assuming -1 indicates unknown label for semi-supervision
 
-    umap_embedding = umap_reducer.fit_transform(df, y=semi_labels)
+    params = {
+        "model":"resnet18_vqvae_legacy",
+        "epochs": 75,
+        "batch_size": 4,
+        "num_workers": 2**4,
+        "input_dim": (3, interp_size, interp_size),
+        "latent_dim": interp_size,
+        "num_embeddings": interp_size,
+        "num_hiddens": interp_size,
+        "num_residual_hiddens": 32,
+        "num_residual_layers": 150,
+        "pretrained": True,
+        # "embedding_dim": 32,
+        # "num_embeddings": 16,
+        "commitment_cost": 0.25,
+        "decay": 0.99,
+        "frobenius_norm": False,
+    }
+
+    optimizer_params = {
+        "opt": "LAMB",
+        "lr": 0.001,
+        "weight_decay": 0.0001,
+        "momentum": 0.9,
+    }
+
+    lr_scheduler_params = {
+        "sched": "cosine",
+        "min_lr": 1e-4,
+        "warmup_epochs": 5,
+        "warmup_lr": 1e-6,
+        "cooldown_epochs": 10,
+        "t_max": 50,
+        "cycle_momentum": False,
+    }
+
+    args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
+
+    #dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm"
+    dataset_path = "shape_embed_data/data/bbbc010/BBBC010_v1_foreground_eachworm/"
+    # dataset_path = "vampire/mefs/data/processed/Control"
+    # dataset_path = "shape_embed_data/data/vampire/torchvision/Control/"
+    # dataset_path = "vampire/torchvision/Control"
+    # dataset = "bbbc010"
+
+    # train_data_path = f"scripts/shapes/data/{dataset_path}"
+    train_data_path = f"scripts/shapes/data/{dataset_path}"
+    metadata = lambda x: f"results/{dataset_path}_{args.model}/{x}"
+
+    path = Path(metadata(""))
+    path.mkdir(parents=True, exist_ok=True)
+    model_dir = f"models/{dataset_path}_{args.model}"
+    # %%
+
+    transform_crop = CropCentroidPipeline(window_size)
+    transform_dist = MaskToDistogramPipeline(
+        window_size, interp_size, matrix_normalised=False
+    )
+    transform_mdscoords = DistogramToCoords(window_size)
+    transform_coords = ImageToCoords(window_size)
+
+    transform_mask_to_gray = transforms.Compose([transforms.Grayscale(1)])
+
+    transform_mask_to_crop = transforms.Compose(
+        [
+            # transforms.ToTensor(),
+            transform_mask_to_gray,
+            transform_crop,
+        ]
+    )
+
+    transform_mask_to_dist = transforms.Compose(
+        [
+            transform_mask_to_crop,
+            transform_dist,
+        ]
+    )
+    transform_mask_to_coords = transforms.Compose(
+        [
+            transform_mask_to_crop,
+            transform_coords,
+        ]
+    )
+
+    transforms_dict = {
+        "none": transform_mask_to_gray,
+        "transform_crop": transform_mask_to_crop,
+        "transform_dist": transform_mask_to_dist,
+        "transform_coords": transform_mask_to_coords,
+    }
+
+    train_data = {
+        key: datasets.ImageFolder(train_data_path, transform=value)
+        for key, value in transforms_dict.items()
+    }
+
+    for key, value in train_data.items():
+        print(key, len(value))
+        plt.imshow(train_data[key][0][0], cmap="gray")
+        plt.imsave(metadata(f"{key}.png"), train_data[key][0][0], cmap="gray")
+        # plt.show()
+        plt.close()
+
+    # plt.scatter(*train_data["transform_coords"][0][0])
+    # plt.savefig(metadata(f"transform_coords.png"))
+    # plt.show()
+
+    # plt.imshow(train_data["transform_crop"][0][0], cmap="gray")
+    # plt.scatter(*train_data["transform_coords"][0][0],c=np.arange(interp_size), cmap='rainbow', s=1)
+    # plt.show()
+    # plt.savefig(metadata(f"transform_coords.png"))
+
+    # Retrieve the coordinates and cropped image
+    coords = train_data["transform_coords"][0][0]
+    crop_image = train_data["transform_crop"][0][0]
+
+    fig = plt.figure(frameon=True)
+    ax = plt.Axes(fig, [0, 0, 1, 1])
+    ax.set_axis_off()
+    fig.add_axes(ax)
+
+    # Display the cropped image using grayscale colormap
+    plt.imshow(crop_image, cmap="gray_r")
+
+    # Scatter plot with smaller point size
+    plt.scatter(*coords, c=np.arange(interp_size), cmap="rainbow", s=2)
+
+    # Save the plot as an image without border and coordinate axes
+    plt.savefig(metadata(f"transform_coords.png"), bbox_inches="tight", pad_inches=0)
+
+    # Close the plot
+    plt.close()
+    # import albumentations as A
+    # %%
+    gray2rgb = transforms.Lambda(lambda x: x.repeat(3, 1, 1))
+    transform = transforms.Compose(
+        [
+            transform_mask_to_dist,
+            transforms.ToTensor(),
+            RotateIndexingClockwise(p=1),
+            gray2rgb,
+        ]
+    )
+
+    dataset = datasets.ImageFolder(train_data_path, transform=transform)
+
+    valid_indices = []
+    # Iterate through the dataset and apply the transform to each image
+    for idx in range(len(dataset)):
+        try:
+            image, label = dataset[idx]
+            # If the transform works without errors, add the index to the list of valid indices
+            valid_indices.append(idx)
+        except Exception as e:
+            # A better way to do with would be with batch collation
+            print(f"Error occurred for image {idx}: {e}")
+
+    # Create a Subset using the valid indices
+    dataset = torch.utils.data.Subset(dataset, valid_indices)
+    dataloader = DataModule(
+        dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=args.num_workers,
+    )
+
+    # model = bioimage_embed.models.create_model("resnet18_vqvae_legacy", **vars(args))
+    # 
+    model = bioimage_embed.models.create_model(
+        model=args.model,
+        input_dim=args.input_dim,
+        latent_dim=args.latent_dim,
+        pretrained=args.pretrained,
+    )
+
+    # model = bioimage_embed.models.factory.ModelFactory(**vars(args)).resnet50_vqvae_legacy()
+
+    # lit_model = shapes.MaskEmbedLatentAugment(model, args)
+    lit_model = shapes.MaskEmbed(model, args)
+    test_data = dataset[0][0].unsqueeze(0)
+    # test_lit_data = 2*(dataset[0][0].unsqueeze(0).repeat_interleave(3, dim=1),)
+    test_output = lit_model.forward((test_data,))
+
+    dataloader.setup()
+    model.eval()
+
+    model_dir = f"my_models/{dataset_path}_{model._get_name()}_{lit_model._get_name()}"
+
+    tb_logger = pl_loggers.TensorBoardLogger(f"logs/")
+    wandb = pl_loggers.WandbLogger(project="bioimage-embed", name="shapes")
+
+    Path(f"{model_dir}/").mkdir(parents=True, exist_ok=True)
+
+    checkpoint_callback = ModelCheckpoint(dirpath=f"{model_dir}/", save_last=True)
+    wandb.watch(lit_model, log="all")
+
+    trainer = pl.Trainer(
+        logger=[wandb,tb_logger],
+        gradient_clip_val=0.5,
+        enable_checkpointing=True,
+        devices=1,
+        accelerator="gpu",
+        accumulate_grad_batches=4,
+        callbacks=[checkpoint_callback],
+        min_epochs=50,
+        max_epochs=args.epochs,
+        callbacks=[EarlyStopping(monitor="loss/val", mode="min")],
+        log_every_n_steps=1,
+    )
+    # %%
+    try:
+        trainer.fit(
+            lit_model, datamodule=dataloader, ckpt_path=f"{model_dir}/last.ckpt"
+        )
+    except:
+        trainer.fit(lit_model, datamodule=dataloader)
+
+    lit_model.eval()
+
+    validation = trainer.validate(lit_model, datamodule=dataloader)
+    # testing = trainer.test(lit_model, datamodule=dataloader)
+    example_input = Variable(torch.rand(1, *args.input_dim))
+
+    # torch.jit.save(lit_model.to_torchscript(), f"{model_dir}/model.pt")
+    # torch.onnx.export(lit_model, example_input, f"{model_dir}/model.onnx")
+
+    # %%
+    # Inference
+
+    dataloader = DataModule(
+        dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=args.num_workers,
+        # Transform is commented here to avoid augmentations in real data
+        # HOWEVER, applying a the transform multiple times and averaging the results might produce better latent embeddings
+        # transform=transform,
+        # transform=transform,
+    )
+    dataloader.setup()
+
+    predictions = trainer.predict(lit_model, datamodule=dataloader)
+
+    # Use the namespace variables
+    latent_space = torch.stack([d.out.z.flatten() for d in predictions])
+    scalings = torch.stack([d.x.scalings.flatten() for d in predictions])
+    idx_to_class = {v: k for k, v in dataset.dataset.class_to_idx.items()}
+    y = np.array([int(data[-1]) for data in dataloader.predict_dataloader()])
+
+    y_partial = y.copy()
+    indices = np.random.choice(y.size, int(0.3 * y.size), replace=False)
+    y_partial[indices] = -1
+    y_blind = -1 * np.ones_like(y)
+    
+    df = pd.DataFrame(latent_space.numpy())
+    df["Class"] = y
+    # Map numeric classes to their labels
+    idx_to_class = {0: "alive", 1: "dead"}
+    df["Class"] = df["Class"].map(idx_to_class)
+    df["Scale"] = scalings[:, 0].squeeze()
+    df = df.set_index("Class")
+    df_shape_embed = df.copy()
 
     ax = sns.relplot(
         data=pd.DataFrame(umap_embedding, columns=["umap0", "umap1"]),
