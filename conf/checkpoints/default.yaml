@@ -1,3 +1,0 @@
-_target_: pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint
-dirpath: ${paths.output_dir}
-save_last: True

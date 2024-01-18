@@ -1,3 +1,0 @@
-_target_: bioimage_embed.lightning.LitAutoEncoderTorch
-model: ${pythae}
-args: ${timm}

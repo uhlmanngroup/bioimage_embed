@@ -174,8 +174,12 @@ def shape_embed_process():
         "batch_size": 4,
         "num_workers": 2**4,
         "input_dim": (3, interp_size, interp_size),
-        "latent_dim": int(128),
+        "latent_dim": interp_size,
+        "num_embeddings": interp_size,
+        "num_hiddens": interp_size,
         "pretrained": True,
+        "commitment_cost": 0.25,
+        "decay": 0.99,
         "frobenius_norm": False,
         # dataset = "bbbc010/BBBC010_v1_foreground_eachworm"
         # dataset = "vampire/mefs/data/processed/Control"
@@ -203,6 +207,7 @@ def shape_embed_process():
 
     dataset_path = args.dataset
 
+    # train_data_path = f"scripts/shapes/data/{dataset_path}"
     train_data_path = f"data/{dataset_path}"
     metadata = lambda x: f"results/{dataset_path}_{args.model}/{x}"
 
@@ -429,15 +434,18 @@ def shape_embed_process():
     idx_to_class = {v: k for k, v in dataset.dataset.class_to_idx.items()}
     y = np.array([int(data[-1]) for data in dataloader.predict_dataloader()])
 
+    y_partial = y.copy()
+    indices = np.random.choice(y.size, int(0.3 * y.size), replace=False)
+    y_partial[indices] = -1
+    y_blind = -1 * np.ones_like(y)
+
     df = pd.DataFrame(latent_space.numpy())
     df["Class"] = pd.Series(y).map(idx_to_class).astype("category")
     df["Scale"] = scalings[:, 0].squeeze()
     df = df.set_index("Class")
     df_shape_embed = df.copy()
 
-    # %% UMAP plot
-
-    umap_plot(df, metadata, width, height, split=0.9)
+    # %%
 
     X = df_shape_embed.to_numpy()
     y = df_shape_embed.index
