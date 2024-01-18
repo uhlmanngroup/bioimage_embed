@@ -132,10 +132,12 @@ class VQVAE(models.VQVAE):
             input=x["data"],
         )
         # This matches how pythae returns the loss
-        recon_loss = F.mse_loss(x_recon, x["data"], reduction="sum")
-        mse_loss = F.mse_loss(x_recon, x["data"])
-
+        
         indices = (encodings == 1).nonzero(as_tuple=True)
+        
+        recon_loss = F.mse_loss(x_recon, x["data"], reduction="sum")
+        mse_loss = F.mse_loss(x_recon, x["data"], reduction="mean")
+
         variational_loss = loss-mse_loss
          
         pythae_loss_dict = {
