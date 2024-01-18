@@ -7,6 +7,7 @@ from sklearn.metrics import make_scorer
 import pandas as pd
 from sklearn import metrics
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 import umap
@@ -109,7 +110,7 @@ def shape_embed_process():
     window_size = 128 * 2
 
     params = {
-        "model":"resnet18_vae",
+        "model":"resnet50_vae",
         "epochs": 75,
         "batch_size": 4,
         "num_workers": 2**4,
@@ -160,7 +161,7 @@ def shape_embed_process():
     
     # Wandb initializer
     wandb.init(name=f'{args.model}_{interp_size}_{dataset}', 
-            project='shape_embed',
+            project='Model_comparison_ShapeEmbed',
             notes='This is the run to compare models', 
             tags=[f'{dataset}', f'{interp_size}', f'{args.model}', 'Comparing models'])
 
@@ -326,7 +327,7 @@ def shape_embed_process():
     lit_model.eval()
 
     validation = trainer.validate(lit_model, datamodule=dataloader)
-    # testing = trainer.test(lit_model, datamodule=dataloader)
+    testing = trainer.test(lit_model, datamodule=dataloader)
     example_input = Variable(torch.rand(1, *args.input_dim))
 
     # torch.jit.save(lit_model.to_torchscript(), f"{model_dir}/model.pt")
@@ -369,30 +370,30 @@ def shape_embed_process():
     df = df.set_index("Class")
     df_shape_embed = df.copy()
 
-    ax = sns.relplot(
-        data=df,
-        x="umap0",
-        y="umap1",
-        hue="Class",
-        palette="deep",
-        alpha=0.5,
-        edgecolor=None,
-        s=5,
-        height=height,
-        aspect=0.5 * width / height,
-    )
+    # ax = sns.relplot(
+    #     data=df,
+    #     x="umap0",
+    #     y="umap1",
+    #     hue="Class",
+    #     palette="deep",
+    #     alpha=0.5,
+    #     edgecolor=None,
+    #     s=5,
+    #     height=height,
+    #     aspect=0.5 * width / height,
+    # )
 
-    sns.move_legend(
-        ax,
-        "upper center",
-    )
-    ax.set(xlabel=None, ylabel=None)
-    sns.despine(left=True, bottom=True)
-    plt.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
-    plt.tight_layout()
-    plt.savefig(metadata(f"umap_no_axes.pdf"))
-    # plt.show()
-    plt.close()
+    # sns.move_legend(
+    #     ax,
+    #     "upper center",
+    # )
+    # ax.set(xlabel=None, ylabel=None)
+    # sns.despine(left=True, bottom=True)
+    # plt.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
+    # plt.tight_layout()
+    # plt.savefig(metadata(f"umap_no_axes.pdf"))
+    # # plt.show()
+    # plt.close()
 
     # %%
 
@@ -489,6 +490,18 @@ def shape_embed_process():
     trial_df.plot(kind="bar")
     
     wandb.log({"trial_df": wandb.Table(dataframe=trial_df)})
+    # wandb.log({"Mean": wandb.Table(dataframe=trial_df.groupby("trial").mean())})
+    # wandb.log({"Std": wandb.Table(dataframe=trial_df.groupby("trial").std())})
+    # # fig, ax = plt.subplots
+    # trial_df.groupby("trial").boxplot(ax = ax)
+    # wandb.log({"boxplot": fig})
+    mean_df = trial_df.groupby("trial").mean()
+    std_df = trial_df.groupby("trial").std()
+    wandb.log({"Mean": wandb.Table(dataframe=mean_df)})
+    wandb.log({"Std": wandb.Table(dataframe=std_df)})
+    
+    print(trial_df.groupby("trial").mean())
+    print(trial_df.groupby("trial").std())
 
     melted_df = trial_df.melt(id_vars="trial", var_name="Metric", value_name="Score")
     # fig, ax = plt.subplots(figsize=(width, height))
