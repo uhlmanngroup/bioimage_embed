@@ -45,6 +45,7 @@ from bioimage_embed.shapes.transforms import (
     DistogramToCoords,
     MaskToDistogramPipeline,
     RotateIndexingClockwise,
+    AsymmetricDistogramToCoordsPipeline,
     CoordsToDistogram,
 )
 import matplotlib.pyplot as plt
@@ -53,60 +54,18 @@ from bioimage_embed.lightning import DataModule
 import matplotlib as mpl
 from matplotlib import rc
 
-import pickle
+import logging
+import pickle 
 import base64
 import hashlib
 
 logger = logging.getLogger(__name__)
-
-# Seed everything
-np.random.seed(42)
-pl.seed_everything(42)
-
 
 def hashing_fn(args):
     serialized_args = pickle.dumps(vars(args))
     hash_object = hashlib.sha256(serialized_args)
     hashed_string = base64.urlsafe_b64encode(hash_object.digest()).decode()
     return hashed_string
-
-
-def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618, split=0.8):
-    umap_reducer = UMAP(n_neighbors=15, min_dist=0.1, n_components=2, random_state=42)
-    mask = np.random.rand(len(df)) < split
-
-    semi_labels = df.index.codes.copy()
-    semi_labels[~mask] = -1
-
-    umap_embedding = umap_reducer.fit_transform(df.sample(frac=1), y=semi_labels)
-
-    ax = sns.relplot(
-        data=pd.DataFrame(
-            umap_embedding, columns=["umap0", "umap1"], index=df.index
-        ).reset_index(),
-        x="umap0",
-        y="umap1",
-        hue="Class",
-        palette="deep",
-        alpha=0.5,
-        edgecolor=None,
-        s=5,
-        height=height,
-        aspect=0.5 * width / height,
-    )
-
-    sns.move_legend(
-        ax,
-        "upper center",
-    )
-    ax.set(xlabel=None, ylabel=None)
-    sns.despine(left=True, bottom=True)
-    plt.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
-    plt.tight_layout()
-    plt.savefig(metadata(f"umap_no_axes.pdf"))
-    # plt.show()
-    plt.close()
-
 
 def scoring_df(X, y):
     # Split the data into training and test sets
