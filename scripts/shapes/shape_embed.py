@@ -497,11 +497,6 @@ def shape_embed_process():
     trial_df.plot(kind="bar")
     
     wandb.log({"trial_df": wandb.Table(dataframe=trial_df)})
-    # wandb.log({"Mean": wandb.Table(dataframe=trial_df.groupby("trial").mean())})
-    # wandb.log({"Std": wandb.Table(dataframe=trial_df.groupby("trial").std())})
-    # # fig, ax = plt.subplots
-    # trial_df.groupby("trial").boxplot(ax = ax)
-    # wandb.log({"boxplot": fig})
     mean_df = trial_df.groupby("trial").mean()
     std_df = trial_df.groupby("trial").std()
     wandb.log({"Mean": wandb.Table(dataframe=mean_df)})
