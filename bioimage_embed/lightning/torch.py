@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import argparse
 import timm
 from pythae.models.base.base_utils import ModelOutput
+import torch.nn.functional as F
 
 
 class LitAutoEncoderTorch(pl.LightningModule):
@@ -45,8 +46,8 @@ class LitAutoEncoderTorch(pl.LightningModule):
         if args:
             self.args = SimpleNamespace(**{**vars(args), **vars(self.args)})
         # if kwargs:
-            # merged_kwargs = {k: v for d in kwargs.values() for k, v in d.items()}
-            # self.args = SimpleNamespace(**{**merged_kwargs, **vars(self.args)})
+        # merged_kwargs = {k: v for d in kwargs.values() for k, v in d.items()}
+        # self.args = SimpleNamespace(**{**merged_kwargs, **vars(self.args)})
         self.save_hyperparameters(vars(self.args))
         # self.model.train()
 
@@ -72,31 +73,24 @@ class LitAutoEncoderTorch(pl.LightningModule):
         return model_output, loss
 
     def training_step(self, batch, batch_idx):
-        # results = self.get_results(batch)
         self.model.train()
         x = self.batch_to_tensor(batch)
         model_output, loss = self.get_model_output(
             x,
             batch_idx,
         )
-        # loss = self.model.training_step(x)
-        # loss = self.loss_function(model_output,optimizer_idx)
-
-        # self.log("train_loss", self.loss)
-        # self.log("train_loss", loss)
-        self.logger.experiment.add_scalar("Loss/train", loss, batch_idx)
-
-        self.logger.experiment.add_image(
-            "input", torchvision.utils.make_grid(x["data"]), batch_idx
+        self.log_dict(
+            {
+                "loss/train": loss,
+                "mse/train": F.mse_loss(model_output.recon_x, x["data"]),
+            },
+            # on_step=True,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
         )
-
-        # if self.PYTHAE_FLAG:
-        self.logger.experiment.add_image(
-            "output",
-            torchvision.utils.make_grid(model_output.recon_x),
-            batch_idx,
-        )
-
+        if isinstance(self.logger, pl.loggers.TensorBoardLogger):
+            self.log_tensorboard(model_output, x)
         return loss
 
     def loss_function(self, model_output, *args, **kwargs):
@@ -121,20 +115,13 @@ class LitAutoEncoderTorch(pl.LightningModule):
         x = self.batch_to_tensor(batch)
         model_output, loss = self.get_model_output(x, batch_idx)
         z = self.embedding_from_output(model_output)
-        # z_indices
-        self.logger.experiment.add_embedding(
-            z,
-            label_img=x["data"],
-            global_step=self.current_epoch,
-            tag="z",
+        self.log_dict(
+            {
+                "loss/val": loss,
+                "mse/val": F.mse_loss(model_output.recon_x, x["data"]),
+            }
         )
-
-        self.logger.experiment.add_scalar("Loss/val", loss, batch_idx)
-        self.logger.experiment.add_image(
-            "val",
-            torchvision.utils.make_grid(model_output["recon_x"]),
-            batch_idx,
-        )
+        return loss
 
     # def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
     #     # Implement your own logic for updating the lr scheduler
@@ -181,19 +168,27 @@ class LitAutoEncoderTorch(pl.LightningModule):
         loss = self.loss_function(model_output)
 
         # Log test metrics
-        self.log("test_loss", loss)
+        self.log_dict(
+            {
+                "loss/test": loss,
+                "mse/test": F.mse_loss(model_output.recon_x, x["data"]),
+            }
+        )
 
+        return loss
+    
+    def log_wandb(self):
+        pass
+    
+    def log_tensorboard(self, model_output, x):
         # Optionally you can add more logging, for example, visualizations:
         self.logger.experiment.add_image(
             "test_input",
             torchvision.utils.make_grid(x["data"]),
-            batch_idx,
+            self.global_step,
         )
         self.logger.experiment.add_image(
             "test_output",
             torchvision.utils.make_grid(model_output.recon_x),
-            batch_idx,
+            self.global_step,
         )
-
-        # Return whatever data you need, for example, the loss
-        return loss

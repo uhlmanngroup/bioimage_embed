@@ -295,13 +295,15 @@ def shape_embed_process():
     model_dir = f"my_models/{dataset_path}_{model._get_name()}_{lit_model._get_name()}"
 
     tb_logger = pl_loggers.TensorBoardLogger(f"logs/")
+    wandb = pl_loggers.WandbLogger(project="bioimage-embed", name="shapes")
 
     Path(f"{model_dir}/").mkdir(parents=True, exist_ok=True)
 
     checkpoint_callback = ModelCheckpoint(dirpath=f"{model_dir}/", save_last=True)
+    wandb.watch(lit_model, log="all")
 
     trainer = pl.Trainer(
-        logger=tb_logger,
+        logger=[wandb,tb_logger],
         gradient_clip_val=0.5,
         enable_checkpointing=True,
         devices=1,
@@ -310,6 +312,7 @@ def shape_embed_process():
         callbacks=[checkpoint_callback],
         min_epochs=50,
         max_epochs=args.epochs,
+        log_every_n_steps=1,
     )
     # %%
     try:
