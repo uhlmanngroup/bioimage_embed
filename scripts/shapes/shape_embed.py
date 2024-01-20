@@ -21,6 +21,7 @@ import pytorch_lightning as pl
 import torch
 from types import SimpleNamespace
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+import argparse
 
 # Deal with the filesystem
 import torch.multiprocessing
@@ -98,7 +99,7 @@ def scoring_df(X, y):
     return pd.DataFrame(cv_results)
 
 
-def shape_embed_process():
+def shape_embed_process(clargs):
     # Setting the font size
     mpl.rcParams["font.size"] = 10
 
@@ -111,14 +112,18 @@ def shape_embed_process():
     sns.set(style="white", context="notebook", rc={"figure.figsize": (width, height)})
 
     # matplotlib.use("TkAgg")
-    interp_size = 128 * 2
+    interp_size = clargs.latent_space_size * 2
+    #interp_size = 128 * 2
     max_epochs = 100
-    window_size = 128 * 2
+    window_size = clargs.latent_space_size * 2
+    #window_size = 128 * 2
 
     params = {
-        "model":"resnet18_vqvae_legacy",
+        "model":clargs.model,
+        #"model":"resnet18_vae",
         "epochs": 75,
-        "batch_size": 4,
+        "batch_size": clargs.batch_size,
+        #"batch_size": 4,
         "num_workers": 2**4,
         "input_dim": (3, interp_size, interp_size),
         "latent_dim": interp_size,
@@ -496,5 +501,45 @@ def shape_embed_process():
     # tikzplotlib.save(metadata(f"trials_barplot.tikz"))
 
 
+
+
+###############################################################################
+
 if __name__ == "__main__":
-    shape_embed_process()
+
+    def auto_pos_int (x):
+      val = int(x,0)
+      if val <= 0:
+          raise argparse.ArgumentTypeError("argument must be a positive int. Got {:d}.".format(val))
+      return val
+    
+    parser = argparse.ArgumentParser(description='Run the shape embed pipeline')
+    
+    models = [
+      "resnet18_vae"
+    , "resnet50_vae"
+    , "resnet18_vae_bolt"
+    , "resnet50_vae_bolt"
+    , "resnet18_vqvae"
+    , "resnet50_vqvae"
+    , "resnet18_vqvae_legacy"
+    , "resnet50_vqvae_legacy"
+    , "resnet101_vqvae_legacy"
+    , "resnet110_vqvae_legacy"
+    , "resnet152_vqvae_legacy"
+    , "resnet18_vae_legacy"
+    , "resnet50_vae_legacy"
+    ]
+    parser.add_argument(
+        '-m', '--model', choices=models, default=models[0], metavar='MODEL'
+      , help=f"The MODEL to use, one of {models} (default {models[0]}).")
+    parser.add_argument(
+        '-b', '--batch-size', nargs=1, default=int(4), metavar='BATCH_SIZE', type=auto_pos_int
+      , help="The BATCH_SIZE for the run, a positive integer (default 4)")
+    parser.add_argument(
+        '-l', '--latent-space-size', nargs=1, default=int(128), metavar='LATENT_SPACE_SIZE', type=auto_pos_int
+      , help="The LATENT_SPACE_SIZE, a positive integer (default 128)")
+    #parser.add_argument('-v', '--verbose', action='count', default=0,
+    #  help="Increase verbosity level by adding more \"v\".")
+    
+    shape_embed_process(parser.parse_args())
