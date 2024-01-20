@@ -22,6 +22,7 @@ import torch
 from types import SimpleNamespace
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import argparse
+import wandb
 
 # Deal with the filesystem
 import torch.multiprocessing
