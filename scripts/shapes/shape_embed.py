@@ -22,7 +22,6 @@ import torch
 from types import SimpleNamespace
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import argparse
-import wandb
 
 # Deal with the filesystem
 import torch.multiprocessing
@@ -467,11 +466,11 @@ def shape_embed_process(clargs):
     trial_df.plot(kind="bar")
 
     # Special metrics for f1 score for wandb
-    wandb.log({"trial_df": wandb.Table(dataframe=trial_df)})
-    mean_df = trial_df.groupby("trial").mean()
-    std_df = trial_df.groupby("trial").std()
-    wandb.log({"Mean": wandb.Table(dataframe=mean_df)})
-    wandb.log({"Std": wandb.Table(dataframe=std_df)})
+    #wandb.log({"trial_df": wandb.Table(dataframe=trial_df)})
+    #mean_df = trial_df.groupby("trial").mean()
+    #std_df = trial_df.groupby("trial").std()
+    #wandb.log({"Mean": wandb.Table(dataframe=mean_df)})
+    #wandb.log({"Std": wandb.Table(dataframe=std_df)})
 
     melted_df = trial_df.melt(id_vars="trial", var_name="Metric", value_name="Score")
     # fig, ax = plt.subplots(figsize=(width, height))
