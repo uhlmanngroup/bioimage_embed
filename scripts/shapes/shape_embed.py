@@ -296,7 +296,7 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
     model_dir = f"checkpoints/{hashing_fn(args)}"
 
     tb_logger = pl_loggers.TensorBoardLogger(f"logs/")
-    wandb = pl_loggers.WandbLogger(project="bioimage-embed", name="shapes")
+    wandb = pl_loggers.WandbLogger(project="shape-embed", name=f"{params['model']}_{interp_size}_{params['batch_size']}")
 
     Path(f"{model_dir}/").mkdir(parents=True, exist_ok=True)
 
