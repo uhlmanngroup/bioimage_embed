@@ -133,7 +133,6 @@ def dataloader(dataset, batch_size):
         pin_memory=False,
     )
 
-
 @pytest.fixture()
 def trainer():
     return pl.Trainer(
