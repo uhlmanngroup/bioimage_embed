@@ -62,9 +62,8 @@ class LitAutoEncoderTorch(pl.LightningModule):
         return self.model.forward(x)
         # return self.model.forward(batch)
 
-    def batch_to_tensor(self, batch):
-        x,y = batch
-        return ModelOutput(data=x.float(), target=y)
+    def batch_to_tensor(self, batch: torch.Tensor) -> ModelOutput:
+        return ModelOutput(data=batch)
 
     def embedding_from_output(self, model_output):
         return model_output.z.view(model_output.z.shape[0], -1)
@@ -212,7 +211,7 @@ class GrayscaleLitAutoEncoderTorch(LitAutoEncoderTorch):
     def __init__(self, model, args=SimpleNamespace()):
         super().__init__(model, args)
 
-    def batch_to_tensor(self, batch):
+    def batch_to_tensor(self, batch: torch.Tensor) -> ModelOutput:
         return ModelOutput(data=batch.repeat(*self.repeat))
 
 
@@ -227,23 +226,26 @@ class ChannelAwareLitAutoEncoderTorch(GrayscaleLitAutoEncoderTorch):
     def expand_channels(self, tensor):
         b, c, *dims = tensor.shape
         tensor = tensor.unsqueeze(1)
-        tensor = tensor.permute(1, 2)
+        tensor = tensor.transpose(1, 2)
         tensor = tensor.reshape(b * c, 1, *dims)
         return tensor
 
     def contract_channels(self, tensor):
         b, c, dims = tensor.shape
         tensor = tensor.reshape(b // c, c, *dims)
-        tensor = tensor.permute(1, 2)
+        tensor = tensor.transpose(1, 2)
         tensor = tensor.squeeze(1)
         return tensor
 
-    def batch_to_tensor(self, batch):
-        x = self.expand_channels(batch["data"])
+    def batch_to_tensor(self, batch: torch.Tensor) -> ModelOutput:
+        x = self.expand_channels(batch)
         # This should be the grayscale repeat
-        return super().batch_to_tensor(x).data
+        return super().batch_to_tensor(x)
 
     def _(self, x: torch.Tensor):
+        # TODO forgotten what this should be named
+        
+        
         # Mean so that RGB model is gray again,
         # Will be noisy in early epochs but should be fine
         x = x.mean(dim=1, keepdim=True)
@@ -345,8 +347,15 @@ _model_classes = [
 ]
 
 
-_rgb_model_classes = [
+_3c_model_classes = [
+    LitAutoEncoderTorch,
     RGBLitAutoEncoderTorch,
+    ChannelAwareLitAutoEncoderTorch,
+]
+
+_1C_model_classes = [
+    GrayscaleLitAutoEncoderTorch,
+    ChannelAwareLitAutoEncoderTorch,
 ]
 
 def autoencoder_factory(model,args=SimpleNamespace()):
