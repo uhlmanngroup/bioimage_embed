@@ -24,6 +24,8 @@ import torch
 from types import SimpleNamespace
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import argparse
+import wandb
+import shutil
 
 # Deal with the filesystem
 import torch.multiprocessing
@@ -293,6 +295,9 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
     dataloader.setup()
     model.eval()
 
+    if clargs.clear_checkpoints:
+      print("cleaning checkpoints")
+      shutil.rmtree("checkpoints/")
     model_dir = f"checkpoints/{hashing_fn(args)}"
 
     tb_logger = pl_loggers.TensorBoardLogger(f"logs/")
@@ -538,6 +543,8 @@ if __name__ == "__main__":
     parser.add_argument(
         '-l', '--latent-space-size', default=int(128), metavar='LATENT_SPACE_SIZE', type=auto_pos_int
       , help="The LATENT_SPACE_SIZE, a positive integer (default 128)")
+    parser.add_argument('--clear-checkpoints', action='store_true'
+      , help='remove checkpoints')
     #parser.add_argument('-v', '--verbose', action='count', default=0,
     #  help="Increase verbosity level by adding more \"v\".")
     
