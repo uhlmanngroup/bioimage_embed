@@ -303,15 +303,15 @@ def shape_embed_process(clargs):
     model_dir = f"checkpoints/{hashing_fn(args)}"
 
     tb_logger = pl_loggers.TensorBoardLogger(f"logs/")
-    wandb = pl_loggers.WandbLogger(project="shape-embed", name=f"{params['model']}_{interp_size}_{params['batch_size']}")
+    wandblogger = pl_loggers.WandbLogger(project="shape-embed", name=f"{params['model']}_{interp_size}_{params['batch_size']}")
 
     Path(f"{model_dir}/").mkdir(parents=True, exist_ok=True)
 
     checkpoint_callback = ModelCheckpoint(dirpath=f"{model_dir}/", save_last=True)
-    wandb.watch(lit_model, log="all")
+    wandblogger.watch(lit_model, log="all")
 
     trainer = pl.Trainer(
-        logger=[wandb,tb_logger],
+        logger=[wandblogger,tb_logger],
         gradient_clip_val=0.5,
         enable_checkpointing=True,
         devices=1,
@@ -469,13 +469,18 @@ def shape_embed_process(clargs):
     trial_df.to_csv(metadata(f"trial_df.csv"))
     trial_df.groupby("trial").mean().to_csv(metadata(f"trial_df_mean.csv"))
     trial_df.plot(kind="bar")
-
-    # Special metrics for f1 score for wandb
-    #wandb.log({"trial_df": wandb.Table(dataframe=trial_df)})
+    
     #mean_df = trial_df.groupby("trial").mean()
     #std_df = trial_df.groupby("trial").std()
-    #wandb.log({"Mean": wandb.Table(dataframe=mean_df)})
-    #wandb.log({"Std": wandb.Table(dataframe=std_df)})
+    #wandb.log_table(mean_df)
+    #wandb.log_table(std_df) 
+    
+    #Special metrics for f1 score for wandb
+    wandblogger.experiment.log({"trial_df": wandb.Table(dataframe=trial_df)})
+    mean_df = trial_df.groupby("trial").mean()
+    std_df = trial_df.groupby("trial").std()
+    wandblogger.experiment.log({"Mean": wandb.Table(dataframe=mean_df)})
+    wandblogger.experiment.log({"Std": wandb.Table(dataframe=std_df)})
 
     melted_df = trial_df.melt(id_vars="trial", var_name="Metric", value_name="Score")
     # fig, ax = plt.subplots(figsize=(width, height))
