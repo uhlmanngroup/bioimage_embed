@@ -73,17 +73,19 @@ def hashing_fn(args):
     return hashed_string
 
 
-def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
+def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618, split=0.8):
     umap_reducer = UMAP(n_neighbors=15, min_dist=0.1, n_components=2, random_state=42)
-    mask = np.random.rand(len(df)) < 0.7
+    mask = np.random.rand(len(df)) < split
 
-    semi_labels = df["Class"].copy()
-    semi_labels[~mask] = -1  # Assuming -1 indicates unknown label for semi-supervision
+    semi_labels = df.index.codes.copy()
+    semi_labels[~mask] = -1
 
-    umap_embedding = umap_reducer.fit_transform(df, y=semi_labels)
+    umap_embedding = umap_reducer.fit_transform(df.sample(frac=1), y=semi_labels)
 
     ax = sns.relplot(
-        data=pd.DataFrame(umap_embedding, columns=["umap0", "umap1"]),
+        data=pd.DataFrame(
+            umap_embedding, columns=["umap0", "umap1"], index=df.index
+        ).reset_index(),
         x="umap0",
         y="umap1",
         hue="Class",
@@ -106,6 +108,7 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
     plt.savefig(metadata(f"umap_no_axes.pdf"))
     # plt.show()
     plt.close()
+
 
 def scoring_df(X, y):
     # Split the data into training and test sets
