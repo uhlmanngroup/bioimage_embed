@@ -1,6 +1,8 @@
 # %%
 import seaborn as sns
 import pyefd
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_validate, KFold, train_test_split
 from sklearn.metrics import make_scorer
@@ -9,6 +11,7 @@ from sklearn import metrics
 import matplotlib as mpl
 import seaborn as sns
 from pathlib import Path
+from sklearn.pipeline import Pipeline
 import umap
 from torch.autograd import Variable
 from types import SimpleNamespace
@@ -77,14 +80,20 @@ def scoring_df(X, y):
     }
 
     # Create a random forest classifier
-    clf = RandomForestClassifier()
+    pipeline = Pipeline(
+        [
+            ("scaler", StandardScaler()),
+            #  ("pca", PCA(n_components=0.95, whiten=True, random_state=42)),
+            ("clf", RandomForestClassifier()),
+        ]
+    )
 
     # Specify the number of folds
     k_folds = 10
 
     # Perform k-fold cross-validation
     cv_results = cross_validate(
-        estimator=clf,
+        estimator=pipeline,
         X=X,
         y=y,
         cv=KFold(n_splits=k_folds),
