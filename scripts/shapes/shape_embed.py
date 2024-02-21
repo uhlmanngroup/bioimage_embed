@@ -165,26 +165,18 @@ def shape_embed_process():
     window_size = 128 * 2
 
     params = {
-        "model":"resnet18_vqvae_legacy",
-        "epochs": 75,
+        "model": "resnet50_vqvae",
+        "epochs": 250,
         "batch_size": 4,
         "num_workers": 2**4,
         "input_dim": (3, interp_size, interp_size),
-        "latent_dim": interp_size,
-        "num_embeddings": interp_size,
-        "num_hiddens": interp_size,
-        "num_residual_hiddens": 32,
-        "num_residual_layers": 150,
+        "latent_dim": int(128),
         "pretrained": True,
-        # "embedding_dim": 32,
-        # "num_embeddings": 16,
-        "commitment_cost": 0.25,
-        "decay": 0.99,
         "frobenius_norm": False,
     }
 
     optimizer_params = {
-        "opt": "LAMB",
+        "opt": "AdamW",
         "lr": 0.001,
         "weight_decay": 0.0001,
         "momentum": 0.9,
