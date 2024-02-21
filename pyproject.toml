@@ -22,7 +22,7 @@ scikit-image = "^0.21.0"
 iteround = "^1.0.4"
 ipykernel = "^6.25.1"
 nonechucks = "^0.4.2"
-pythae = "^0.1.1"
+pythae = { git = "https://github.com/clementchadebec/benchmark_VAE.git", branch = "main" }
 pytest = "^7.4.0"
 pandas = "^2.1.0"
 bokeh = "^3.2.2"
