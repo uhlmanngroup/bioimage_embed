@@ -130,7 +130,7 @@ def scoring_df(X, y):
     )
 
     # Specify the number of folds
-    k_folds = 10
+    k_folds = 5
 
     # Perform k-fold cross-validation
     cv_results = cross_validate(
