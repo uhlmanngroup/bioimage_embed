@@ -348,11 +348,17 @@ def shape_embed_process():
 
     Path(f"{model_dir}/").mkdir(parents=True, exist_ok=True)
 
-    checkpoint_callback = ModelCheckpoint(dirpath=f"{model_dir}/", save_last=True)
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=f"{model_dir}/",
+        save_last=True,
+        save_top_k=1,
+        monitor="loss/val",
+        mode="min",
+    )
     wandb.watch(lit_model, log="all")
 
     trainer = pl.Trainer(
-        logger=[wandb,tb_logger],
+        logger=[wandb, tb_logger],
         gradient_clip_val=0.5,
         enable_checkpointing=True,
         devices=1,
@@ -364,12 +370,20 @@ def shape_embed_process():
         log_every_n_steps=1,
     )
     # %%
-    try:
-        trainer.fit(
-            lit_model, datamodule=dataloader, ckpt_path=f"{model_dir}/last.ckpt"
-        )
-    except:
-        trainer.fit(lit_model, datamodule=dataloader)
+
+    # Determine the checkpoint path for resuming
+    last_checkpoint_path = f"{model_dir}/last.ckpt"
+    best_checkpoint_path = checkpoint_callback.best_model_path
+
+    # Check if a last checkpoint exists to resume from
+    if os.path.isfile(last_checkpoint_path):
+        resume_checkpoint = last_checkpoint_path
+    elif best_checkpoint_path and os.path.isfile(best_checkpoint_path):
+        resume_checkpoint = best_checkpoint_path
+    else:
+        resume_checkpoint = None
+
+    trainer.fit(lit_model, datamodule=dataloader, ckpt_path=resume_checkpoint)
 
     lit_model.eval()
 
