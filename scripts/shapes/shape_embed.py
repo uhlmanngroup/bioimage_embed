@@ -424,17 +424,16 @@ def shape_embed_process():
     df["Class"] = y
     # Map numeric classes to their labels
     idx_to_class = {0: "alive", 1: "dead"}
-    df["Class"] = df["Class"].map(idx_to_class)
+    df["Class"] = df["Class"].map(idx_to_class).astype("category")
     df["Scale"] = scalings[:, 0].squeeze()
     df = df.set_index("Class")
     df_shape_embed = df.copy()
 
     # %% UMAP plot
-    umap_plot(df, metadata, width, height)
-    # %%
+    umap_plot(df, metadata, width, height,split=0.9)
 
     X = df_shape_embed.to_numpy()
-    y = df_shape_embed.index.values
+    y = df_shape_embed.index
 
     properties = [
         "area",
