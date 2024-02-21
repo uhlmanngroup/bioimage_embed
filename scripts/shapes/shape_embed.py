@@ -62,6 +62,10 @@ import hashlib
 
 logger = logging.getLogger(__name__)
 
+# Seed everything
+np.random.seed(42)
+pl.seed_everything(42)
+
 def hashing_fn(args):
     serialized_args = pickle.dumps(vars(args))
     hash_object = hashlib.sha256(serialized_args)
