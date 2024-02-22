@@ -136,7 +136,7 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
     }
 
     optimizer_params = {
-        "opt": "LAMB",
+        "opt": "AdamW",
         "lr": 0.001,
         "weight_decay": 0.0001,
         "momentum": 0.9,
