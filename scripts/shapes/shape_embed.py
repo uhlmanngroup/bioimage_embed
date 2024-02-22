@@ -312,10 +312,10 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
         monitor="loss/val",
         mode="min",
     )
-    wandb.watch(lit_model, log="all")
+    wandblogger.watch(lit_model, log="all")
     
     trainer = pl.Trainer(
-        logger=[wandb, tb_logger],
+        logger=[wandblogger, tb_logger],
         gradient_clip_val=0.5,
         enable_checkpointing=True,
         devices=1,
