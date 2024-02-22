@@ -138,7 +138,7 @@ def shape_embed_process(clargs):
     }
 
     optimizer_params = {
-        "opt": "LAMB",
+        "opt": "AdamW",
         "lr": 0.001,
         "weight_decay": 0.0001,
         "momentum": 0.9,
