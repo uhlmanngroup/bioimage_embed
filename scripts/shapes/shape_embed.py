@@ -1,6 +1,8 @@
 # %%
 import seaborn as sns
 import pyefd
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_validate, KFold, train_test_split
 from sklearn.metrics import make_scorer
@@ -9,6 +11,7 @@ from sklearn import metrics
 import matplotlib as mpl
 import seaborn as sns
 from pathlib import Path
+from sklearn.pipeline import Pipeline
 import umap
 from torch.autograd import Variable
 from types import SimpleNamespace
@@ -20,6 +23,8 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
 import torch
 from types import SimpleNamespace
+from umap import UMAP
+import os
 
 # Deal with the filesystem
 import torch.multiprocessing
@@ -57,11 +62,53 @@ import hashlib
 
 logger = logging.getLogger(__name__)
 
+# Seed everything
+np.random.seed(42)
+pl.seed_everything(42)
+
 def hashing_fn(args):
     serialized_args = pickle.dumps(vars(args))
     hash_object = hashlib.sha256(serialized_args)
     hashed_string = base64.urlsafe_b64encode(hash_object.digest()).decode()
     return hashed_string
+
+
+def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618, split=0.8):
+    umap_reducer = UMAP(n_neighbors=15, min_dist=0.1, n_components=2, random_state=42)
+    mask = np.random.rand(len(df)) < split
+
+    semi_labels = df.index.codes.copy()
+    semi_labels[~mask] = -1
+
+    umap_embedding = umap_reducer.fit_transform(df.sample(frac=1), y=semi_labels)
+
+    ax = sns.relplot(
+        data=pd.DataFrame(
+            umap_embedding, columns=["umap0", "umap1"], index=df.index
+        ).reset_index(),
+        x="umap0",
+        y="umap1",
+        hue="Class",
+        palette="deep",
+        alpha=0.5,
+        edgecolor=None,
+        s=5,
+        height=height,
+        aspect=0.5 * width / height,
+    )
+
+    sns.move_legend(
+        ax,
+        "upper center",
+    )
+    ax.set(xlabel=None, ylabel=None)
+    sns.despine(left=True, bottom=True)
+    plt.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
+    plt.tight_layout()
+    plt.savefig(metadata(f"umap_no_axes.pdf"))
+    # plt.show()
+    plt.close()
+
 
 def scoring_df(X, y):
     # Split the data into training and test sets
@@ -77,14 +124,20 @@ def scoring_df(X, y):
     }
 
     # Create a random forest classifier
-    clf = RandomForestClassifier()
+    pipeline = Pipeline(
+        [
+            ("scaler", StandardScaler()),
+            #  ("pca", PCA(n_components=0.95, whiten=True, random_state=42)),
+            ("clf", RandomForestClassifier()),
+        ]
+    )
 
     # Specify the number of folds
-    k_folds = 10
+    k_folds = 5
 
     # Perform k-fold cross-validation
     cv_results = cross_validate(
-        estimator=clf,
+        estimator=pipeline,
         X=X,
         y=y,
         cv=KFold(n_splits=k_folds),
@@ -115,26 +168,18 @@ def shape_embed_process():
     window_size = 128 * 2
 
     params = {
-        "model":"resnet18_vqvae_legacy",
-        "epochs": 75,
+        "model": "resnet50_vqvae",
+        "epochs": 250,
         "batch_size": 4,
         "num_workers": 2**4,
         "input_dim": (3, interp_size, interp_size),
-        "latent_dim": interp_size,
-        "num_embeddings": interp_size,
-        "num_hiddens": interp_size,
-        "num_residual_hiddens": 32,
-        "num_residual_layers": 150,
+        "latent_dim": int(128),
         "pretrained": True,
-        # "embedding_dim": 32,
-        # "num_embeddings": 16,
-        "commitment_cost": 0.25,
-        "decay": 0.99,
         "frobenius_norm": False,
     }
 
     optimizer_params = {
-        "opt": "LAMB",
+        "opt": "AdamW",
         "lr": 0.001,
         "weight_decay": 0.0001,
         "momentum": 0.9,
@@ -306,11 +351,17 @@ def shape_embed_process():
 
     Path(f"{model_dir}/").mkdir(parents=True, exist_ok=True)
 
-    checkpoint_callback = ModelCheckpoint(dirpath=f"{model_dir}/", save_last=True)
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=f"{model_dir}/",
+        save_last=True,
+        save_top_k=1,
+        monitor="loss/val",
+        mode="min",
+    )
     wandb.watch(lit_model, log="all")
 
     trainer = pl.Trainer(
-        logger=[wandb,tb_logger],
+        logger=[wandb, tb_logger],
         gradient_clip_val=0.5,
         enable_checkpointing=True,
         devices=1,
@@ -322,12 +373,20 @@ def shape_embed_process():
         log_every_n_steps=1,
     )
     # %%
-    try:
-        trainer.fit(
-            lit_model, datamodule=dataloader, ckpt_path=f"{model_dir}/last.ckpt"
-        )
-    except:
-        trainer.fit(lit_model, datamodule=dataloader)
+
+    # Determine the checkpoint path for resuming
+    last_checkpoint_path = f"{model_dir}/last.ckpt"
+    best_checkpoint_path = checkpoint_callback.best_model_path
+
+    # Check if a last checkpoint exists to resume from
+    if os.path.isfile(last_checkpoint_path):
+        resume_checkpoint = last_checkpoint_path
+    elif best_checkpoint_path and os.path.isfile(best_checkpoint_path):
+        resume_checkpoint = best_checkpoint_path
+    else:
+        resume_checkpoint = None
+
+    trainer.fit(lit_model, datamodule=dataloader, ckpt_path=resume_checkpoint)
 
     lit_model.eval()
 
@@ -361,49 +420,20 @@ def shape_embed_process():
     idx_to_class = {v: k for k, v in dataset.dataset.class_to_idx.items()}
     y = np.array([int(data[-1]) for data in dataloader.predict_dataloader()])
 
-    y_partial = y.copy()
-    indices = np.random.choice(y.size, int(0.3 * y.size), replace=False)
-    y_partial[indices] = -1
-    y_blind = -1 * np.ones_like(y)
-    
     df = pd.DataFrame(latent_space.numpy())
     df["Class"] = y
     # Map numeric classes to their labels
     idx_to_class = {0: "alive", 1: "dead"}
-    df["Class"] = df["Class"].map(idx_to_class)
+    df["Class"] = df["Class"].map(idx_to_class).astype("category")
     df["Scale"] = scalings[:, 0].squeeze()
     df = df.set_index("Class")
     df_shape_embed = df.copy()
 
-    ax = sns.relplot(
-        data=df,
-        x="umap0",
-        y="umap1",
-        hue="Class",
-        palette="deep",
-        alpha=0.5,
-        edgecolor=None,
-        s=5,
-        height=height,
-        aspect=0.5 * width / height,
-    )
-
-    sns.move_legend(
-        ax,
-        "upper center",
-    )
-    ax.set(xlabel=None, ylabel=None)
-    sns.despine(left=True, bottom=True)
-    plt.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
-    plt.tight_layout()
-    plt.savefig(metadata(f"umap_no_axes.pdf"))
-    # plt.show()
-    plt.close()
-
-    # %%
+    # %% UMAP plot
+    umap_plot(df, metadata, width, height,split=0.9)
 
     X = df_shape_embed.to_numpy()
-    y = df_shape_embed.index.values
+    y = df_shape_embed.index
 
     properties = [
         "area",
