@@ -507,6 +507,10 @@ def shape_embed_process():
     trial_df.groupby("trial").mean().to_csv(metadata(f"trial_df_mean.csv"))
     trial_df.plot(kind="bar")
 
+    avg = trial_df.groupby("trial").mean()
+    logger.info(avg)
+    avg.to_latex(metadata(f"trial_df.tex"))
+
     melted_df = trial_df.melt(id_vars="trial", var_name="Metric", value_name="Score")
     # fig, ax = plt.subplots(figsize=(width, height))
     ax = sns.catplot(
