@@ -533,7 +533,7 @@ def shape_embed_process():
         .groupby("trial")
         .mean()
     )
-    print(avs)
+    logger.info(avs)
     # tikzplotlib.save(metadata(f"trials_barplot.tikz"))
 
 
