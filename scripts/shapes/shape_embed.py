@@ -9,14 +9,11 @@ from sklearn.metrics import make_scorer
 import pandas as pd
 from sklearn import metrics
 import matplotlib as mpl
-import seaborn as sns
 from pathlib import Path
 from sklearn.pipeline import Pipeline
-import umap
 from torch.autograd import Variable
 from types import SimpleNamespace
 import numpy as np
-import logging
 from skimage import measure
 import umap.plot
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
@@ -25,17 +22,16 @@ import torch
 from types import SimpleNamespace
 from umap import UMAP
 import os
-
-# Deal with the filesystem
 import torch.multiprocessing
+import logging
+from tqdm import tqdm
+
+logging.basicConfig(level=logging.INFO)
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
 from bioimage_embed import shapes
 import bioimage_embed
-
-# Note - you must have torchvision installed for this example
-
 from pytorch_lightning import loggers as pl_loggers
 from torchvision import transforms
 from bioimage_embed.lightning import DataModule
@@ -47,16 +43,15 @@ from bioimage_embed.shapes.transforms import (
     DistogramToCoords,
     MaskToDistogramPipeline,
     RotateIndexingClockwise,
+    CoordsToDistogram,
 )
-
 import matplotlib.pyplot as plt
 
 from bioimage_embed.lightning import DataModule
 import matplotlib as mpl
 from matplotlib import rc
 
-import logging
-import pickle 
+import pickle
 import base64
 import hashlib
 
@@ -65,6 +60,7 @@ logger = logging.getLogger(__name__)
 # Seed everything
 np.random.seed(42)
 pl.seed_everything(42)
+
 
 def hashing_fn(args):
     serialized_args = pickle.dumps(vars(args))
