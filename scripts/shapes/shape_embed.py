@@ -438,10 +438,7 @@ def shape_embed_process():
     y_blind = -1 * np.ones_like(y)
 
     df = pd.DataFrame(latent_space.numpy())
-    df["Class"] = y
-    # Map numeric classes to their labels
-    idx_to_class = {0: "alive", 1: "dead"}
-    df["Class"] = df["Class"].map(idx_to_class).astype("category")
+    df["Class"] = pd.Series(y).map(idx_to_class).astype("category")
     df["Scale"] = scalings[:, 0].squeeze()
     df = df.set_index("Class")
     df_shape_embed = df.copy()
