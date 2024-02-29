@@ -254,10 +254,30 @@ def shape_embed_process():
         "transform_coords": transform_mask_to_coords,
     }
 
+    # Apply transform to find which images don't work
+    dataset = datasets.ImageFolder(train_data_path, transform=transform)
+
+    valid_indices = []
+    # Iterate through the dataset and apply the transform to each image
+    for idx in range(len(dataset)):
+        try:
+            image, label = dataset[idx]
+            # If the transform works without errors, add the index to the list of valid indices
+            valid_indices.append(idx)
+        except Exception as e:
+            # A better way to do with would be with batch collation
+            logger.warning(f"Error occurred for image {idx}: {e}")
+
     train_data = {
-        key: datasets.ImageFolder(train_data_path, transform=value)
+        key: torch.utils.data.Subset(
+            datasets.ImageFolder(train_data_path, transform=value), valid_indices
+        )
         for key, value in transforms_dict.items()
     }
+
+    dataset = torch.utils.data.Subset(
+        datasets.ImageFolder(train_data_path, transform=transform), valid_indices
+    )
 
     for key, value in train_data.items():
         print(key, len(value))
