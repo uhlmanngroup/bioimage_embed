@@ -280,20 +280,11 @@ def shape_embed_process():
     )
 
     for key, value in train_data.items():
-        print(key, len(value))
-        plt.imshow(train_data[key][0][0], cmap="gray")
+        logger.info(key, len(value))
+        plt.imshow(np.array(train_data[key][0][0]), cmap="gray")
         plt.imsave(metadata(f"{key}.png"), train_data[key][0][0], cmap="gray")
         # plt.show()
         plt.close()
-
-    # plt.scatter(*train_data["transform_coords"][0][0])
-    # plt.savefig(metadata(f"transform_coords.png"))
-    # plt.show()
-
-    # plt.imshow(train_data["transform_crop"][0][0], cmap="gray")
-    # plt.scatter(*train_data["transform_coords"][0][0],c=np.arange(interp_size), cmap='rainbow', s=1)
-    # plt.show()
-    # plt.savefig(metadata(f"transform_coords.png"))
 
     # Retrieve the coordinates and cropped image
     coords = train_data["transform_coords"][0][0]
@@ -315,33 +306,8 @@ def shape_embed_process():
 
     # Close the plot
     plt.close()
-    # import albumentations as A
-    # %%
-    gray2rgb = transforms.Lambda(lambda x: x.repeat(3, 1, 1))
-    transform = transforms.Compose(
-        [
-            transform_mask_to_dist,
-            transforms.ToTensor(),
-            RotateIndexingClockwise(p=1),
-            gray2rgb,
-        ]
-    )
-
-    dataset = datasets.ImageFolder(train_data_path, transform=transform)
-
-    valid_indices = []
-    # Iterate through the dataset and apply the transform to each image
-    for idx in range(len(dataset)):
-        try:
-            image, label = dataset[idx]
-            # If the transform works without errors, add the index to the list of valid indices
-            valid_indices.append(idx)
-        except Exception as e:
-            # A better way to do with would be with batch collation
-            print(f"Error occurred for image {idx}: {e}")
 
     # Create a Subset using the valid indices
-    dataset = torch.utils.data.Subset(dataset, valid_indices)
     dataloader = DataModule(
         dataset,
         batch_size=args.batch_size,
@@ -349,16 +315,12 @@ def shape_embed_process():
         num_workers=args.num_workers,
     )
 
-    # model = bioimage_embed.models.create_model("resnet18_vqvae_legacy", **vars(args))
-    # 
     model = bioimage_embed.models.create_model(
         model=args.model,
         input_dim=args.input_dim,
         latent_dim=args.latent_dim,
         pretrained=args.pretrained,
     )
-
-    # model = bioimage_embed.models.factory.ModelFactory(**vars(args)).resnet50_vqvae_legacy()
 
     # lit_model = shapes.MaskEmbedLatentAugment(model, args)
     lit_model = shapes.MaskEmbed(model, args)
