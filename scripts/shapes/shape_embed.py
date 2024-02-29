@@ -206,9 +206,10 @@ def shape_embed_process():
     # %%
 
     transform_crop = CropCentroidPipeline(window_size)
-    transform_dist = MaskToDistogramPipeline(
-        window_size, interp_size, matrix_normalised=False
-    )
+    # transform_dist = MaskToDistogramPipeline(
+    # window_size, interp_size, matrix_normalised=False
+    # )
+    transform_coord_to_dist = CoordsToDistogram(interp_size, matrix_normalised=False)
     transform_mdscoords = DistogramToCoords(window_size)
     transform_coords = ImageToCoords(window_size)
 
@@ -222,16 +223,27 @@ def shape_embed_process():
         ]
     )
 
-    transform_mask_to_dist = transforms.Compose(
-        [
-            transform_mask_to_crop,
-            transform_dist,
-        ]
-    )
     transform_mask_to_coords = transforms.Compose(
         [
             transform_mask_to_crop,
             transform_coords,
+        ]
+    )
+
+    transform_mask_to_dist = transforms.Compose(
+        [
+            transform_mask_to_coords,
+            transform_coord_to_dist,
+        ]
+    )
+
+    gray2rgb = transforms.Lambda(lambda x: x.repeat(3, 1, 1))
+    transform = transforms.Compose(
+        [
+            transform_mask_to_dist,
+            transforms.ToTensor(),
+            RotateIndexingClockwise(p=1),
+            gray2rgb,
         ]
     )
 
