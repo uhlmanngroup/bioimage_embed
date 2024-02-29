@@ -385,16 +385,14 @@ def shape_embed_process():
     # torch.onnx.export(lit_model, example_input, f"{model_dir}/model.onnx")
 
     # %%
-    # Inference
-
+    # Inference on full dataset
     dataloader = DataModule(
         dataset,
         batch_size=1,
         shuffle=False,
         num_workers=args.num_workers,
         # Transform is commented here to avoid augmentations in real data
-        # HOWEVER, applying a the transform multiple times and averaging the results might produce better latent embeddings
-        # transform=transform,
+        # HOWEVER, applying the transform multiple times and averaging the results might produce better latent embeddings
         # transform=transform,
     )
     dataloader.setup()
@@ -408,16 +406,14 @@ def shape_embed_process():
     y = np.array([int(data[-1]) for data in dataloader.predict_dataloader()])
 
     df = pd.DataFrame(latent_space.numpy())
-    df["Class"] = y
-    # Map numeric classes to their labels
-    idx_to_class = {0: "alive", 1: "dead"}
-    df["Class"] = df["Class"].map(idx_to_class).astype("category")
+    df["Class"] = pd.Series(y).map(idx_to_class).astype("category")
     df["Scale"] = scalings[:, 0].squeeze()
     df = df.set_index("Class")
     df_shape_embed = df.copy()
 
     # %% UMAP plot
-    umap_plot(df, metadata, width, height,split=0.9)
+
+    umap_plot(df, metadata, width, height, split=0.9)
 
     X = df_shape_embed.to_numpy()
     y = df_shape_embed.index
