@@ -427,11 +427,12 @@ def shape_embed_process():
         "orientation",
     ]
     dfs = []
-    for i, data in enumerate(train_data["transform_crop"]):
+    # Distance matrix data
+    for i, data in enumerate(tqdm(train_data["transform_crop"])):
         X, y = data
         # Do regionprops here
         # Calculate shape summary statistics using regionprops
-        # We're considering that the mask has only one object, thus we take the first element [0]
+        # We're considering that the mask has only one object, so we take the first element [0]
         # props = regionprops(np.array(X).astype(int))[0]
         props_table = measure.regionprops_table(
             np.array(X).astype(int), properties=properties
@@ -447,9 +448,8 @@ def shape_embed_process():
 
     df_regionprops = pd.concat(dfs)
 
-    # Assuming 'dataset_contour' is your DataLoader for the dataset
     dfs = []
-    for i, data in enumerate(train_data["transform_coords"]):
+    for i, data in enumerate(tqdm(train_data["transform_coords"])):
         # Convert the tensor to a numpy array
         X, y = data
 
@@ -498,7 +498,7 @@ def shape_embed_process():
         y = trial["labels"]
         trial["score_df"] = scoring_df(X, y)
         trial["score_df"]["trial"] = trial["name"]
-        print(trial["score_df"])
+        logger.info(trial["score_df"])
         trial["score_df"].to_csv(metadata(f"{trial['name']}_score_df.csv"))
         trial_df = pd.concat([trial_df, trial["score_df"]])
     trial_df = trial_df.drop(["fit_time", "score_time"], axis=1)
