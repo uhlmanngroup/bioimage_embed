@@ -173,6 +173,12 @@ class CoordsToDistogram(torch.nn.Module):
             return distance_matrix / np.linalg.norm([self.size, self.size])
 
 
+def find_longest_array(arrays):
+    lengths = [len(arr.flatten()) for arr in arrays]
+    max_length_index = np.argmax(lengths)
+    return arrays[max_length_index]
+
+
 class ImageToCoords(torch.nn.Module):
     def __init__(self, size):
         super().__init__()
@@ -204,7 +210,8 @@ class ImageToCoords(torch.nn.Module):
         return torch.tensor(np.array(coords_list))
 
     def get_coords(self, image, size, method="uniform_spline", contour_level=0.8):
-        contour = find_contours(np.array(image), contour_level)
+        contour_list = find_contours(np.array(image), contour_level)
+        contour = find_longest_array(contour_list)
         if method == "uniform_spline":
             return contours.uniform_spline_resample_contour(contour=contour, size=size)
         if method == "cubic_polar":

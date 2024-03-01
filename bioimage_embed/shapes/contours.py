@@ -35,7 +35,7 @@ def cubic_polar_resample_contour(contour: np.array, size: int) -> np.array:
 
 
 def contour_to_xy(contour: np.array):
-    return contour[0][:, 0], contour[0][:, 1]
+    return contour[:, 0], contour[:, 1]
 
 
 def uniform_spline_resample_contour(contour: np.array, size: int) -> np.array:
