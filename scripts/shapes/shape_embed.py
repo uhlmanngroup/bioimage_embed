@@ -9,14 +9,11 @@ from sklearn.metrics import make_scorer
 import pandas as pd
 from sklearn import metrics
 import matplotlib as mpl
-import seaborn as sns
 from pathlib import Path
 from sklearn.pipeline import Pipeline
-import umap
 from torch.autograd import Variable
 from types import SimpleNamespace
 import numpy as np
-import logging
 from skimage import measure
 import umap.plot
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
@@ -29,17 +26,16 @@ import wandb
 import shutil
 from umap import UMAP
 import os
-
-# Deal with the filesystem
 import torch.multiprocessing
+import logging
+from tqdm import tqdm
+
+logging.basicConfig(level=logging.INFO)
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
 from bioimage_embed import shapes
 import bioimage_embed
-
-# Note - you must have torchvision installed for this example
-
 from pytorch_lightning import loggers as pl_loggers
 from torchvision import transforms
 from bioimage_embed.lightning import DataModule
@@ -51,16 +47,15 @@ from bioimage_embed.shapes.transforms import (
     DistogramToCoords,
     MaskToDistogramPipeline,
     RotateIndexingClockwise,
+    CoordsToDistogram,
 )
-
 import matplotlib.pyplot as plt
 
 from bioimage_embed.lightning import DataModule
 import matplotlib as mpl
 from matplotlib import rc
 
-import logging
-import pickle 
+import pickle
 import base64
 import hashlib
 
@@ -69,6 +64,7 @@ logger = logging.getLogger(__name__)
 # Seed everything
 np.random.seed(42)
 pl.seed_everything(42)
+
 
 def hashing_fn(args):
     serialized_args = pickle.dumps(vars(args))
@@ -188,6 +184,9 @@ def shape_embed_process(clargs):
         "commitment_cost": 0.25,
         "decay": 0.99,
         "frobenius_norm": False,
+        # dataset = "bbbc010/BBBC010_v1_foreground_eachworm"
+        # dataset = "vampire/mefs/data/processed/Control"
+        "dataset": "synthcellshapes_dataset",
     }
     
     optimizer_params = {
@@ -218,9 +217,10 @@ def shape_embed_process(clargs):
     # %%
     
     transform_crop = CropCentroidPipeline(window_size)
-    transform_dist = MaskToDistogramPipeline(
-        window_size, interp_size, matrix_normalised=False
-    )
+    # transform_dist = MaskToDistogramPipeline(
+    # window_size, interp_size, matrix_normalised=False
+    # )
+    transform_coord_to_dist = CoordsToDistogram(interp_size, matrix_normalised=False)
     transform_mdscoords = DistogramToCoords(window_size)
     transform_coords = ImageToCoords(window_size)
     
@@ -233,17 +233,28 @@ def shape_embed_process(clargs):
             transform_crop,
         ]
     )
-    
-    transform_mask_to_dist = transforms.Compose(
-        [
-            transform_mask_to_crop,
-            transform_dist,
-        ]
-    )
+
     transform_mask_to_coords = transforms.Compose(
         [
             transform_mask_to_crop,
             transform_coords,
+        ]
+    )
+
+    transform_mask_to_dist = transforms.Compose(
+        [
+            transform_mask_to_coords,
+            transform_coord_to_dist,
+        ]
+    )
+
+    gray2rgb = transforms.Lambda(lambda x: x.repeat(3, 1, 1))
+    transform = transforms.Compose(
+        [
+            transform_mask_to_dist,
+            transforms.ToTensor(),
+            RotateIndexingClockwise(p=1),
+            gray2rgb,
         ]
     )
     
@@ -254,14 +265,34 @@ def shape_embed_process(clargs):
         "transform_coords": transform_mask_to_coords,
     }
     
+    # Apply transform to find which images don't work
+    dataset = datasets.ImageFolder(train_data_path, transform=transform)
+
+    valid_indices = []
+    # Iterate through the dataset and apply the transform to each image
+    for idx in range(len(dataset)):
+        try:
+            image, label = dataset[idx]
+            # If the transform works without errors, add the index to the list of valid indices
+            valid_indices.append(idx)
+        except Exception as e:
+            # A better way to do with would be with batch collation
+            logger.warning(f"Error occurred for image {idx}: {e}")
+
     train_data = {
-        key: datasets.ImageFolder(train_data_path, transform=value)
+        key: torch.utils.data.Subset(
+            datasets.ImageFolder(train_data_path, transform=value), valid_indices
+        )
         for key, value in transforms_dict.items()
     }
-    
+
+    dataset = torch.utils.data.Subset(
+        datasets.ImageFolder(train_data_path, transform=transform), valid_indices
+    )
+
     for key, value in train_data.items():
-        print(key, len(value))
-        plt.imshow(train_data[key][0][0], cmap="gray")
+        logger.info(key, len(value))
+        plt.imshow(np.array(train_data[key][0][0]), cmap="gray")
         plt.imsave(metadata(f"{key}.png"), train_data[key][0][0], cmap="gray")
         # plt.show()
         plt.close()
@@ -321,7 +352,6 @@ def shape_embed_process(clargs):
             print(f"Error occurred for image {idx}: {e}")
     
     # Create a Subset using the valid indices
-    dataset = torch.utils.data.Subset(dataset, valid_indices)
     dataloader = DataModule(
         dataset,
         batch_size=args.batch_size,
@@ -331,6 +361,7 @@ def shape_embed_process(clargs):
     
     # model = bioimage_embed.models.create_model("resnet18_vqvae_legacy", **vars(args))
     # 
+
     model = bioimage_embed.models.create_model(
         model=args.model,
         input_dim=args.input_dim,
@@ -407,16 +438,14 @@ def shape_embed_process(clargs):
     # torch.onnx.export(lit_model, example_input, f"{model_dir}/model.onnx")
     
     # %%
-    # Inference
-    
+    # Inference on full dataset
     dataloader = DataModule(
         dataset,
         batch_size=1,
         shuffle=False,
         num_workers=args.num_workers,
         # Transform is commented here to avoid augmentations in real data
-        # HOWEVER, applying a the transform multiple times and averaging the results might produce better latent embeddings
-        # transform=transform,
+        # HOWEVER, applying the transform multiple times and averaging the results might produce better latent embeddings
         # transform=transform,
     )
     dataloader.setup()
@@ -430,18 +459,16 @@ def shape_embed_process(clargs):
     y = np.array([int(data[-1]) for data in dataloader.predict_dataloader()])
     
     df = pd.DataFrame(latent_space.numpy())
-    df["Class"] = y
-    # Map numeric classes to their labels
-    idx_to_class = {0: "alive", 1: "dead"}
-    df["Class"] = df["Class"].map(idx_to_class).astype("category")
+    df["Class"] = pd.Series(y).map(idx_to_class).astype("category")
     df["Scale"] = scalings[:, 0].squeeze()
     df = df.set_index("Class")
     df_shape_embed = df.copy()
     
     # %%
     # %% UMAP plot
-    umap_plot(df, metadata, width, height,split=0.9)
-    
+
+    umap_plot(df, metadata, width, height, split=0.9)
+
     X = df_shape_embed.to_numpy()
     y = df_shape_embed.index
     
@@ -454,11 +481,12 @@ def shape_embed_process(clargs):
         "orientation",
     ]
     dfs = []
-    for i, data in enumerate(train_data["transform_crop"]):
+    # Distance matrix data
+    for i, data in enumerate(tqdm(train_data["transform_crop"])):
         X, y = data
         # Do regionprops here
         # Calculate shape summary statistics using regionprops
-        # We're considering that the mask has only one object, thus we take the first element [0]
+        # We're considering that the mask has only one object, so we take the first element [0]
         # props = regionprops(np.array(X).astype(int))[0]
         props_table = measure.regionprops_table(
             np.array(X).astype(int), properties=properties
@@ -473,10 +501,8 @@ def shape_embed_process(clargs):
         dfs.append(df)
     
     df_regionprops = pd.concat(dfs)
-    
-    # Assuming 'dataset_contour' is your DataLoader for the dataset
     dfs = []
-    for i, data in enumerate(train_data["transform_coords"]):
+    for i, data in enumerate(tqdm(train_data["transform_coords"])):
         # Convert the tensor to a numpy array
         X, y = data
     
@@ -525,7 +551,7 @@ def shape_embed_process(clargs):
         y = trial["labels"]
         trial["score_df"] = scoring_df(X, y)
         trial["score_df"]["trial"] = trial["name"]
-        print(trial["score_df"])
+        logger.info(trial["score_df"])
         trial["score_df"].to_csv(metadata(f"{trial['name']}_score_df.csv"))
         trial_df = pd.concat([trial_df, trial["score_df"]])
     trial_df = trial_df.drop(["fit_time", "score_time"], axis=1)
@@ -546,6 +572,10 @@ def shape_embed_process(clargs):
     wandblogger.experiment.log({"Mean": wandb.Table(dataframe=mean_df)})
     wandblogger.experiment.log({"Std": wandb.Table(dataframe=std_df)})
     
+    avg = trial_df.groupby("trial").mean()
+    logger.info(avg)
+    avg.to_latex(metadata(f"trial_df.tex"))
+
     melted_df = trial_df.melt(id_vars="trial", var_name="Metric", value_name="Score")
     # fig, ax = plt.subplots(figsize=(width, height))
     ax = sns.catplot(
@@ -572,7 +602,7 @@ def shape_embed_process(clargs):
         .groupby("trial")
         .mean()
     )
-    print(avs)
+    logger.info(avs)
     # tikzplotlib.save(metadata(f"trials_barplot.tikz"))
 
 

@@ -14,5 +14,6 @@ dependencies:
 - pytorch
 - pillow=9.5.0
 - pip
+- conda-forge::opencv
 - pip:
   - -e .
