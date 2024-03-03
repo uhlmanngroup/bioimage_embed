@@ -133,6 +133,10 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
         "commitment_cost": 0.25,
         "decay": 0.99,
         "frobenius_norm": False,
+        # dataset = "bbbc010/BBBC010_v1_foreground_eachworm"
+        # dataset = "vampire/mefs/data/processed/Control"
+        #"dataset": "synthcellshapes_dataset",
+        "dataset": clargs.dataset[0],
     }
     
     optimizer_params = {
