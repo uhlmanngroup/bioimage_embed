@@ -21,6 +21,16 @@ jobs:
           #   shell: bash -l {0}
     steps:
     - uses: actions/checkout@v2
+    - name: Free Disk Space (Ubuntu)
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: false
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: true
     - uses: conda-incubator/setup-miniconda@v2
       with:
         environment-file: environment.yml
