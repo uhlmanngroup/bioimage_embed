@@ -99,7 +99,7 @@ def scoring_df(X, y):
         estimator=pipeline,
         X=X,
         y=y,
-        cv=KFold(n_splits=k_folds),
+        cv=StratifiedKFold(n_splits=k_folds),
         scoring=scoring,
         n_jobs=-1,
         return_train_score=False,
