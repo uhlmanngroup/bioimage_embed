@@ -367,7 +367,24 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
     dataloader.setup()
     
     predictions = trainer.predict(lit_model, datamodule=dataloader)
-    
+
+
+    test_dist_pred = predictions[0].out.recon_x
+    plt.imsave(metadata(f"test_dist_pred.png"), test_dist_pred.mean(axis=(0,1)))
+    plt.close()
+
+    test_dist_in = predictions[0].x.data
+    plt.imsave(metadata(f"test_dist_in.png"), test_dist_in.mean(axis=(0,1)))
+    plt.close()
+
+    test_pred_coords = AsymmetricDistogramToCoordsPipeline(window_size=window_size)(
+        np.array(test_dist_pred[:, 0, :, :].unsqueeze(dim=0))
+    )
+
+    plt.scatter(*test_pred_coords[0,0].T)
+    # Save the plot as an image without border and coordinate axes
+    plt.savefig(metadata(f"test_pred_coords.png"), bbox_inches="tight", pad_inches=0)
+    plt.close()
     # Use the namespace variables
     latent_space = torch.stack([d.out.z.flatten() for d in predictions])
     scalings = torch.stack([d.x.scalings.flatten() for d in predictions])
