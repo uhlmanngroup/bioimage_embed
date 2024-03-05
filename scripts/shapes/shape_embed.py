@@ -3,11 +3,7 @@ import seaborn as sns
 import pyefd
 from sklearn.discriminant_analysis import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import (
-    cross_validate,
-    KFold,
-    train_test_split,
-)
+from sklearn.model_selection import cross_validate, KFold, train_test_split, StratifiedKFold
 from sklearn.metrics import make_scorer
 import pandas as pd
 from sklearn import metrics
@@ -92,7 +88,7 @@ def scoring_df(X, y):
         estimator=clf,
         X=X,
         y=y,
-        cv=KFold(n_splits=k_folds),
+        cv=StratifiedKFold(n_splits=k_folds),
         scoring=scoring,
         n_jobs=-1,
         return_train_score=False,
