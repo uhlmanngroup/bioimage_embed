@@ -294,6 +294,8 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
     dataloader.setup()
     model.eval()
     
+    model_dir = f"checkpoints/{hashing_fn(args)}"
+    
     if clargs.clear_checkpoints:
         print("cleaning checkpoints")
         shutil.rmtree("checkpoints/")
@@ -301,7 +303,8 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
     
     tb_logger = pl_loggers.TensorBoardLogger(f"logs/")
     jobname = f"{params['model']}_{interp_size}_{params['batch_size']}_{clargs.dataset[0]}"
-    wandblogger = pl_loggers.WandbLogger(project=clargs.wandb_project, name=jobname)
+    wandblogger = pl_loggers.WandbLogger(entity='foix', project="shape_embed_fixes", name=jobname)
+    #wandblogger = pl_loggers.WandbLogger(project=clargs.wandb_project, name=jobname)
     
     Path(f"{model_dir}/").mkdir(parents=True, exist_ok=True)
     
