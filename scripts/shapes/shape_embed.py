@@ -48,6 +48,7 @@ from bioimage_embed.shapes.transforms import (
     MaskToDistogramPipeline,
     RotateIndexingClockwise,
     CoordsToDistogram,
+    AsymmetricDistogramToCoordsPipeline,
 )
 import matplotlib.pyplot as plt
 
