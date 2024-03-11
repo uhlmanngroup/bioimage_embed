@@ -117,7 +117,7 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
     params = {
         "model":clargs.model,
         #"model":"resnet18_vae",
-        "epochs": 250,
+        "epochs": 150,
         "batch_size": clargs.batch_size,
         #"batch_size": 4,
         "num_workers": 2**4,
