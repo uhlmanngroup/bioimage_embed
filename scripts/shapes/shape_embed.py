@@ -163,10 +163,11 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
     # %%
     
     transform_crop = CropCentroidPipeline(window_size)
-    transform_dist = MaskToDistogramPipeline(
-        window_size, interp_size, matrix_normalised=False
-    )
-    transform_mdscoords = DistogramToCoords(window_size)
+    # transform_dist = MaskToDistogramPipeline(
+    # window_size, interp_size, matrix_normalised=False
+    # )
+    transform_coord_to_dist = CoordsToDistogram(interp_size, matrix_normalised=False)
+    #transform_mdscoords = DistogramToCoords(window_size)
     transform_coords = ImageToCoords(window_size)
     
     transform_mask_to_gray = transforms.Compose([transforms.Grayscale(1)])
