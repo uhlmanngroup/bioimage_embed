@@ -26,18 +26,30 @@ def cfg():
     mock_dataset = config.ImageFolderDataset(
         _target_="bioimage_embed.datasets.FakeImageFolder",
         image_size=input_dim,
+        num_classes=1,
     )
+    dataloader = config.DataLoader(dataset=mock_dataset)
     model = config.Model(input_dim=input_dim)
-    return config.Config(dataset=mock_dataset,model=model)
+    return config.Config(dataloader=dataloader, model=model)
 
 
 def test_config(cfg):
     assert cfg is not None, "Config should not be None"
 
 
-def test_bioimage_embed(cfg):
+@pytest.fixture
+def bie(cfg):
     bie = bioimage_embed.BioImageEmbed(cfg)
+    return bie
+
+
+def test_model_check(bie):
     bie.model_check()
+
+
+# @pytest.mark.skip("Computationally heavy")
+def test_train_check(bie):
+    bie.trainer_check()
 
 
 # def mock_dataset(root="data", *args, **kwargs):

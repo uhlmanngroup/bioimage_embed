@@ -1,18 +1,22 @@
-from dataclasses import dataclass
-from dataclasses import dataclass, field
 from bioimage_embed.augmentations import (
     DEFAULT_ALBUMENTATION,
 )
 import os
 from typing import Optional
 from pydantic.dataclasses import dataclass
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
+from types import SimpleNamespace
 from pydantic import BaseModel, Field, field_validator, root_validator
+from omegaconf import SI, II
+from . import utils
 
 @dataclass
 class Recipe:
     _target_: str = "types.SimpleNamespace"
+    model: str = "resnet18_vae"
+    data: str = "data"
     opt: str = "adamw"
+    max_epochs: int = 125
     weight_decay: float = 0.001
     momentum: float = 0.9
     sched: str = "cosine"
@@ -34,8 +38,7 @@ class Recipe:
     noise_seed: Optional[int] = None
     cooldown_epochs: int = 5
     warmup_t: int = 0
-    data: str = "data"
-
+    seed: int = 42
 
 @dataclass
 class ATransform:
@@ -67,34 +70,72 @@ class Dataset:
 class ImageFolderDataset(Dataset):
     _target_: str = "torchvision.datasets.ImageFolder"
     # transform: Transform = Field(default_factory=Transform)
-    root: str = "data"
+    root: str = II("recipe.data")
+
+@dataclass
+class NdDataset(ImageFolderDataset):
+    transform: Transform = Field(default_factory=Transform)
+
+@dataclass
+class TiffDataset(NdDataset):
+    _target_: str = "bioimage_embed.datasets.TiffDataset"
+
+class NgffDataset(NdDataset):
+    _target_: str = "bioimage_embed.datasets.NgffDataset"
 
 
 @dataclass
 class DataLoader:
     _target_: str = "bioimage_embed.lightning.dataloader.DataModule"
-    dataset: Dataset = Field(default_factory=Dataset)
+    dataset: ImageFolderDataset = Field(default_factory=ImageFolderDataset)
     num_workers: int = 1
 
 
 @dataclass
 class Model:
     _target_: str = "bioimage_embed.models.create_model"
-    model: str = "resnet18_vae"
+    model: str = II("recipe.model")
     input_dim: List[int] = Field(default_factory=lambda: [3, 224, 224])
     latent_dim: int = 64
     pretrained: bool = True
 
 
 @dataclass
+class Callback:
+    pass
+
+@dataclass
+class EarlyStopping(Callback):
+    _target_: str = "pytorch_lightning.callbacks.EarlyStopping"
+    monitor: str = "loss/val"
+    mode: str = "min"
+    patience: int = 3
+
+@dataclass
+class ModelCheckpoint(Callback):
+    _target_: str = "pytorch_lightning.callbacks.ModelCheckpoint"
+    save_last = True
+    save_top_k = 1
+    monitor = "loss/val"
+    mode = "min"
+    # dirpath: str = Field(default_factory=lambda: utils.hashing_fn(Recipe()))
+    dirpath: str = f"{II('paths.model')}/{II('uuid')}"
+
+@dataclass
 class LightningModel:
     _target_: str = "bioimage_embed.lightning.torch.LitAutoEncoderTorch"
     # This should be pythae base autoencoder?
     model: Model = Field(default_factory=Model)
-    args: Recipe = Field(default_factory=Recipe)
+    args: Recipe = Field(default_factory=lambda: II("recipe"))
 
 
-# ModelCheckpoint(dirpath=f"{self.model_dir}/", save_last=True)
+@dataclass
+class Callbacks:
+    # _target_: str = "collections.OrderedDict"
+    model_checkpoint: ModelCheckpoint = Field(default_factory=ModelCheckpoint)
+    early_stopping: EarlyStopping = Field(default_factory=EarlyStopping)
+
+
 @dataclass
 class Trainer:
     _target_: str = "pytorch_lightning.Trainer"
@@ -104,38 +145,16 @@ class Trainer:
     devices: str = "auto"
     accelerator: str = "auto"
     accumulate_grad_batches: int = 16
-    # callbacks: List[Callback] = field(default_factory=list)
-    min_epochs: int = 50
-    max_epochs: int = 50  # Set a default or use a constructor to dynamically set this
+    min_epochs: int = 1
+    max_epochs: int = II("recipe.max_epochs")
     log_every_n_steps: int = 1
-    # precision: int = 32
-
-    # callbacks = [EarlyStopping(monitor="loss/val", mode="min")]
-
-
-# @dataclass
-# class Callbacks:
-#     _target_: Optional[List[Callback]]
-#     early_stopping: EarlyStopping = field(default_factory=EarlyStopping)
-#     model_checkpoint: ModelCheckpoint = field(default_factory=ModelCheckpoint)
+    # This is not a clean implementation but I am not sure how to do it better
+    callbacks: List[Any] = Field(
+        default_factory=lambda: list(vars(Callbacks()).values()), frozen=True
+    )
 
 
-@dataclass
-class EarlyStopping:
-    _target_: str = "pytorch_lightning.callbacks.EarlyStopping"
-    monitor: str = "loss/val"
-    mode: str = "min"
-    patient: int = 3
-
-
-@dataclass
-class ModelCheckpoint:
-    _target_: str = "pytorch_lightning.callbacks.ModelCheckpoint"
-    save_last = True
-    save_top_k = 1
-    monitor = "loss/val"
-    mode = "min"
-
+# TODO add argument caching for checkpointing
 
 @dataclass
 class Paths:
@@ -157,21 +176,19 @@ class Paths:
 
 @dataclass
 class Config:
-    paths: Paths = field(default_factory=Paths)
-    recipe: Recipe = field(default_factory=Recipe)
-    transform: Transform = field(default_factory=Transform)
-    dataset: ImageFolderDataset = field(default_factory=ImageFolderDataset)
-    dataloader: DataLoader = field(default_factory=DataLoader)
-    trainer: Trainer = field(default_factory=Trainer)
-    model: Model = field(default_factory=Model)
-    lit_model: LightningModel = field(default_factory=LightningModel)
-    # # callbacks: Callbacks = field(default_factory=Callbacks)
+    paths: Paths = Field(default_factory=Paths)
+    recipe: Recipe = Field(default_factory=Recipe)
+    dataloader: DataLoader = Field(default_factory=DataLoader)
+    trainer: Trainer = Field(default_factory=Trainer)
+    lit_model: LightningModel = Field(default_factory=LightningModel)
+    # callbacks: Callbacks = field(default_factory=Callbacks)
+    uuid: str = Field(default_factory=lambda: utils.hashing_fn(Recipe()))
 
 
 __schemas__ = {
-    "receipe": Recipe,
+    "recipe": Recipe,
     "transform": Transform,
-    "dataset": Dataset,
+    "dataset": ImageFolderDataset,
     "dataloader": DataLoader,
     "trainer": Trainer,
     "model": Model,

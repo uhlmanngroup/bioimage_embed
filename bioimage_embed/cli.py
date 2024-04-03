@@ -13,6 +13,10 @@ from hydra.core.config_store import ConfigStore
 from .config import Config
 import hydra
 
+import logging
+logging.captureWarnings(True)
+
+
 app = Typer()
 
 

@@ -7,9 +7,8 @@ import os
 import pytest
 from ..cli import app
 from typer.testing import CliRunner
-
+from ..config import Config
 runner = CliRunner()
-
 
 @pytest.fixture
 def config_dir():
@@ -75,15 +74,17 @@ def test_get_default_config(cfg):
 #     # cli.main(config_dir=config_dir, config_file=config_file, job_name="test_app")
 
 
-@pytest.mark.skip("Computationally heavy")
-def test_hydra():
-    #  bie_train model.model="resnet50_vqvae" dataset._target_="bioimage_embed.datasets.FakeImageFolder"
-    cfg = config.Config()
-    cfg.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
-    cfg.model.model = "resnet18_vae"
-    cfg.recipe.max_epochs = 1
+# @pytest.mark.skip("Computationally heavy")
+# def test_hydra():
+#     #  bie_train model.model="resnet50_vqvae" dataset._target_="bioimage_embed.datasets.FakeImageFolder"
+#     input_dim = [3, 224, 224]
+#     cfg = Config()
+#     cfg.dataloader.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
+#     cfg.dataloader.dataset.image_size = input_dim
+#     cfg.recipe.model = "resnet18_vae"
+#     cfg.recipe.max_epochs = 1
 
-    cli.train(cfg)
+#     # cli.(cfg)
 
 
 #     result = runner.invoke(app, ["main", "+dataset.root=data", "--config_dir", "tests/sample_conf", "--config_file", "sample_config.yaml"])
