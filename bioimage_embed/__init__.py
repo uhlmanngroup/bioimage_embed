@@ -4,3 +4,6 @@ torch.cuda.empty_cache()
 from .models import create_model
 from .lightning import LitAutoEncoderTorch
 from .models import ModelFactory
+
+import logging
+logging.captureWarnings(True)
