@@ -18,8 +18,7 @@ loss -> total loss
 variational_loss -> loss - recon_loss
 """
 
-
-class AutoEncoder(pl.LightningModule):
+class LitAutoEncoderTorch(pl.LightningModule):
     args = argparse.Namespace(
         opt="adamw",
         weight_decay=0.001,
