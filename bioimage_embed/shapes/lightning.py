@@ -35,7 +35,7 @@ class MaskEmbed(LitAutoEncoderTorch):
         return ModelOutput(data=normalised_data / scalings, scalings=scalings)
 
     def loss_function(self, model_output, *args, **kwargs):
-        loss_ops = lf.DistanceMatrixLoss(model_output.recon_x, norm=True)
+        loss_ops = lf.DistanceMatrixLoss(model_output.recon_x, norm=False)
         loss = model_output.loss
         loss += torch.sum(
             torch.stack(
