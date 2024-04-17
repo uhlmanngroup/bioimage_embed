@@ -16,7 +16,6 @@ from bioimage_embed.augmentations import (
     DEFAULT_ALBUMENTATION,
 )
 import os
-from typing import Optional
 from pydantic.dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 from types import SimpleNamespace
@@ -113,7 +112,6 @@ class DataLoader:
     _target_: str = "bioimage_embed.lightning.dataloader.DataModule"
     dataset: ImageFolderDataset = Field(default_factory=ImageFolderDataset)
     num_workers: int = 1
-
 
 @dataclass
 class Model:

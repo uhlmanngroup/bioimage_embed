@@ -18,7 +18,7 @@ from .lightning.torch import LitAutoEncoderTorch
 from hydra.utils import instantiate
 from torch.autograd import Variable
 from pytorch_lightning import seed_everything
-
+from omegaconf import OmegaConf 
 # Environment Setup
 # torch.multiprocessing.set_sharing_strategy("file_system")
 logging.basicConfig(level=logging.INFO)
@@ -31,6 +31,9 @@ class BioImageEmbed:
     def __init__(self, cfg: Config):
         self.cfg = cfg
         self.icfg = instantiate(cfg)
+        # TODO, cannot find a cleaner way to do this
+        self.ocfg = OmegaConf.structured(self.cfg)
+        OmegaConf.resolve(self.ocfg)
 
         self.setup()
 
@@ -39,8 +42,10 @@ class BioImageEmbed:
         self.checkpoint_dir = utils.hashing_fn(recipe)
 
     def setup(self):
+        
         np.random.seed(self.icfg.recipe.seed)
         seed_everything(self.icfg.recipe.seed)
+
         self.make_dirs()
         self.icfg.lit_model.model.eval()
 
@@ -51,7 +56,7 @@ class BioImageEmbed:
         logging.info("Model Check Passed")
 
     def trainer_check(self):
-        trainer = instantiate(self.cfg.trainer, fast_dev_run=True)
+        trainer = instantiate(self.ocfg.trainer, fast_dev_run=True)
         trainer.fit(self.icfg.lit_model, self.icfg.dataloader)
         logging.info("Trainer Check Passed")
 

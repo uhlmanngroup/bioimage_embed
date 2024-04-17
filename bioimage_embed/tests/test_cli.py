@@ -8,6 +8,8 @@ import pytest
 from ..cli import app
 from typer.testing import CliRunner
 from ..config import Config
+from .. import config
+
 runner = CliRunner()
 
 @pytest.fixture
@@ -48,7 +50,6 @@ def test_write_default_config_file(
     assert config_path.is_file(), "Default config file was not created"
 
 
-from .. import config
 
 
 @pytest.fixture
