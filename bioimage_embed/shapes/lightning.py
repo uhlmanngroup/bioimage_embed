@@ -26,17 +26,10 @@ class MaskEmbedMixin:
             if self.args.frobenius_norm:
                 scalings = frobenius_norm_2D_torch(output.data)
 
-        output.data = normalised_data / scalings
-        output.scalings = scalings
-
-        return output
-
-    def eval_step(self, batch, batch_idx):
-        # Needs to be super because eval_step is overwritten in Supervised
-        model_output = super().eval_step(batch, batch_idx)
+    def loss_function(self, model_output, *args, **kwargs):
         loss_ops = lf.DistanceMatrixLoss(model_output.recon_x, norm=False)
-
-        shape_loss = torch.sum(
+        loss = model_output.loss
+        loss += torch.sum(
             torch.stack(
                 [
                     loss_ops.diagonal_loss(),
