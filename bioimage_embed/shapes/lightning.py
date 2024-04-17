@@ -11,6 +11,7 @@ from pythae.models.base.base_utils import ModelOutput
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from types import SimpleNamespace
 
+
 def frobenius_norm_2D_torch(tensor: torch.Tensor) -> torch.Tensor:
     return torch.norm(tensor, p="fro", dim=(-2, -1), keepdim=True)
 
@@ -37,7 +38,8 @@ class MaskEmbed(LitAutoEncoderTorch):
     def loss_function(self, model_output, *args, **kwargs):
         loss_ops = lf.DistanceMatrixLoss(model_output.recon_x, norm=True)
         loss = model_output.loss
-        loss += torch.sum(
+
+        shape_loss = torch.sum(
             torch.stack(
                 [
                     loss_ops.diagonal_loss(),
@@ -48,11 +50,21 @@ class MaskEmbed(LitAutoEncoderTorch):
                 ]
             )
         )
+        loss += shape_loss
 
         # loss += lf.diagonal_loss(model_output.recon_x)
         # loss += lf.symmetry_loss(model_output.recon_x)
         # loss += lf.triangle_inequality_loss(model_output.recon_x)
         # loss += lf.non_negative_loss(model_output.recon_x)
+
+        variational_loss = model_output.loss - model_output.recon_loss
+
+        loss_dict = {
+            "loss": loss,
+            "shape_loss": shape_loss,
+            "reconstruction_loss": model_output.recon_x,
+            "variational_loss": variational_loss,
+        }
         return loss
 
 
