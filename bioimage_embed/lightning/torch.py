@@ -9,7 +9,6 @@ import timm
 from pythae.models.base.base_utils import ModelOutput
 import torch.nn.functional as F
 
-
 class LitAutoEncoderTorch(pl.LightningModule):
     args = argparse.Namespace(
         opt="adamw",
