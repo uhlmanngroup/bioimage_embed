@@ -39,7 +39,6 @@ def write_default_config_file(config_path):
 
 @hydra.main(config_path=".", config_name="config")
 def train(cfg: Config):
-# def train(cfg):
     bie = BioImageEmbed(cfg)
     bie.train()
     pass
