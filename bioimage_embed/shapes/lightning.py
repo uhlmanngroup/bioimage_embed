@@ -37,22 +37,38 @@ class MaskEmbed(LitAutoEncoderTorch):
     def loss_function(self, model_output, *args, **kwargs):
         loss_ops = lf.DistanceMatrixLoss(model_output.recon_x, norm=False)
         loss = model_output.loss
-        loss += torch.sum(
+        shape_loss = torch.sum(
             torch.stack(
                 [
                     loss_ops.diagonal_loss(),
                     loss_ops.symmetry_loss(),
-                    # loss_ops.triangle_inequality(),
                     loss_ops.non_negative_loss(),
+                    # loss_ops.triangle_inequality(),
                     # loss_ops.clockwise_order_loss(),
                 ]
             )
         )
+        loss += shape_loss
 
         # loss += lf.diagonal_loss(model_output.recon_x)
         # loss += lf.symmetry_loss(model_output.recon_x)
         # loss += lf.triangle_inequality_loss(model_output.recon_x)
         # loss += lf.non_negative_loss(model_output.recon_x)
+        #return loss
+
+        #variational_loss = model_output.loss - model_output.recon_loss
+
+        self.log_dict(
+            {
+            "loss": loss,
+            "shape_loss": shape_loss,
+            "reconstruction_loss": model_output.recon_loss,
+            "variational_loss": model_output.vq_loss,
+            },
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+        )
         return loss
 
 
