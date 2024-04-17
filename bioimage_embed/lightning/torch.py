@@ -101,8 +101,15 @@ class LitAutoEncoderTorch(pl.LightningModule):
             logger=True,
         )
         if isinstance(self.logger, pl.loggers.TensorBoardLogger):
-            self.log_tensorboard(model_output, model_output.data)
-        return model_output.loss
+            self.log_tensorboard(model_output, x)
+        return loss
+
+    def loss_function(self, model_output, *args, **kwargs):
+        #return model_output.loss
+        return {
+            "loss": model_output.loss,
+            "recon_loss": model_output.recon_loss,
+        }
 
     def validation_step(self, batch, batch_idx):
         model_output = self.eval_step(batch, batch_idx)
