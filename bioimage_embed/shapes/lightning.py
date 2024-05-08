@@ -63,8 +63,8 @@ class MaskEmbed(LitAutoEncoderTorch):
             "loss": loss,
             "shape_loss": shape_loss,
             "reconstruction_loss": model_output.recon_loss,
-            "vq_loss": model_output.vq_loss,
-            #"kdl_vae_loss": model_output.KLD
+            #"vq_loss": model_output.vq_loss,
+            "KLD_loss": model_output.reg_loss,
             },
             on_epoch=True,
             prog_bar=True,
