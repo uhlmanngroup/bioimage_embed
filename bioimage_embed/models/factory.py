@@ -137,7 +137,7 @@ class ModelFactory:
                 pythae.models.BetaVAEConfig,
                 use_default_encoder=False,
                 use_default_decoder=False,
-                **self.kwargs,
+                **self.kwargs
             ),
             pythae.models.BetaVAE,
             bolts.ResNet18VAEEncoder,
