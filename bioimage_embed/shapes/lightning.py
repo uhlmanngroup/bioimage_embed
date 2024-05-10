@@ -4,6 +4,9 @@ import torchvision
 from torch import nn
 from ..lightning import AutoEncoderUnsupervised, AutoEncoderSupervised
 from . import loss_functions as lf
+import pythae
+from pythae.models.base.base_utils import ModelOutput
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from types import SimpleNamespace
 
 
@@ -50,14 +53,18 @@ class MaskEmbedMixin:
 
         #variational_loss = model_output.loss - model_output.recon_loss
 
+        metrics = {
+          "loss": loss,
+          "shape_loss": shape_loss,
+          "reconstruction_loss": model_output.recon_loss,
+        }
+        if isinstance(self.model, pythae.models.VQVAE):
+            metrics["vq_loss"] = model_output.vq_loss
+        if isinstance(self.model, pythae.models.BetaVAE):
+            metrics['KLD_loss'] = model_output.reg_loss
+
         self.log_dict(
-            {
-            "loss": loss,
-            "shape_loss": shape_loss,
-            "reconstruction_loss": model_output.recon_loss,
-            #"vq_loss": model_output.vq_loss,
-            "KLD_loss": model_output.reg_loss,
-            },
+            metrics,
             on_epoch=True,
             prog_bar=True,
             logger=True,
