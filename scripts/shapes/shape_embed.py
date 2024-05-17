@@ -404,7 +404,9 @@ def shape_embed_process():
     df = df.set_index("Class")
     df_shape_embed = df.copy()
 
-    # %%
+    # %% UMAP plot
+
+    # umap_plot(df, metadata, width, height, split=0.9)
 
     X = df_shape_embed.to_numpy()
     y = df_shape_embed.index
