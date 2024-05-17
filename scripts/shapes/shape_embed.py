@@ -4,7 +4,8 @@ import pyefd
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_validate, KFold, train_test_split
+from sklearn.dummy import DummyClassifier
+from sklearn.model_selection import cross_validate, KFold, train_test_split, StratifiedKFold
 from sklearn.metrics import make_scorer
 import pandas as pd
 from sklearn import metrics
@@ -125,6 +126,7 @@ def scoring_df(X, y):
             ("scaler", StandardScaler()),
             #  ("pca", PCA(n_components=0.95, whiten=True, random_state=42)),
             ("clf", RandomForestClassifier()),
+            # ("clf", DummyClassifier()),
         ]
     )
 
@@ -198,7 +200,7 @@ def shape_embed_process():
 
     dataset_path = args.dataset
 
-    train_data_path = f"scripts/shapes/data/{dataset_path}"
+    train_data_path = f"data/{dataset_path}"
     metadata = lambda x: f"results/{dataset_path}_{args.model}/{x}"
 
     path = Path(metadata(""))
@@ -398,6 +400,24 @@ def shape_embed_process():
     dataloader.setup()
 
     predictions = trainer.predict(lit_model, datamodule=dataloader)
+
+
+    test_dist_pred = predictions[0].out.recon_x
+    plt.imsave(metadata(f"test_dist_pred.png"), test_dist_pred.mean(axis=(0,1)))
+    plt.close()
+
+    test_dist_in = predictions[0].x.data
+    plt.imsave(metadata(f"test_dist_in.png"), test_dist_in.mean(axis=(0,1)))
+    plt.close()
+
+    test_pred_coords = AsymmetricDistogramToCoordsPipeline(window_size=window_size)(
+        np.array(test_dist_pred[:, 0, :, :].unsqueeze(dim=0))
+    )
+
+    plt.scatter(*test_pred_coords[0,0].T)
+    # Save the plot as an image without border and coordinate axes
+    plt.savefig(metadata(f"test_pred_coords.png"), bbox_inches="tight", pad_inches=0)
+    plt.close()
 
     # Use the namespace variables
     latent_space = torch.stack([d.out.z.flatten() for d in predictions])
