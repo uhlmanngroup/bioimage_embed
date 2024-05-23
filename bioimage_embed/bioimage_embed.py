@@ -73,16 +73,16 @@ class BioImageEmbed:
     def train(self, resume: bool = True):
         # Find this dynamically
         # chkpt_callbacks = self.icfg.trainer.callbacks[-1]
-        chkpt_callbacks = self.find_checkpoint()
+        # chkpt_callbacks = self.find_checkpoint()
 
-        last_checkpoint = chkpt_callbacks.last_model_path
-        best_checkpoint_path = chkpt_callbacks.best_model_path
+        # last_checkpoint = chkpt_callbacks.last_model_path
+        # best_checkpoint_path = chkpt_callbacks.best_model_path
         # TODO better than try except
         try:
             self.icfg.trainer.fit(
                 self.icfg.lit_model,
                 datamodule=self.icfg.dataloader,
-                ckpt_path=last_checkpoint,
+                ckpt_path="last",
             )
         except:
             self.icfg.trainer.fit(self.icfg.lit_model, datamodule=self.icfg.dataloader)
