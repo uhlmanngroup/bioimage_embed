@@ -16,9 +16,11 @@ from bioimage_embed.augmentations import (
     DEFAULT_ALBUMENTATION,
 )
 import os
+from dataclasses import field
 from pydantic.dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 from types import SimpleNamespace
+
 from pydantic import BaseModel, Field, field_validator, root_validator
 from omegaconf import SI, II
 from . import utils
@@ -202,13 +204,14 @@ class Paths:
 
 @dataclass
 class Config:
-    paths: Paths = Field(default_factory=Paths)
-    recipe: Recipe = Field(default_factory=Recipe)
-    dataloader: DataLoader = Field(default_factory=DataLoader)
-    trainer: Trainer = Field(default_factory=Trainer)
-    lit_model: LightningModel = Field(default_factory=LightningModel)
-    # callbacks: Callbacks = field(default_factory=Callbacks)
-    uuid: str = Field(default_factory=lambda: utils.hashing_fn(Recipe()))
+    # This has to be dataclass.field instead of pydantic Field for somereason
+    paths: Paths = field(default_factory=Paths)
+    recipe: Recipe = field(default_factory=Recipe)
+    dataloader: DataLoader = field(default_factory=DataLoader)
+    trainer: Trainer = field(default_factory=Trainer)
+    lit_model: LightningModel = field(default_factory=LightningModel)
+    callbacks: Callbacks = field(default_factory=Callbacks)
+    uuid: str = field(default_factory=lambda: utils.hashing_fn(Recipe()))
 
 
 __schemas__ = {
