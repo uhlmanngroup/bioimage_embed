@@ -105,7 +105,6 @@ class BioImageEmbed:
             export_params=True,
             verbose=True,
         )
-    
     def check(self):
         self.model_check()
         self.trainer_check()
