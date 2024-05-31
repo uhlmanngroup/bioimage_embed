@@ -2,6 +2,7 @@ import os
 import pytest
 from ..hydra import main
 
+from bioimage_embed.cli import train
 import pytest
 from ..cli import init_hydra
 
@@ -130,6 +131,6 @@ def hydra_cfg():
         ])
         return cfg
 
-from bioimage_embed.cli import train
+@pytest.mark.skip("Computationally heavy")
 def test_train(hydra_cfg):
     train(hydra_cfg)
