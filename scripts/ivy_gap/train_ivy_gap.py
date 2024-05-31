@@ -16,7 +16,7 @@ from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 from bioimage_embed.datasets import DatasetGlob
-from bioimage_embed.lightning import DatamoduleGlob, LitAutoEncoderTorch
+from bioimage_embed.lightning import DatamoduleGlob, AutoEncoderUnsupervised
 from types import SimpleNamespace
 
 Image.MAX_IMAGE_PIXELS = None
@@ -117,7 +117,7 @@ dataloader = DatamoduleGlob(
 
 
 model = create_model("resnet18_vqvae", input_dim=input_dim, latent_dim=args.latent_dim)
-lit_model = LitAutoEncoderTorch(model, args)
+lit_model = AutoEncoderUnsupervised(model, args)
 
 dataloader.setup()
 model.eval()
@@ -127,7 +127,7 @@ model.eval()
 model_name = model._get_name()
 model_dir = f"models/{dataset}_{model_name}"
 
-lit_model = LitAutoEncoderTorch(
+lit_model = AutoEncoderUnsupervised(
     model,
     args
 )

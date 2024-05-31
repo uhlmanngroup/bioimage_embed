@@ -14,7 +14,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from bioimage_embed.datasets import DatasetGlob
-from bioimage_embed.lightning import LitAutoEncoderTorch
+from bioimage_embed.lightning import AutoEncoderUnsupervised
 from bioimage_embed.models.legacy import VQ_VAE, BioimageEmbed
 
 latent_dim = 64
@@ -51,8 +51,8 @@ model_config_vqvae = pythae.models.VQVAEConfig(
 model = BioimageEmbed("VQ_VAE", model_config=model_config_vqvae, channels=channels)
 
 args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
-lit_model = LitAutoEncoderTorch(model,args)
-model = LitAutoEncoderTorch(model).load_from_checkpoint(ckpt_file, model=model)
+lit_model = AutoEncoderUnsupervised(model,args)
+model = AutoEncoderUnsupervised(model).load_from_checkpoint(ckpt_file, model=model)
 train_dataset = DatasetGlob(train_dataset_glob)
 
 train_dataset = DatasetGlob(train_dataset_glob, transform=transforms.ToTensor())

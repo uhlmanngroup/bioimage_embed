@@ -17,7 +17,7 @@ from bioimage_embed.shapes.transforms import (
 )
 
 # from bioimage_embed.models import VQ_VAE, BioimageEmbed, VAE
-# from bioimage_embed.lightning import LitAutoEncoderTorch
+# from bioimage_embed.lightning import AutoEncoderUnsupervised
 # from bioimage_embed.models.legacy import vae
 
 interp_size = 128 * 4

@@ -147,7 +147,7 @@ class ModelCheckpoint(Callback):
 
 @dataclass
 class LightningModel:
-    _target_: str = "bioimage_embed.lightning.torch.LitAutoEncoderTorch"
+    _target_: str = "bioimage_embed.lightning.torch.AutoEncoderSupervised"
     # This should be pythae base autoencoder?
     model: Model = Field(default_factory=Model)
     args: Recipe = Field(default_factory=lambda: II("recipe"))
