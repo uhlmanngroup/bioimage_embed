@@ -1,7 +1,22 @@
 import albumentations as A
 import cv2
 
-DEFAULT_AUGMENTATION = A.Compose(
+from typing import Any
+
+import albumentations
+import hydra
+import numpy as np
+from omegaconf import DictConfig
+from PIL import Image
+from torchvision import transforms
+import torch
+import torchvision.transforms as transforms
+import torchvision.transforms.functional as F
+from PIL import Image
+import random
+from albumentations.pytorch.transforms import ToTensorV2
+
+DEFAULT_ALBUMENTATION = A.Compose(
     [
         # Flip the images horizontally or vertically with a 50% chance
         A.OneOf(
@@ -28,87 +43,51 @@ DEFAULT_AUGMENTATION = A.Compose(
         A.GaussNoise(var_limit=(10.0, 50.0), p=0.5),
         # Crop a random part of the image and resize it back to the original size
         A.RandomResizedCrop(
-            height=512, width=512, scale=(0.9, 1.0), ratio=(0.9, 1.1), p=0.5
+            height=224, width=224, scale=(0.9, 1.0), ratio=(0.9, 1.1), p=0.5
         ),
         # Adjust image intensity with a specified range for individual channels
         A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+        ToTensorV2(),
+    ]
+)
+DEFAULT_AUGMENTATION = transforms.Compose(
+    [
+        transforms.RandomApply(
+            [
+                transforms.RandomHorizontalFlip(p=1.0),
+                transforms.RandomVerticalFlip(p=1.0),
+            ],
+            p=0.5,
+        ),
+        transforms.RandomRotation(45),
+        transforms.RandomApply(
+            [transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0, hue=0)],
+            p=0.5,
+        ),
+        transforms.RandomAdjustSharpness(sharpness_factor=2, p=0.5),
+        # RandomGamma is not directly available in PyTorch, so you might need to implement it
+        # or adjust your augmentation pipeline accordingly.
     ]
 )
 
-from typing import Any
 
-import albumentations
-import hydra
-import numpy as np
-from omegaconf import DictConfig
-from PIL import Image
+class VisionWrapper:
+    def __init__(self, transform_dict, *args, **kwargs):
+        self.transform_dict = transform_dict
+        self.transform = A.from_dict(transform_dict)
 
+    def __call__(self, image):
+        img = np.array(image)
+        transformed = self.transform(image=img)
+        return transformed["image"]
 
-class TransformsWrapper:
-    def __init__(self, transforms_cfg: DictConfig) -> None:
-        """TransformsWrapper module.
+# class AlbumentationsTransform:
+#     def __init__(self, transform):
+#         self.transform = transform
 
-        Args:
-            transforms_cfg (DictConfig): Transforms config.
-        """
-
-        self.mode = "train"
-
-        # train augmentations
-        train_aug = []
-        if not transforms_cfg.train.get("order"):
-            raise RuntimeError(
-                "TransformsWrapper requires param <order>, i.e."
-                "order of augmentations as List[augmentation name]"
-            )
-        for aug_name in transforms_cfg.train.get("order"):
-            aug = hydra.utils.instantiate(
-                transforms_cfg.train.get(aug_name), _convert_="object"
-            )
-            train_aug.append(aug)
-        self.train_aug = albumentations.Compose(train_aug)
-
-        # valid, test and predict augmentations
-        valid_test_predict_aug = []
-        if not transforms_cfg.valid_test_predict.get("order"):
-            raise RuntimeError(
-                "TransformsWrapper requires param <order>, i.e."
-                "order of augmentations as List[augmentation name]"
-            )
-        for aug_name in transforms_cfg.valid_test_predict.get("order"):
-            aug = hydra.utils.instantiate(
-                transforms_cfg.valid_test_predict.get(aug_name),
-                _convert_="object",
-            )
-            valid_test_predict_aug.append(aug)
-        self.valid_test_predict_aug = albumentations.Compose(
-            valid_test_predict_aug
-        )
-
-    def set_mode(self, mode: str) -> None:
-        """Set `__call__` mode.
-
-        Args:
-            mode (str): Applying mode.
-        """
-
-        self.mode = mode
-
-    def __call__(self, image: Any, **kwargs: Any) -> Any:
-        """Apply TransformsWrapper module.
-
-        That module has two modes: `train` and `valid_test_predict`.
-
-        Args:
-            image (Any): Input image.
-            kwargs (Any): Additional arguments.
-
-        Returns:
-            Any: Transformation results.
-        """
-
-        if isinstance(image, Image.Image):
-            image = np.asarray(image)
-        if self.mode == "train":
-            return self.train_aug(image=image, **kwargs)
-        return self.valid_test_predict_aug(image=image, **kwargs)
+#     def __call__(self, img):
+#         # Convert PIL image to numpy array
+#         img = np.array(img)
+#         # Apply transformations
+#         transformed = self.transform(image=img)
+#         return transformed["image"]

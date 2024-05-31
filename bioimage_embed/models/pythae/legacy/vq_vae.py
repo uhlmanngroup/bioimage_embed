@@ -208,13 +208,14 @@ class VAE(models.VAE):
         # return x_recon, mu, log_var
 
         loss_dict = self.loss_function(x_recon, x["data"], mu, log_var)
+        # recon_loss = F.mse_loss(x_recon, x["data"], reduction="sum")
         return ModelOutput(recon_x=x_recon, z=z, **loss_dict)
 
     def loss_function(self, recons, input, mu, log_var):
         recons_loss = F.mse_loss(recons, input)
         kld_loss = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
         loss = recons_loss + kld_loss
-        return {"loss": loss, "Reconstruction_Loss": recons_loss, "KLD": kld_loss}
+        return {"loss": loss, "recon_loss": recons_loss, "variational_loss": kld_loss}
 
 
 # Resnet50_VQVAE = partial(VQVAE,num_hidden_residuals=50)

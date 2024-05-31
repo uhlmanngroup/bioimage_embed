@@ -38,6 +38,7 @@ class DataModule(pl.LightningDataModule):
             # "collate_fn": self.collate_wrapper(self.collate_filter_for_none),
             # "collate_fn": self.collate_filter_for_none,
         }
+        self.setup()
 
     def get_dataset(self):
         return self.dataset

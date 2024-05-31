@@ -62,7 +62,8 @@ class LitAutoEncoderTorch(pl.LightningModule):
         # return self.model.forward(batch)
 
     def batch_to_tensor(self, batch):
-        return ModelOutput(data=batch)
+        x,y = batch
+        return ModelOutput(data=x.float(), target=y)
 
     def embedding_from_output(self, model_output):
         return model_output.z.view(model_output.z.shape[0], -1)
@@ -94,7 +95,11 @@ class LitAutoEncoderTorch(pl.LightningModule):
         return loss
 
     def loss_function(self, model_output, *args, **kwargs):
-        return model_output.loss
+        return {
+            "loss": model_output.loss,
+            "recon_loss": model_output.recon_loss,
+            "variational_loss":  model_output.loss-model_output.recon_loss,
+        }
 
     # def logging_step(self, z, loss, x, model_output, batch_idx):
     #     self.logger.experiment.add_embedding(
@@ -192,3 +197,6 @@ class LitAutoEncoderTorch(pl.LightningModule):
             torchvision.utils.make_grid(model_output.recon_x),
             self.global_step,
         )
+
+        # Return whatever data you need, for example, the loss
+        return loss
