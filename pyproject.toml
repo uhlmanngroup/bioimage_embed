@@ -6,10 +6,11 @@ authors = ["Craig <ctr26@ebi.ac.uk>"]
 packages = [{include = "bioimage_embed"}]
 
 [tool.poetry.scripts]
-bioimage_embed = "bioimage_embed.cli:app"
+bioimage_embed = "bioimage_embed:app"
 bie = "bioimage_embed.cli:app"
 bie_train = "bioimage_embed.cli:train"
 bie_infer = "bioimage_embed.cli:infer"
+bie_finetune = "bioimage_embed.cli:finetune"
 
 [tool.poetry.dependencies]
 python = "^3.9,<3.10"

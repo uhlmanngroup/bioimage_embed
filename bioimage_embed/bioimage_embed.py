@@ -1,15 +1,10 @@
 import os
 import numpy as np
-import pandas as pd
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import torchvision.transforms as transforms
 from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader, random_split
-from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
-from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
+from torch.utils.data import DataLoader
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
 import logging
 from .config import Config
@@ -19,10 +14,10 @@ from hydra.utils import instantiate
 from torch.autograd import Variable
 from pytorch_lightning import seed_everything
 from omegaconf import OmegaConf 
-# Environment Setup
-# torch.multiprocessing.set_sharing_strategy("file_system")
-logging.basicConfig(level=logging.INFO)
 from . import utils
+
+import torch.optim as optim
+logging.basicConfig(level=logging.INFO)
 
 
 class BioImageEmbed:
@@ -31,7 +26,6 @@ class BioImageEmbed:
     def __init__(self, cfg: Config):
         self.cfg = cfg
         self.icfg = instantiate(cfg)
-        # TODO, cannot find a cleaner way to do this
         self.ocfg = OmegaConf.structured(self.cfg)
         OmegaConf.resolve(self.ocfg)
 
@@ -42,7 +36,6 @@ class BioImageEmbed:
         self.checkpoint_dir = utils.hashing_fn(recipe)
 
     def setup(self):
-        
         np.random.seed(self.icfg.recipe.seed)
         seed_everything(self.icfg.recipe.seed)
 
@@ -60,7 +53,6 @@ class BioImageEmbed:
         trainer.fit(self.icfg.lit_model, self.icfg.dataloader)
         logging.info("Trainer Check Passed")
 
-    # TODO fix resume
     def make_dirs(self):
         for path in (self.icfg.paths).values():
             os.makedirs(path, exist_ok=True)
@@ -71,13 +63,6 @@ class BioImageEmbed:
                 return callback.last_model_path
 
     def train(self, resume: bool = True):
-        # Find this dynamically
-        # chkpt_callbacks = self.icfg.trainer.callbacks[-1]
-        # chkpt_callbacks = self.find_checkpoint()
-
-        # last_checkpoint = chkpt_callbacks.last_model_path
-        # best_checkpoint_path = chkpt_callbacks.best_model_path
-        # TODO better than try except
         try:
             self.icfg.trainer.fit(
                 self.icfg.lit_model,
@@ -106,12 +91,7 @@ class BioImageEmbed:
             batch_size=1,
             shuffle=False,
             num_workers=self.icfg.receipe.num_workers,
-            # TODO: Add transform here if batch_size > 1 assuming averaging?
-            # Transform is commented here to avoid augmentations in real data
-            # HOWEVER, applying a the transform multiple times and averaging the results might produce better latent embeddings
-            # transform=transform,
         )
-        # dataloader.setup()
         predictions = self.icfg.trainer.predict(
             self.icfg.lit_model, datamodule=dataloader
         )
@@ -123,9 +103,9 @@ class BioImageEmbed:
             f"{self.icfg.uuid}.onnx",
             example_input,
             export_params=True,
-            # opset_version=11,
             verbose=True,
         )
+    
     def check(self):
         self.model_check()
         self.trainer_check()

@@ -12,14 +12,11 @@ are valid.
 
 """
 
-from bioimage_embed.augmentations import (
-    DEFAULT_ALBUMENTATION,
-)
+from bioimage_embed import augmentations as augs
 import os
 from dataclasses import field
 from pydantic.dataclasses import dataclass
 from typing import List, Optional, Dict, Any
-from types import SimpleNamespace
 
 from pydantic import BaseModel, Field, field_validator, root_validator
 from omegaconf import SI, II
@@ -65,7 +62,7 @@ class ATransform:
     _convert_: str = "object"
     # _convert_: str = "all"
     transform_dict: Dict = Field(
-        default_factory=lambda: DEFAULT_ALBUMENTATION.to_dict()
+        default_factory=lambda: augs.DEFAULT_ALBUMENTATION.to_dict()
     )
 
 
@@ -78,7 +75,7 @@ class Transform:
     _convert_: str = "object"
     # transform: ATransform = field(default_factory=ATransform)
     transform_dict: Dict = Field(
-        default_factory=lambda: DEFAULT_ALBUMENTATION.to_dict()
+        default_factory=lambda: augs.DEFAULT_ALBUMENTATION.to_dict()
     )
 
 
