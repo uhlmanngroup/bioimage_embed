@@ -126,3 +126,6 @@ class BioImageEmbed:
             # opset_version=11,
             verbose=True,
         )
+    def check(self):
+        self.model_check()
+        self.trainer_check()
