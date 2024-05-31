@@ -139,5 +139,6 @@ class VAEPythaeWrapper(models.VAE):
         x_recon = self.model(x)
         z, recon_x, p, q = self.model._run_step(x)
         loss, logs = self.model.step((x, x), batch_idx=epoch)
-
-        return ModelOutput(recon_x=recon_x, z=z, logs=logs, loss=loss)
+        # recon_loss = self.model.reconstruction_loss(x, recon_x)
+        return ModelOutput(recon_x=recon_x, z=z, logs=logs, loss=loss,
+                           recon_loss=loss)
