@@ -1,40 +1,26 @@
-import os
 import pytest
-from ..hydra import main
-
-from bioimage_embed import cli 
-import pytest
-from ..cli import init_hydra
+from hydra import initialize, compose
+from .. import cli
+from pathlib import Path
+from typer.testing import CliRunner
+from .. import config
 
 runner = CliRunner()
 
-    # Ensure the configuration directory does not exist initially
-    if os.path.exists(config_path):
-        os.rmdir(config_path)
+@pytest.fixture
+def config_dir():
+    return "test_conf"
 
-    # Act
-    main(config_path=config_path, job_name=job_name)
 
-    # Assert
-    assert os.path.exists(config_path), "Config directory was not created"
-    assert os.path.isfile(os.path.join(config_path, "config.yaml")), "Config file was not created"
+@pytest.fixture
+def config_file():
+    return "config.yaml"
 
-    # Clean up
-    os.remove(os.path.join(config_path, "config.yaml"))
-    os.rmdir(config_path)
 
-@pytest.mark.parametrize("config_path, job_name", [
-    ("conf", "test_app"),
-    ("another_conf", "another_job")
-])
-def test_hydra_initializes(config_path, job_name):
-    # Act
-    main(config_path=config_path, job_name=job_name)
+@pytest.fixture
+def config_path(config_dir, config_file):
+    return Path(config_dir).joinpath(config_file)
 
-    # Assert
-    # Here you can assert specifics about the cfg object if needed.
-    # Since main does not return anything, you might need to adjust
-    # the main function to return the cfg for more thorough testing.
 
 @pytest.fixture
 def config_directory_setup(config_dir, config_file, config_path):
@@ -86,7 +72,7 @@ def test_main_with_default_config(
 def test_hydra():
     #  bie_train model.model="resnet50_vqvae" dataset._target_="bioimage_embed.datasets.FakeImageFolder"
     input_dim = [3, 224, 224]
-    cfg = Config()
+    cfg = config.Config()
     cfg.dataloader.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
     cfg.dataloader.dataset.image_size = input_dim
     cfg.recipe.model = "resnet18_vae"
@@ -97,8 +83,6 @@ def test_hydra():
 #     result = runner.invoke(app, ["bie_train", "--dataset-target", "bioimage_embed.datasets.FakeImageFolder"])
 #     assert result.exit_code == 0
 #     assert "Dataset target set to: bioimage_embed.datasets.FakeImageFolder" in result.stdout
-
-
 
 #     result = runner.invoke(app, ["main", "+dataset.root=data", "--config_dir", "tests/sample_conf", "--config_file", "sample_config.yaml"])
 # def test_init_hydra_with_default_values():
@@ -117,11 +101,11 @@ def test_hydra():
 
 def test_init_hydra_with_invalid_config_dir():
     with pytest.raises(Exception):
-        init_hydra(config_dir="invalid_dir")
+        cli.init_hydra(config_dir="invalid_dir")
 
 def test_init_hydra_with_invalid_config_file():
     with pytest.raises(Exception):
-        init_hydra(config_file="invalid_config.yaml")
+        cli.init_hydra(config_file="invalid_config.yaml")
 
 @pytest.fixture
 def hydra_cfg():

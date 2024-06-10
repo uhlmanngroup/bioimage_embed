@@ -18,8 +18,8 @@ from dataclasses import field
 from pydantic.dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 
-from pydantic import BaseModel, Field, field_validator, root_validator
-from omegaconf import SI, II
+from pydantic import Field, root_validator
+from omegaconf import II
 from . import utils
 
 
