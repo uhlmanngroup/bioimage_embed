@@ -4,13 +4,7 @@ from pythae.models.nn import BaseDecoder, BaseEncoder
 import torch
 from pythae.models import VQVAE, VQVAEConfig, VAE, VAEConfig
 
-from pl_bolts.models.autoencoders import (
-    resnet18_encoder,
-    resnet18_decoder,
-    resnet50_decoder,
-    resnet50_encoder,
-)
-
+from pl_bolts.models import autoencoders as ae
 
 class BaseResNetVQVAEEncoder(BaseEncoder):
     def __init__(
@@ -49,7 +43,7 @@ class ResNet50VQVAEEncoder(BaseResNetVQVAEEncoder):
     ):
         super(ResNet50VQVAEEncoder, self).__init__(
             model_config,
-            resnet50_encoder,
+            ae.resnet50_encoder,
             self.enc_out_dim,
             first_conv,
             maxpool1,
@@ -65,7 +59,7 @@ class ResNet18VQVAEEncoder(BaseResNetVQVAEEncoder):
     ):
         super(ResNet18VQVAEEncoder, self).__init__(
             model_config,
-            resnet18_encoder,
+            ae.resnet18_encoder,
             self.enc_out_dim,
             first_conv,
             maxpool1,
@@ -107,7 +101,7 @@ class ResNet50VQVAEDecoder(BaseResNetVQVAEDecoder):
         self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
     ):
         super(ResNet50VQVAEDecoder, self).__init__(
-            model_config, resnet50_decoder, first_conv, maxpool1, **kwargs
+            model_config, ae.resnet50_decoder, first_conv, maxpool1, **kwargs
         )
 
 
@@ -117,5 +111,5 @@ class ResNet18VQVAEDecoder(BaseResNetVQVAEDecoder):
         self, model_config: VAEConfig, first_conv=False, maxpool1=False, **kwargs
     ):
         super(ResNet18VQVAEDecoder, self).__init__(
-            model_config, resnet18_decoder, first_conv, maxpool1, **kwargs
+            model_config, ae.resnet18_decoder, first_conv, maxpool1, **kwargs
         )

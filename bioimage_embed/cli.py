@@ -1,23 +1,13 @@
-
-from pl_bolts.utils.stability import UnderReviewWarning
-import warnings
-warnings.simplefilter(action="ignore", category=UnderReviewWarning)
-
-from typer import Typer
-from bioimage_embed.bioimage_embed import BioImageEmbed
+# TODO: CLI autocomplete is currently quite slow
+from bioimage_embed import BioImageEmbed, Config
 
 from omegaconf import OmegaConf
 from hydra import compose, initialize
 from hydra.core.config_store import ConfigStore
 
-from .config import Config
 import hydra
 
-import logging
-logging.captureWarnings(True)
 
-
-app = Typer()
 
 
 cs = ConfigStore.instance()
@@ -32,16 +22,11 @@ def write_default_config_file(config_path):
 
 
 # TODO make this work with typer (hard)
+# @typer.command()
 # @hydra.main(config_path="conf", config_name="config")
 # def main(cfg: DictConfig):
 #     print(cfg)
 
-
-@hydra.main(config_path=".", config_name="config")
-def train(cfg: Config):
-    bie = BioImageEmbed(cfg)
-    bie.train()
-    pass
 
 
 def init_hydra(config_dir="conf", config_file="config.yaml", job_name="bie"):
@@ -59,12 +44,28 @@ def get_default_config(config_name="config"):
     return cfg
 
 
-if __name__ == "__main__":
-    train()
-
-
+# TODO smarter way to handle this
+@hydra.main(config_path=".", config_name="config", version_base="1.1.0")
 def infer():
     pass
+
+
+@hydra.main(config_path=".", config_name="config", version_base="1.1.0")
+def train(cfg: Config):
+    bie = BioImageEmbed(cfg)
+    bie.train()
+    pass
+
+@hydra.main(config_path=".", config_name="config", version_base="1.1.0")
+def check(cfg: Config):
+    bie = BioImageEmbed(cfg)
+    bie.check()
+
+@hydra.main(config_path=".", config_name="config", version_base="1.1.0")
+def finetune(cfg: Config):
+    pass
+    bie = BioImageEmbed(cfg)
+    bie.finetune()
 
 
 # app.command()(train)

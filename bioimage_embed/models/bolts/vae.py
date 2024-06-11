@@ -5,15 +5,8 @@ from pythae.models.nn import BaseDecoder, BaseEncoder
 
 from pythae import models
 from pythae.models import VQVAEConfig, VAEConfig
-from pl_bolts.models import autoencoders
+from pl_bolts.models import autoencoders as ae
 from pythae.models import VQVAE, VQVAEConfig, VAE, VAEConfig
-
-from pl_bolts.models.autoencoders import (
-    resnet18_encoder,
-    resnet18_decoder,
-    resnet50_decoder,
-    resnet50_encoder,
-)
 
 
 def count_params(model):
@@ -31,7 +24,7 @@ class ResNet50VAEEncoder(BaseEncoder):
         input_height = model_config.input_dim[-2]
         latent_dim = model_config.latent_dim
 
-        self.encoder = resnet50_encoder(first_conv, maxpool1)
+        self.encoder = ae.resnet50_encoder(first_conv, maxpool1)
         self.embedding = nn.Linear(self.enc_out_dim, latent_dim)
         self.log_var = nn.Linear(self.enc_out_dim, latent_dim)
         # self.fc1 = nn.Linear(512, latent_dim)
@@ -53,7 +46,7 @@ class ResNet50VAEDecoder(BaseDecoder):
         latent_dim = model_config.latent_dim
         input_height = model_config.input_dim[-2]
         self.embedding = nn.Linear(latent_dim, self.enc_out_dim)
-        self.decoder = resnet50_decoder(
+        self.decoder = ae.resnet50_decoder(
             self.enc_out_dim, input_height, first_conv, maxpool1
         )
 
@@ -74,7 +67,7 @@ class ResNet18VAEEncoder(BaseEncoder):
         input_height = model_config.input_dim[-2]
         latent_dim = model_config.latent_dim
 
-        self.encoder = resnet18_encoder(first_conv, maxpool1)
+        self.encoder = ae.resnet18_encoder(first_conv, maxpool1)
         self.embedding = nn.Linear(self.enc_out_dim, latent_dim)
         self.log_var = nn.Linear(self.enc_out_dim, latent_dim)
 
@@ -93,7 +86,7 @@ class ResNet18VAEDecoder(BaseDecoder):
         super(ResNet18VAEDecoder, self).__init__()
         latent_dim = model_config.latent_dim
         input_height = model_config.input_dim[-2]
-        self.decoder = resnet18_decoder(
+        self.decoder = ae.resnet18_decoder(
             self.enc_out_dim, input_height, first_conv, maxpool1
         )
         self.embedding = nn.Linear(latent_dim, self.enc_out_dim)
@@ -120,7 +113,7 @@ class VAEPythaeWrapper(models.VAE):
         super(models.BaseAE, self).__init__()
         self.model_name = "VAE_bolt"
         self.model_config = model_config
-        self.model = autoencoders.VAE(
+        self.model = ae.VAE(
             input_height=input_height,
             enc_type=enc_type,
             enc_out_dim=enc_out_dim,
