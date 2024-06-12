@@ -2,13 +2,11 @@ import pytest
 import torch
 import matplotlib.pyplot as plt
 
-import pythae
 
 # Note - you must have torchvision installed for this example
 
 # from bioimage_embed.datasets import BroadDataset, DatasetGlob
 from bioimage_embed.shapes.transforms import (
-    CropCentroidPipeline,
     MaskToDistogramPipeline,
     DistogramToMaskPipeline,
 )

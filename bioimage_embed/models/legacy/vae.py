@@ -8,7 +8,6 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-import torch
 from torch import Tensor
 from typing import List
 # from .convnet import CovNetEncoder, CovNetDecoder

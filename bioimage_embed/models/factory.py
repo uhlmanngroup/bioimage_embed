@@ -1,5 +1,4 @@
 # import torch
-from torch import nn
 
 # import torch.nn.functional as F
 
@@ -206,7 +205,7 @@ MODELS = [
     "dummy_model",
 ]
 
-from typing import Any, Tuple
+from typing import Tuple
 
 
 def create_model(

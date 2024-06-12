@@ -1,28 +1,17 @@
 import os
 import numpy as np
-import pandas as pd
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import torchvision.transforms as transforms
-from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader, random_split
-from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
-from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
-from sklearn.model_selection import train_test_split
+from pytorch_lightning.callbacks import ModelCheckpoint
 import logging
 from .config import Config
 from bioimage_embed.lightning import DataModule
-from .lightning.torch import AutoEncoderSupervised,AutoEncoderUnsupervised
 from hydra.utils import instantiate
 from torch.autograd import Variable
 from pytorch_lightning import seed_everything
 from omegaconf import OmegaConf 
-# Environment Setup
-# torch.multiprocessing.set_sharing_strategy("file_system")
-logging.basicConfig(level=logging.INFO)
 from . import utils
+
+logging.basicConfig(level=logging.INFO)
 
 
 class BioImageEmbed:

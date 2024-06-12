@@ -4,11 +4,9 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from torch import nn
 from pythae import models
 
 
-from functools import partial
 
 # from pythae.models import VQVAE, Encoder, Decoder
 from pythae.models.base.base_utils import ModelOutput

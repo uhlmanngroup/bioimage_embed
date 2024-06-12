@@ -1,6 +1,5 @@
 from .. import bioimage_embed
 import pytest
-import os
 import torch
 
 @pytest.fixture()

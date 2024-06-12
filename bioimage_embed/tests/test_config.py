@@ -2,7 +2,6 @@ from .. import config
 from .. import bioimage_embed
 import pytest
 from hydra.utils import instantiate
-from unittest.mock import patch, MagicMock
 
 schema_map = config.__schemas__
 schemas = list(schema_map.values())

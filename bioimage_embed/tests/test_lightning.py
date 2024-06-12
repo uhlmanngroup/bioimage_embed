@@ -1,9 +1,7 @@
 import pytest
 import torch
 import pytorch_lightning as pl
-from bioimage_embed.lightning import AutoEncoderSupervised,AutoEncoderUnsupervised
-from bioimage_embed.models import create_model, MODELS
-from torch.utils.data import TensorDataset
+from bioimage_embed.models import MODELS
 from bioimage_embed.lightning import DataModule
 from bioimage_embed.lightning.torch import _3c_model_classes
 

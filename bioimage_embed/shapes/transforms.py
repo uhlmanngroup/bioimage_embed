@@ -5,14 +5,11 @@ from skimage.draw import polygon2mask
 from torchvision import transforms
 from skimage.measure import regionprops
 from torchvision.transforms.functional import crop
-import numpy as np
 import torch
 from sklearn.manifold import MDS
 from sklearn.metrics.pairwise import euclidean_distances
 from skimage.measure import find_contours
-import torch
 from torch import nn
-import torch.nn.functional as F
 
 from . import contours
 
