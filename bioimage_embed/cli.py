@@ -8,12 +8,6 @@ from hydra.core.config_store import ConfigStore
 
 import hydra
 
-
-app = Typer()
-app.command()(train)
-app.command()(infer)
-
-
 cs = ConfigStore.instance()
 cs.store(name="config", node=Config)
 
