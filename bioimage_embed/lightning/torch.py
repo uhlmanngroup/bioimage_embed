@@ -9,6 +9,9 @@ import timm
 from pythae.models.base.base_utils import ModelOutput
 import torch.nn.functional as F
 
+_channel_aware_losses = [None]
+_3c_model_classes = [None]
+
 
 class AutoEncoder(pl.LightningModule):
     args = argparse.Namespace(

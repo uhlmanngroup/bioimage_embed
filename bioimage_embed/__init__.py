@@ -6,6 +6,6 @@ from .lightning import AutoEncoderSupervised, AutoEncoderUnsupervised
 # from .models import ModelFactory, create_model
 from .bioimage_embed import BioImageEmbed
 from .config import Config
-
+from . import augmentations
 # import logging
 # logging.captureWarnings(True)
