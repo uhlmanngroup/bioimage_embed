@@ -1,5 +1,4 @@
 # TODO: CLI autocomplete is currently quite slow
-from typer import Typer
 from bioimage_embed import BioImageEmbed, Config
 
 from omegaconf import OmegaConf

@@ -1,8 +1,7 @@
 from torch import nn
 from pythae.models.base.base_utils import ModelOutput
 from pythae.models.nn import BaseDecoder, BaseEncoder
-import torch
-from pythae.models import VQVAE, VQVAEConfig, VAE, VAEConfig
+from pythae.models import VAEConfig
 
 from pl_bolts.models import autoencoders as ae
 

@@ -4,9 +4,8 @@ from pythae.models.nn import BaseDecoder, BaseEncoder
 
 
 from pythae import models
-from pythae.models import VQVAEConfig, VAEConfig
+from pythae.models import VAEConfig
 from pl_bolts.models import autoencoders as ae
-from pythae.models import VQVAE, VQVAEConfig, VAE, VAEConfig
 
 
 def count_params(model):

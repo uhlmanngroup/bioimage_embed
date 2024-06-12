@@ -1,7 +1,6 @@
 # Note - you must have torchvision installed for this example
 import torch
 from torch import nn
-import torch
 import torch.nn.functional as F
 
 from ..nets.resnet import ResnetDecoder, ResnetEncoder

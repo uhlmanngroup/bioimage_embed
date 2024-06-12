@@ -1,11 +1,9 @@
 import torchvision
 import torch
 import pytorch_lightning as pl
-import pythae
 from timm import optim, scheduler
 from types import SimpleNamespace
 import argparse
-import timm
 from pythae.models.base.base_utils import ModelOutput
 import torch.nn.functional as F
 

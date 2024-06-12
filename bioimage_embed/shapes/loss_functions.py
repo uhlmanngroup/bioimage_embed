@@ -3,7 +3,6 @@ from shapely.geometry import LineString
 from shapely.geometry import MultiPoint
 import torch
 import torch.nn.functional as F
-import torch
 
 LOSS_FUNCTIONS = {
     "diagonal_loss",

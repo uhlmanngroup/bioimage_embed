@@ -1,13 +1,8 @@
 from hydra.core.config_store import ConfigStore
 from dataclasses import dataclass
-from hydra import compose, initialize
 from omegaconf import OmegaConf
-from types import SimpleNamespace
 import hydra
-from hydra.core.config_store import ConfigStore
-from omegaconf import OmegaConf
-import albumentations
-from dataclasses import dataclass, field
+from dataclasses import field
 from bioimage_embed.augmentations import DEFAULT_AUGMENTATION_LIST
 import albumentations as A
 import os

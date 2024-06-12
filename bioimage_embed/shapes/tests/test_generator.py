@@ -6,18 +6,13 @@ import torchvision.transforms as T
 from torchvision.datasets import VOCSegmentation
 import bioimage_embed.models
 import bioimage_embed
-import torch
 import matplotlib.pyplot as plt
-import torchvision.transforms as T
-import matplotlib.pyplot as plt
-import torch
 
 from bioimage_embed.shapes.transforms import (
     DistogramToCoords,
     CropCentroidPipeline,
 )
 from bioimage_embed.shapes.transforms import (
-    DistogramToCoords,
     MaskToDistogramPipeline,
     AsymmetricDistogramToMaskPipeline,
 )
