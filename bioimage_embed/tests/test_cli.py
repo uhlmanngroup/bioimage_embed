@@ -51,7 +51,7 @@ def cfg():
         _target_="bioimage_embed.datasets.FakeImageFolder",
     )
     cfg = cli.get_default_config()
-    cfg.dataloader.dataset = mock_dataset
+    cfg.recipe.data = mock_dataset
     return cfg
 
 

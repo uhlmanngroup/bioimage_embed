@@ -1,4 +1,5 @@
 # TODO: CLI autocomplete is currently quite slow
+from typer import Typer
 from bioimage_embed import BioImageEmbed, Config
 
 from omegaconf import OmegaConf
@@ -6,9 +7,6 @@ from hydra import compose, initialize
 from hydra.core.config_store import ConfigStore
 
 import hydra
-
-
-
 
 cs = ConfigStore.instance()
 cs.store(name="config", node=Config)

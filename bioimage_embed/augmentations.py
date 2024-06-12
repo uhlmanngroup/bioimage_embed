@@ -1,10 +1,6 @@
 import albumentations as A
-
-
-class VisionWrapper:
-    def __init__(self, transform_dict, *args, **kwargs):
-        self.transform_dict = transform_dict
-        self.transform = A.from_dict(transform_dict)
+import numpy as np
+from albumentations.pytorch import ToTensorV2
 
 DEFAULT_AUGMENTATION_LIST = [
     # Flip the images horizontally or vertically with a 50% chance
@@ -32,11 +28,29 @@ DEFAULT_AUGMENTATION_LIST = [
     A.GaussNoise(var_limit=(10.0, 50.0), p=0.5),
     # Crop a random part of the image and resize it back to the original size
     A.RandomResizedCrop(
-        height=512, width=512, scale=(0.9, 1.0), ratio=(0.9, 1.1), p=0.5
+        height=224, width=224, scale=(0.9, 1.0), ratio=(0.9, 1.1), p=0.5
     ),
     # Adjust image intensity with a specified range for individual channels
     A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+    ToTensorV2()
 ]
 
 DEFAULT_AUGMENTATION = A.Compose(DEFAULT_AUGMENTATION_LIST)
-DEFAULT_ALBUMENTATION = DEFAULT_AUGMENTATION
+DEFAULT_ALBUMENTATION = A.Compose(DEFAULT_AUGMENTATION_LIST)
+
+class VisionWrapper:
+
+    def __init__(self, transform_dict, *args, **kwargs):
+        self.transform_dict = transform_dict
+        self.transform = A.from_dict(transform_dict)
+
+    def __call__(self, image):
+        img = np.array(image)
+        transformed = self.transform(image=img)
+        return transformed["image"]
+
+class VisionWrapperSupervised:
+
+
+    def __call__(self, data):
+        raise NotImplementedError

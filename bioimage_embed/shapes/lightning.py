@@ -1,21 +1,18 @@
 import torch
 import torchvision
-import pytorch_lightning as pl
-import torch.nn.functional as F
-import numpy as np
 
 from torch import nn
-from ..lightning import LitAutoEncoderTorch
+from ..lightning import AutoEncoderUnsupervised
 from . import loss_functions as lf
 from pythae.models.base.base_utils import ModelOutput
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from types import SimpleNamespace
 
 
 def frobenius_norm_2D_torch(tensor: torch.Tensor) -> torch.Tensor:
     return torch.norm(tensor, p="fro", dim=(-2, -1), keepdim=True)
- 
-class MaskEmbed(LitAutoEncoderTorch):
+
+
+class MaskEmbed(AutoEncoderUnsupervised):
     def __init__(self, model, args=SimpleNamespace()):
         super().__init__(model, args)
 

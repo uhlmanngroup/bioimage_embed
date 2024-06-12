@@ -12,7 +12,7 @@ from bioimage_embed.lightning import DatamoduleGlob
 
 from bioimage_embed.datasets import DatasetGlob
 from bioimage_embed.models import BioimageEmbed
-from bioimage_embed.lightning import LitAutoEncoderTorch
+from bioimage_embed.lightning import AutoEncoderUnsupervised
 import matplotlib.pyplot as plt
 from pythae.models import VAE, VAEConfig
 
@@ -83,7 +83,7 @@ model_name = model._get_name()
 model_dir = f"models/{dataset}_{model_name}"
 
 # %%
-lit_model = LitAutoEncoderTorch(model)
+lit_model = AutoEncoderUnsupervised(model)
 
 tb_logger = pl_loggers.TensorBoardLogger(f"{model_dir}/runs/")
 
