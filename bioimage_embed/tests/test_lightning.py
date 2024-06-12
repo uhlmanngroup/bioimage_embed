@@ -161,7 +161,7 @@ def test_dataset_trainer(trainer, supervised_lit_model, labelled_dataset):
     return trainer.test(supervised_lit_model, labelled_dataset)
 
 def test_dataset_trainer(trainer, unsupervised_lit_model, unlabelled_dataset):
-    return trainer.test(unsupervised_lit_model, unlabelled_dataset)
+    return trainer.test(unsupervised_lit_model, unlabelled_dataset.unsqueeze(0))
 
 @pytest.mark.skip(reason="Dictionaries not allowed")
 def test_export_onnx_supervised(data, supervised_lit_model):
