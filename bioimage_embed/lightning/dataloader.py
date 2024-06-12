@@ -34,6 +34,7 @@ class DataModule(pl.LightningDataModule):
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
+        self.setup()
 
     def collate_filter_for_none(self, batch):
         batch = list(filter(lambda x: x is not None, batch))

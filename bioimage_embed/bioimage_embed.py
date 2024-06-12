@@ -51,6 +51,7 @@ class BioImageEmbed:
 
     def model_check(self):
         dataloader = self.icfg.dataloader
+
         dataloader_0 = next(iter(dataloader.train_dataloader()))
         output = self.icfg.lit_model(dataloader_0)
         logging.info("Model Check Passed")
