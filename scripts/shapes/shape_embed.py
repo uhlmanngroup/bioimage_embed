@@ -22,7 +22,7 @@ import pytorch_lightning as pl
 import torch
 from types import SimpleNamespace
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-
+from umap import UMAP
 # Deal with the filesystem
 import torch.multiprocessing
 import logging
@@ -43,9 +43,7 @@ from bioimage_embed.shapes.transforms import (
     ImageToCoords,
     CropCentroidPipeline,
     DistogramToCoords,
-    MaskToDistogramPipeline,
     RotateIndexingClockwise,
-    AsymmetricDistogramToCoordsPipeline,
     CoordsToDistogram,
     AsymmetricDistogramToCoordsPipeline,
 )
@@ -55,12 +53,16 @@ from bioimage_embed.lightning import DataModule
 import matplotlib as mpl
 from matplotlib import rc
 
-import logging
-import pickle 
+import pickle
 import base64
 import hashlib
 
 logger = logging.getLogger(__name__)
+
+# Seed everything
+np.random.seed(42)
+pl.seed_everything(42)
+
 
 def hashing_fn(args):
     serialized_args = pickle.dumps(vars(args))
@@ -102,6 +104,7 @@ def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
     plt.savefig(metadata(f"umap_no_axes.pdf"))
     # plt.show()
     plt.close()
+
 
 def scoring_df(X, y):
     # Split the data into training and test sets
@@ -439,9 +442,7 @@ def shape_embed_process():
     df = df.set_index("Class")
     df_shape_embed = df.copy()
 
-    # %% UMAP plot
-
-    # umap_plot(df, metadata, width, height, split=0.9)
+    # %%
 
     X = df_shape_embed.to_numpy()
     y = df_shape_embed.index
