@@ -22,7 +22,7 @@ import pytorch_lightning as pl
 import torch
 from types import SimpleNamespace
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-
+from umap import UMAP
 # Deal with the filesystem
 import torch.multiprocessing
 import logging
@@ -43,9 +43,9 @@ from bioimage_embed.shapes.transforms import (
     ImageToCoords,
     CropCentroidPipeline,
     DistogramToCoords,
-    MaskToDistogramPipeline,
     RotateIndexingClockwise,
     CoordsToDistogram,
+    AsymmetricDistogramToCoordsPipeline,
 )
 import matplotlib.pyplot as plt
 
@@ -71,19 +71,17 @@ def hashing_fn(args):
     return hashed_string
 
 
-def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618, split=0.8):
+def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
     umap_reducer = UMAP(n_neighbors=15, min_dist=0.1, n_components=2, random_state=42)
-    mask = np.random.rand(len(df)) < split
+    mask = np.random.rand(len(df)) < 0.7
 
-    semi_labels = df.index.codes.copy()
-    semi_labels[~mask] = -1
+    semi_labels = df["Class"].copy()
+    semi_labels[~mask] = -1  # Assuming -1 indicates unknown label for semi-supervision
 
-    umap_embedding = umap_reducer.fit_transform(df.sample(frac=1), y=semi_labels)
+    umap_embedding = umap_reducer.fit_transform(df, y=semi_labels)
 
     ax = sns.relplot(
-        data=pd.DataFrame(
-            umap_embedding, columns=["umap0", "umap1"], index=df.index
-        ).reset_index(),
+        data=pd.DataFrame(umap_embedding, columns=["umap0", "umap1"]),
         x="umap0",
         y="umap1",
         hue="Class",
@@ -115,10 +113,11 @@ def scoring_df(X, y):
     )
     # Define a dictionary of metrics
     scoring = {
-        "accuracy": make_scorer(metrics.accuracy_score),
+        "accuracy": make_scorer(metrics.balanced_accuracy_score),
         "precision": make_scorer(metrics.precision_score, average="macro"),
         "recall": make_scorer(metrics.recall_score, average="macro"),
         "f1": make_scorer(metrics.f1_score, average="macro"),
+        "roc_auc": make_scorer(metrics.roc_auc_score, average="macro"),
     }
 
     # Create a random forest classifier
@@ -139,7 +138,7 @@ def scoring_df(X, y):
         estimator=pipeline,
         X=X,
         y=y,
-        cv=KFold(n_splits=k_folds),
+        cv=StratifiedKFold(n_splits=k_folds),
         scoring=scoring,
         n_jobs=-1,
         return_train_score=False,
