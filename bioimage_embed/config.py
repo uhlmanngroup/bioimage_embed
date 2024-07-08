@@ -29,6 +29,7 @@ class Recipe:
     model: str = "resnet18_vae"
     data: str = "data"
     opt: str = "adamw"
+    batch_size: int = 16
     max_epochs: int = 125
     weight_decay: float = 0.001
     momentum: float = 0.9
@@ -111,6 +112,7 @@ class DataLoader:
     _target_: str = "bioimage_embed.lightning.dataloader.DataModule"
     dataset: ImageFolderDataset = Field(default_factory=ImageFolderDataset)
     num_workers: int = 1
+    batch_size: int = II("recipe.batch_size")
 
 
 @dataclass
