@@ -75,16 +75,19 @@ class BioImageEmbed:
             )
         except:
             self.icfg.trainer.fit(self.icfg.lit_model, datamodule=self.icfg.dataloader)
+        return self
 
     def validate(self):
         validation = self.icfg.trainer.validate(
             self.lit_model, datamodule=self.dataloader
         )
+        return self
 
     def test(self):
         testing = self.icfg.trainer.test(
             self.icfg.lit_model, datamodule=self.icfg.dataloader
         )
+        return self
 
     def __call__(self, x):
         return self.icfg.lit_model(x)
@@ -106,16 +109,18 @@ class BioImageEmbed:
         )
         return predictions
 
-    def export(self):
+    def export(self,name=""):
         example_input = Variable(torch.rand(1, *self.cfg.recipe.input_dim))
         self.icfg.lit_model.to_onnx(
-            f"{self.icfg.uuid}.onnx",
+            f"{name}_{self.icfg.uuid}.onnx",
             example_input,
             export_params=True,
             # opset_version=11,
             verbose=True,
         )
+        return self
 
     def check(self):
         self.model_check()
         self.trainer_check()
+        return self
