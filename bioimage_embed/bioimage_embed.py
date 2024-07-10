@@ -21,8 +21,8 @@ class BioImageEmbed:
         self.cfg = cfg
         self.icfg = instantiate(cfg)
         # TODO, cannot find a cleaner way to do this
-        self.ocfg = OmegaConf.structured(self.cfg)
-        OmegaConf.resolve(self.ocfg)
+        # self.ocfg = OmegaConf.structured(self.cfg)
+        # OmegaConf.resolve(self.ocfg)
 
         self.setup()
 
@@ -35,7 +35,7 @@ class BioImageEmbed:
         seed_everything(self.icfg.recipe.seed)
 
         self.make_dirs()
-        self.icfg.lit_model.model.eval()
+        # self.icfg.lit_model.model.eval()
 
     def model_check(self):
         dataloader = self.icfg.dataloader
@@ -54,10 +54,10 @@ class BioImageEmbed:
         for path in (self.icfg.paths).values():
             os.makedirs(path, exist_ok=True)
 
-    def find_checkpoint(self):
-        for callback in self.icfg.trainer.callbacks:
-            if isinstance(callback, ModelCheckpoint):
-                return callback.last_model_path
+    # def find_checkpoint(self):
+    #     for callback in self.icfg.trainer.callbacks:
+    #         if isinstance(callback, ModelCheckpoint):
+    #             return callback.last_model_path
 
     def train(self, resume: bool = True):
         # Find this dynamically
@@ -67,14 +67,15 @@ class BioImageEmbed:
         # last_checkpoint = chkpt_callbacks.last_model_path
         # best_checkpoint_path = chkpt_callbacks.best_model_path
         # TODO better than try except
-        try:
-            self.icfg.trainer.fit(
-                self.icfg.lit_model,
-                datamodule=self.icfg.dataloader,
-                ckpt_path="last",
-            )
-        except:
-            self.icfg.trainer.fit(self.icfg.lit_model, datamodule=self.icfg.dataloader)
+        # try:
+        #     self.icfg.trainer.fit(
+        #         self.icfg.lit_model,
+        #         datamodule=self.icfg.dataloader,
+        #         ckpt_path="last",
+        #     )
+        # except:
+            # self.icfg.trainer.print(torch.cuda.memory_summary())
+        self.icfg.trainer.fit(self.icfg.lit_model, datamodule=self.icfg.dataloader)
         return self
 
     def validate(self):
