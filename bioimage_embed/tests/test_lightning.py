@@ -8,9 +8,11 @@ from bioimage_embed.models import create_model
 from torch.utils.data import TensorDataset
 from bioimage_embed.lightning import AutoEncoderSupervised, AutoEncoderUnsupervised
 
+
 @pytest.fixture(params=_3c_model_classes)
 def model_class(request):
     return request.param
+
 
 @pytest.fixture(params=MODELS)
 def model_name(request):
@@ -68,9 +70,11 @@ def input_dim(image_dim, channel_dim):
 def data(input_dim):
     return torch.rand(*input_dim)
 
+
 @pytest.fixture()
 def dataset(data):
     return data.unsqueeze(0)
+
 
 @pytest.fixture()
 def labelled_dataset(data):
@@ -81,24 +85,30 @@ def labelled_dataset(data):
 def unlabelled_dataset(data):
     return data
 
+
 @pytest.fixture()
 def supervised_lit_model(model):
     return AutoEncoderSupervised(model)
+
 
 @pytest.fixture()
 def unsupervised_lit_model(model):
     return AutoEncoderUnsupervised(model)
 
+
 def test_export_onxx_unsupervised(data, unsupervised_lit_model):
     return unsupervised_lit_model.to_onnx("model.onnx", data)
+
 
 @pytest.fixture()
 def labelled_data(data):
     return data, torch.tensor([0])
 
+
 @pytest.mark.skip(reason="Dictionaries not allowed")
 def test_export_onxx_supervised(data, supervised_lit_model):
     return supervised_lit_model.to_onnx("model.onnx", data)
+
 
 @pytest.fixture()
 def data(input_dim):
@@ -115,6 +125,7 @@ def labelled_dataloader(labelled_dataset, batch_size):
         pin_memory=False,
     )
 
+
 @pytest.fixture()
 def unlabelled_dataloader(unlabelled_dataset, batch_size):
     return DataModule(
@@ -124,6 +135,7 @@ def unlabelled_dataloader(unlabelled_dataset, batch_size):
         num_workers=1,
         pin_memory=False,
     )
+
 
 @pytest.fixture()
 def dataloader(dataset, batch_size):
@@ -135,6 +147,7 @@ def dataloader(dataset, batch_size):
         pin_memory=False,
     )
 
+
 @pytest.fixture()
 def trainer():
     return pl.Trainer(
@@ -142,32 +155,45 @@ def trainer():
         max_epochs=1,
     )
 
-def test_trainer_test_supervised(trainer,supervised_lit_model,labelled_dataloader):
+
+def test_trainer_test_supervised(trainer, supervised_lit_model, labelled_dataloader):
     return trainer.test(supervised_lit_model, labelled_dataloader)
 
-def test_trainer_test_unsupervised(trainer,unsupervised_lit_model,unlabelled_dataloader):
+
+def test_trainer_test_unsupervised(
+    trainer, unsupervised_lit_model, unlabelled_dataloader
+):
     return trainer.test(unsupervised_lit_model, unlabelled_dataloader)
 
-@pytest.mark.skip(reason="Expensive")
-def test_trainer_fit_supervised(trainer,supervised_lit_model,labelled_dataloader):
-    return trainer.fit(supervised_lit_model, labelled_dataloader)
 
 @pytest.mark.skip(reason="Expensive")
-def test_trainer_fit_unsupervised(trainer,unsupervised_lit_model,unlabelled_dataloader):
+def test_trainer_fit_supervised(trainer, supervised_lit_model, labelled_dataloader):
+    return trainer.fit(supervised_lit_model, labelled_dataloader)
+
+
+@pytest.mark.skip(reason="Expensive")
+def test_trainer_fit_unsupervised(
+    trainer, unsupervised_lit_model, unlabelled_dataloader
+):
     return trainer.fit(unsupervised_lit_model, unlabelled_dataloader)
+
 
 def test_dataset_trainer(trainer, supervised_lit_model, labelled_dataset):
     return trainer.test(supervised_lit_model, labelled_dataset)
 
+
 def test_dataset_trainer(trainer, unsupervised_lit_model, unlabelled_dataset):
     return trainer.test(unsupervised_lit_model, unlabelled_dataset.unsqueeze(0))
+
 
 @pytest.mark.skip(reason="Dictionaries not allowed")
 def test_export_onnx_supervised(data, supervised_lit_model):
     return supervised_lit_model.to_onnx("model.onnx", data)
 
+
 def test_export_onnx_unsupervised(data, unsupervised_lit_model):
     return unsupervised_lit_model.to_onnx("model.onnx", data)
+
 
 @pytest.mark.skip(reason="Upstream bug with pythae")
 def test_export_jit(data, model_torchscript):
@@ -177,4 +203,3 @@ def test_export_jit(data, model_torchscript):
 @pytest.mark.skip(reason="Upstream bug with pythae")
 def test_jit_save(model_torchscript):
     return torch.jit.save(model_torchscript, "model.pt", method="script")
-

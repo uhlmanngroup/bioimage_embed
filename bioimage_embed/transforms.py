@@ -211,7 +211,6 @@ class VerticesToMask(torch.nn.Module):
         return torch.tensor(np.array(mask_list))
 
     def vertices_to_mask_BC(self, vertices, mask_shape=(128, 128)):
-
         flat = np.reshape(vertices, (-1, vertices.shape[-2], vertices.shape[-1]))
         masks = np.stack([polygon2mask(mask_shape, arr) for arr in flat]).reshape(
             *vertices.shape[-4:-2], *mask_shape
@@ -232,7 +231,7 @@ class CropCentroidPipeline(torch.nn.Module):
                 # transforms.Normalize(0, 1),
                 transforms.ToPILImage(),
                 transforms.Grayscale(num_output_channels=num_output_channels),
-                transforms.ToTensor()
+                transforms.ToTensor(),
                 # transforms.RandomCrop((512, 512)),
                 # transforms.ConvertImageDtype(torch.bool)
             ]
