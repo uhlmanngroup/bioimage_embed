@@ -47,9 +47,11 @@ class DataModule(pl.LightningDataModule):
         return torch.utils.data.dataloader.default_collate(batch)
 
     def setup(self, stage=None):
-        self.train_dataset, self.val_dataset, self.test_dataset = (
-            self.splitting(self.dataset)
-        )
+        (
+            self.train_dataset,
+            self.val_dataset,
+            self.test_dataset,
+        ) = self.splitting(self.dataset)
 
     def splitting(
         self, dataset: Dataset, split_train=0.8, split_val=0.1, seed=42
