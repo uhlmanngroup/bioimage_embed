@@ -50,7 +50,6 @@ def infer():
 def train(cfg: Config):
     bie = BioImageEmbed(cfg)
     bie.train()
-    pass
 
 
 @hydra.main(config_path=".", config_name="config", version_base="1.1.0")
