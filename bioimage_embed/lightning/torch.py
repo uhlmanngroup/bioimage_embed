@@ -7,9 +7,6 @@ import argparse
 from pythae.models.base.base_utils import ModelOutput
 import torch.nn.functional as F
 
-_channel_aware_losses = [None]
-_3c_model_classes = [None]
-
 
 class AutoEncoder(pl.LightningModule):
     args = argparse.Namespace(
@@ -47,9 +44,6 @@ class AutoEncoder(pl.LightningModule):
         self.decoder = self.model.decoder
         if args:
             self.args = SimpleNamespace(**{**vars(args), **vars(self.args)})
-        # if kwargs:
-        # merged_kwargs = {k: v for d in kwargs.values() for k, v in d.items()}
-        # self.args = SimpleNamespace(**{**merged_kwargs, **vars(self.args)})
         self.save_hyperparameters(vars(self.args))
         # self.model.train()
 
@@ -61,8 +55,9 @@ class AutoEncoder(pl.LightningModule):
         x = self.batch_to_tensor(batch)
         return self.model.forward(x)
 
-    def batch_to_tensor(self, batch):
-        raise NotImplementedError
+    def batch_to_tensor(self, batch: torch.Tensor):
+        x, y = batch
+        return ModelOutput(data=x.float(), target=y)
 
     def embedding_from_output(self, model_output):
         return model_output.z.view(model_output.z.shape[0], -1)
@@ -118,7 +113,7 @@ class AutoEncoder(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x = self.batch_to_tensor(batch)
         model_output, loss = self.get_model_output(x, batch_idx)
-        z = self.embedding_from_output(model_output)
+        # z = self.embedding_from_output(model_output)
         self.log_dict(
             {
                 "loss/val": loss,
@@ -160,10 +155,6 @@ class AutoEncoder(pl.LightningModule):
     def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
         scheduler.step(epoch=self.current_epoch, metric=metric)
 
-    # def configure_optimizers(self):
-    #     optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
-    #     return optimizer
-
     def test_step(self, batch, batch_idx):
         x = self.batch_to_tensor(batch)
         model_output = self.model(x)  # Forward pass with the test batch
@@ -199,11 +190,7 @@ class AutoEncoder(pl.LightningModule):
 
 
 class AutoEncoderUnsupervised(AutoEncoder):
-    def batch_to_tensor(self, batch: torch.Tensor):
-        return ModelOutput(data=batch.float())
+    pass
 
-
-class AutoEncoderSupervised(AutoEncoder):
-    def batch_to_tensor(self, batch: tuple):
-        x, y = batch
-        return ModelOutput(data=x.float(), target=y)
+class AutoEncoderSupervised(AutoEncoderUnsupervised):
+    pass
