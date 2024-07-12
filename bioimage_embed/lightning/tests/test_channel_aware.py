@@ -1,8 +1,6 @@
 import pytest
 import torch
 
-from ..torch import _channel_aware_losses
-
 
 # Fixture for batch sizes
 @pytest.fixture(params=[1, 16])
@@ -26,12 +24,6 @@ def z_dim(request):
 @pytest.fixture
 def input_tensor(batch_size, channel_size, z_dim):
     return torch.randn(batch_size, channel_size, z_dim)
-
-
-# Fixture for z dimensions
-@pytest.fixture(params=_channel_aware_losses)
-def loss_fn(request):
-    return request.param
 
 
 # Test for channel aware losses
