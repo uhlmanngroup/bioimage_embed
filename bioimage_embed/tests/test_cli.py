@@ -134,6 +134,5 @@ def cfg():
 def test_train(cfg):
     cli.train(cfg)
 
-
 def test_check(cfg):
     cli.check(cfg)
