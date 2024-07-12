@@ -194,5 +194,24 @@ class AutoEncoder(pl.LightningModule):
 class AutoEncoderUnsupervised(AutoEncoder):
     pass
 
-class AutoEncoderSupervised(AutoEncoderUnsupervised):
-    pass
+
+class AutoEncoderSupervised(AutoEncoder):
+    def __init__(self):
+        super().__init__()
+        self.simclr = losses.ContrastiveLoss()
+
+    def batch_to_tensor(self, batch: tuple):
+        x, y = batch
+        return ModelOutput(data=x.float(), target=y)
+
+    def get_model_output(self, x, batch_idx):
+        model_output, loss = super().get_model_output(x, batch_idx)
+
+        # TODO check thi
+        # Scale is used as the rest of the loss functions are sums rather than means, which may mean we need to scale up the contrastive loss
+
+        scale = x["data"].shape[1:]
+        contrastive_loss = scale*self.simclr(
+            model_output.z, model_output.target
+        )
+        return model_output, loss + contrastive_loss
