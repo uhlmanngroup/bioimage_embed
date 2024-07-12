@@ -81,7 +81,7 @@ class Transform:
 
 @dataclass
 class Dataset:
-    # _target_: str = "torch.utils.data.Dataset"
+    _target_: str = "torch.utils.data.Dataset"
     transform: Transform = Field(default_factory=Transform)
 
 
@@ -111,7 +111,6 @@ class DataLoader:
     _target_: str = "bioimage_embed.lightning.dataloader.DataModule"
     dataset: ImageFolderDataset = Field(default_factory=ImageFolderDataset)
     num_workers: int = 1
-
 
 @dataclass
 class Model:
@@ -148,11 +147,13 @@ class ModelCheckpoint(Callback):
 
 @dataclass
 class LightningModel:
-    _target_: str = "bioimage_embed.lightning.torch.AutoEncoderSupervised"
+    _target_: str = "bioimage_embed.lightning.torch.AutoEncoderUnsupervised"
     # This should be pythae base autoencoder?
     model: Model = Field(default_factory=Model)
     args: Recipe = Field(default_factory=lambda: II("recipe"))
 
+class LightningModelSupervised(LightningModel):
+    _target_: str = "bioimage_embed.lightning.torch.AutoEncoderSupervised"
 
 @dataclass
 class Callbacks:
@@ -210,6 +211,10 @@ class Config:
     lit_model: LightningModel = field(default_factory=LightningModel)
     callbacks: Callbacks = field(default_factory=Callbacks)
     uuid: str = field(default_factory=lambda: utils.hashing_fn(Recipe()))
+
+@dataclass
+class SupervisedConfig(Config):
+    lit_model: LightningModel = field(default_factory=LightningModel)
 
 
 __schemas__ = {
