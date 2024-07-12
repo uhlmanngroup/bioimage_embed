@@ -4,7 +4,7 @@ import pytorch_lightning as pl
 from timm import optim, scheduler
 from types import SimpleNamespace
 import argparse
-from pythae.models.base.base_utils import ModelOutput
+from transformers.utils import ModelOutput
 import torch.nn.functional as F
 
 
@@ -45,10 +45,12 @@ class AutoEncoder(pl.LightningModule):
         if args:
             self.args = SimpleNamespace(**{**vars(args), **vars(self.args)})
         self.save_hyperparameters(vars(self.args))
+        # TODO update all models to use this for export to onxx
+        # self.example_input_array = torch.randn(1, *self.model.input_dim)
         # self.model.train()
 
-    def forward(self, batch):
-        x = self.batch_to_tensor(batch)
+    def forward(self, x):
+        # x = self.batch_to_tensor(batch)
         return ModelOutput(x=x, out=self.model(x))
 
     def get_results(self, batch):
