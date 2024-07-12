@@ -1,6 +1,5 @@
-from typing import Any, Tuple
-from torchvision.datasets import FakeData, ImageFolder
-from torchvision.transforms import ToTensor
+from typing import Tuple
+from torchvision.datasets import FakeData
 import albumentations as A
 
 

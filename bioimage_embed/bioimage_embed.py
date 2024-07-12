@@ -42,7 +42,7 @@ class BioImageEmbed:
         dataloader = self.icfg.dataloader
 
         dataloader_0 = next(iter(dataloader.train_dataloader()))
-        output = self.icfg.lit_model(dataloader_0)
+        # output = self.icfg.lit_model(dataloader_0)
         logging.info("Model Check Passed")
 
     def trainer_check(self):
@@ -81,11 +81,13 @@ class BioImageEmbed:
         validation = self.icfg.trainer.validate(
             self.lit_model, datamodule=self.dataloader
         )
+        return validation
 
     def test(self):
         testing = self.icfg.trainer.test(
             self.icfg.lit_model, datamodule=self.icfg.dataloader
         )
+        return testing
 
     def __call__(self, x):
         return self.icfg.lit_model(x)

@@ -33,9 +33,9 @@ class cropCentroid(torch.nn.Module):
         center_of_mass = properties[0].centroid
         # weighted_center_of_mass = properties[0].weighted_centroid
         top = int(center_of_mass[0] - size / 2)
-        bottom = top + height
+        # bottom = top + height
         left = int(center_of_mass[1] - size / 2)
-        right = left + width
+        # right = left + width
 
         # if left <= 0 or top <= 0 or right >= im_height or bottom >= im_width:
         # return None
@@ -147,7 +147,6 @@ class ImagetoDistogram(torch.nn.Module):
         return torch.tensor(np.array(dist_list))
 
     def get_distogram(self, image, size, matrix_normalised=False):
-        distograms = []
         np_image = np.array(image)
         scaling = np.linalg.norm(np_image.shape)
         # for i in range(np_image_full.shape[0]):
