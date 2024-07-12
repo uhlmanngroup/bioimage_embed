@@ -1,6 +1,6 @@
 from .._mae.models_mae import MAEMaskedAutoencoderViT
 
-from pythae.models.base.base_utils import ModelOutput
+from transformers.utils import ModelOutput
 from pythae.models.nn import BaseDecoder, BaseEncoder
 
 # class Encoder(BaseEncoder,MAEMaskedAutoencoderViT):

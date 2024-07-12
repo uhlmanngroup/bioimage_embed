@@ -1,6 +1,6 @@
-from ._mae.models_mae import MAEMaskedAutoencoderViT
+# from ._mae.models_mae import MAEMaskedAutoencoderViT
 
-from pythae.models.base.base_utils import ModelOutput
+from transformers.utils import ModelOutput
 from pythae.models.nn import BaseDecoder, BaseEncoder
 
 # class Encoder(BaseEncoder,MAEMaskedAutoencoderViT):
@@ -26,7 +26,7 @@ class Decoder(BaseDecoder, MAEMaskedAutoencoderViT):
         return ModelOutput(reconstruction=x)
 
 
-# set recommended archs
-mae_vit_base_patch16 = mae_vit_base_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
-mae_vit_large_patch16 = mae_vit_large_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
-mae_vit_huge_patch14 = mae_vit_huge_patch14_dec512d8b  # decoder: 512 dim, 8 blocks
+# # set recommended archs
+# mae_vit_base_patch16 = mae_vit_base_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
+# mae_vit_large_patch16 = mae_vit_large_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
+# mae_vit_huge_patch14 = mae_vit_huge_patch14_dec512d8b  # decoder: 512 dim, 8 blocks
