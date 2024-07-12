@@ -8,7 +8,7 @@ from pythae import models
 
 
 # from pythae.models import VQVAE, Encoder, Decoder
-from pythae.models.base.base_utils import ModelOutput
+from transformers.utils import ModelOutput
 
 # import VQVAE, Encoder, Decoder
 from pythae.models.nn import BaseDecoder, BaseEncoder

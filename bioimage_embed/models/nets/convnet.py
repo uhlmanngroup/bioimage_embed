@@ -1,5 +1,5 @@
 from pythae.models.nn import BaseEncoder, BaseDecoder
-from pythae.models.base.base_utils import ModelOutput
+from transformers.utils import ModelOutput
 
 import torch
 from torch import nn

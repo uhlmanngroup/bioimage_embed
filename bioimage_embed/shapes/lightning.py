@@ -4,7 +4,7 @@ import torchvision
 from torch import nn
 from ..lightning import AutoEncoderUnsupervised
 from . import loss_functions as lf
-from pythae.models.base.base_utils import ModelOutput
+from transformers.utils import ModelOutput
 from types import SimpleNamespace
 
 
@@ -55,12 +55,12 @@ class MaskEmbed(AutoEncoderUnsupervised):
 
         variational_loss = model_output.loss - model_output.recon_loss
 
-        loss_dict = {
-            "loss": loss,
-            "shape_loss": shape_loss,
-            "reconstruction_loss": model_output.recon_x,
-            "variational_loss": variational_loss,
-        }
+        # loss_dict = {
+        #     "loss": loss,
+        #     "shape_loss": shape_loss,
+        #     "reconstruction_loss": model_output.recon_x,
+        #     "variational_loss": variational_loss,
+        # }
         return loss
 
 

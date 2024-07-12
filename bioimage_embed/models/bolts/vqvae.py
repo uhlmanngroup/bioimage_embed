@@ -1,5 +1,5 @@
 from torch import nn
-from pythae.models.base.base_utils import ModelOutput
+from transformers.utils import ModelOutput
 from pythae.models.nn import BaseDecoder, BaseEncoder
 from pythae.models import VAEConfig
 
@@ -17,7 +17,7 @@ class BaseResNetVQVAEEncoder(BaseEncoder):
         **kwargs,
     ):
         super(BaseResNetVQVAEEncoder, self).__init__()
-
+        self.input_dim = model_config.input_dim
         self.input_height = model_config.input_dim[-2]
         self.latent_dim = model_config.latent_dim
         self.enc_out_dim = enc_out_dim
