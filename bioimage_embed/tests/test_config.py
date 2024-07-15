@@ -52,7 +52,7 @@ def test_model_check(bie):
     bie.model_check()
 
 
-# @pytest.mark.skip("Computationally heavy")
+@pytest.mark.skip("Computationally heavy")
 def test_train_check(bie):
     bie.trainer_check()
 

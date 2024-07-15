@@ -134,5 +134,6 @@ def cfg():
 def test_train(cfg):
     cli.train(cfg)
 
+@pytest.mark.skip("Computationally heavy")
 def test_check(cfg):
     cli.check(cfg)

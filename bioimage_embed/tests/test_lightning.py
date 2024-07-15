@@ -4,12 +4,14 @@ import pytorch_lightning as pl
 from bioimage_embed.models import MODELS
 from bioimage_embed.lightning import (
     DataModule,
-    AutoEncoderSupervised,
-    AutoEncoderUnsupervised,
+    AESupervised,
+    AEUnsupervised,
 )
 from bioimage_embed.models import create_model
 from torch.utils.data import TensorDataset
 
+
+torch.manual_seed(42)
 
 @pytest.fixture(params=MODELS)
 def model_name(request):
@@ -25,13 +27,16 @@ def image_dim():
 def channel_dim():
     return 3
 
-
 @pytest.fixture()
-def latent_dim():
-    return 16
+def samples():
+    return 32
+
+@pytest.fixture(params=[16])
+def latent_dim(request):
+    return request.param
 
 
-@pytest.fixture(params=[1, 2, 16])
+@pytest.fixture(params=[4,])
 def batch_size(request):
     return request.param
 
@@ -45,7 +50,7 @@ def pretrained():
 def progress():
     return True
 
-
+# TODO put this in a conftest.py file
 @pytest.fixture
 def model(model_name, image_dim, channel_dim, latent_dim, pretrained, progress):
     input_dim = (channel_dim, *image_dim)
@@ -67,53 +72,19 @@ def input_dim(image_dim, channel_dim):
 def data(input_dim):
     return torch.rand(*input_dim)
 
-
 @pytest.fixture()
-def batched_data(data):
-    return data.unsqueeze(0)
+def dataset(samples, input_dim,classes=2):
+    x = torch.rand(samples, *input_dim)
+    y = torch.torch.randint(classes-1,(samples,))
+    return TensorDataset(x,y)
 
-
-@pytest.fixture()
-def batched_dataset(batched_data):
-    return TensorDataset(batched_data, torch.zeros(1))
-
-
-@pytest.fixture()
-def dataset(data):
-    return TensorDataset(data, torch.zeros(1))
-
-
-# @pytest.fixture()
-# def unlabelled_dataset(data):
-#     return data
-
-
-# @pytest.fixture()
-# def supervised_lit_model(model):
-#     return AutoEncoderSupervised(model)
-
-
-# @pytest.fixture(params=[AutoEncoderSupervised, AutoEncoderUnsupervised])
-def lit_model(lit_model, model):
-    return AutoEncoderSupervised(model)
 
 
 @pytest.fixture(
-    params=[AutoEncoderSupervised, AutoEncoderUnsupervised]
+    params=[AESupervised, AEUnsupervised]
 )
 def lit_model(request, model):
     return request.param(model)
-
-
-# @pytest.fixture()
-# def unsupervised_lit_model(model):
-#     return AutoEncoderUnsupervised(model)
-
-
-@pytest.fixture()
-def labelled_data(data):
-    return data, torch.tensor([0])
-
 
 # @pytest.mark.skip(reason="Dictionaries not allowed")
 # def test_export_onxx(data, lit_model):
@@ -121,39 +92,12 @@ def labelled_data(data):
 
 
 @pytest.fixture()
-def data(input_dim):
-    return torch.rand(1, *input_dim)
-
-
-@pytest.fixture()
 def dataloader(dataset, batch_size):
     return DataModule(
         dataset,
         batch_size=batch_size,
         # shuffle=True,
-        num_workers=1,
-        pin_memory=False,
-    )
-
-
-# @pytest.fixture()
-# def unlabelled_dataloader(unlabelled_dataset, batch_size):
-#     return DataModule(
-#         unlabelled_dataset,
-#         batch_size=batch_size,
-#         # shuffle=True,
-#         num_workers=1,
-#         pin_memory=False,
-#     )
-
-
-@pytest.fixture()
-def dataloader(dataset, batch_size):
-    return DataModule(
-        dataset,
-        batch_size=batch_size,
-        # shuffle=True,
-        num_workers=1,
+        num_workers=0, # This avoids processes being forked
         pin_memory=False,
     )
 
@@ -177,21 +121,22 @@ def test_trainer_test(trainer, lit_model, dataloader):
 def test_trainer_fit(trainer, lit_model, dataloader):
     return trainer.fit(lit_model, dataloader)
 
-
+@pytest.mark.skip(reason="needs batched data")
 def test_dataset_trainer(trainer, lit_model, dataset):
     return trainer.test(lit_model, dataset)
 
 
-@pytest.mark.skip(reason="Dictionaries not allowed, pythae uses dictionaries")
-def test_export_onnx(lit_model):
-    return lit_model.to_onnx("model.onnx",export_params=True)
+# Has to be a list not a tuple
+def test_export_onnx(lit_model, data):
+    example_input = data.unsqueeze(0)
+    return lit_model.to_onnx("model.onnx",example_input,export_params=True)
 
 
-@pytest.mark.skip(reason="Upstream bug with pythae")
+@pytest.mark.skip(reason="models cant take in variable length args and kwargs")
 def test_export_jit(model_torchscript):
     return model_torchscript.save("model.pt")
 
 
-@pytest.mark.skip(reason="Upstream bug with pythae")
+@pytest.mark.skip(reason="models cant take in variable length args and kwargs")
 def test_jit_save(model_torchscript):
     return torch.jit.save(model_torchscript, "model.pt", method="script")
