@@ -20,11 +20,18 @@ class BioImageEmbed:
     def __init__(self, cfg: Config):
         self.cfg = cfg
         self.icfg = instantiate(cfg)
-        # TODO, cannot find a cleaner way to do this
-        self.ocfg = OmegaConf.structured(self.cfg)
-        OmegaConf.resolve(self.ocfg)
-
+        self.ocfg = self.resolve()
         self.setup()
+
+    def resolve(self):
+        """
+        Resolves the config using omegaconf,
+        without the flag this will crash with mixed types
+        """
+        self.ocfg = OmegaConf.structured(self.cfg,
+                                         flags={"allow_objects": True}) 
+        OmegaConf.resolve(self.ocfg)
+        return self.ocfg
 
     def checkpoint_hash(self):
         recipe = self.icfg.recipe
@@ -33,7 +40,6 @@ class BioImageEmbed:
     def setup(self):
         np.random.seed(self.icfg.recipe.seed)
         seed_everything(self.icfg.recipe.seed)
-
         self.make_dirs()
         self.icfg.lit_model.model.eval()
 
@@ -47,7 +53,7 @@ class BioImageEmbed:
         logging.info("Model Check Passed")
 
     def trainer_check(self):
-        trainer = instantiate(self.ocfg.trainer, fast_dev_run=True)
+        trainer = instantiate(self.ocfg.trainer, fast_dev_run=True,accelerator="cpu")
         trainer.test(self.icfg.lit_model, self.icfg.dataloader)
         logging.info("Trainer Check Passed")
 
