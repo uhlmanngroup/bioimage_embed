@@ -2,7 +2,6 @@ import pytest
 import torch
 import matplotlib.pyplot as plt
 
-
 # Note - you must have torchvision installed for this example
 
 # from bioimage_embed.datasets import BroadDataset, DatasetGlob
@@ -13,6 +12,8 @@ from bioimage_embed.shapes.transforms import (
 from bioimage_embed.shapes.transforms import (
     DistogramToCoords,
 )
+
+import numpy as np
 
 # from bioimage_embed.models import VQ_VAE, BioimageEmbed, VAE
 # from bioimage_embed.lightning import AutoEncoderUnsupervised
@@ -27,7 +28,6 @@ channels = 1
 input_dim = (channels, window_size, window_size)
 
 models = []
-import numpy as np
 
 
 def create_circle_contour(radius, image_size):
