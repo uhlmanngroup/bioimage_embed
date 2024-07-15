@@ -46,6 +46,11 @@ class BioImageEmbed:
 
     def trainer_check(self):
         trainer = instantiate(self.ocfg.trainer, fast_dev_run=True)
+        trainer.test(self.icfg.lit_model, self.icfg.dataloader)
+        logging.info("Trainer Check Passed")
+
+    def trainer_check_fit(self):
+        trainer = instantiate(self.ocfg.trainer, fast_dev_run=True)
         trainer.fit(self.icfg.lit_model, self.icfg.dataloader)
         logging.info("Trainer Check Passed")
 
