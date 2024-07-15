@@ -109,7 +109,7 @@ class NgffDataset(NdDataset):
 @dataclass
 class DataLoader:
     _target_: str = "bioimage_embed.lightning.dataloader.DataModule"
-    dataset: ImageFolderDataset = Field(default_factory=ImageFolderDataset)
+    dataset: Any = Field(default_factory=ImageFolderDataset)
     num_workers: int = 1
 
 @dataclass
@@ -204,12 +204,12 @@ class Paths:
 @dataclass
 class Config:
     # This has to be dataclass.field instead of pydantic Field for somereason
-    paths: Paths = field(default_factory=Paths)
-    recipe: Recipe = field(default_factory=Recipe)
-    dataloader: DataLoader = field(default_factory=DataLoader)
-    trainer: Trainer = field(default_factory=Trainer)
-    lit_model: LightningModel = field(default_factory=LightningModel)
-    callbacks: Callbacks = field(default_factory=Callbacks)
+    paths: Any = field(default_factory=Paths)
+    recipe: Any = field(default_factory=Recipe)
+    dataloader: Any = field(default_factory=DataLoader)
+    trainer: Any = field(default_factory=Trainer)
+    lit_model: Any = field(default_factory=LightningModel)
+    callbacks: Any = field(default_factory=Callbacks)
     uuid: str = field(default_factory=lambda: utils.hashing_fn(Recipe()))
 
 @dataclass
