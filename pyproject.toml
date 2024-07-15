@@ -72,6 +72,7 @@ build-backend = "poetry.core.masonry.api"
 minversion = "6.0"
 addopts = "-ra -q --ignore=env"
 pythonpath = ["src/chem"]
+timeout = 180
 
 [flake8]
 max-line-length = 80
