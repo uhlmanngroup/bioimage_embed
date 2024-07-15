@@ -71,7 +71,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q --ignore=env"
-pythonpath = ["src/chem"]
+pythonpath = ["bioimage_embed"]
 timeout = 180
 
 [flake8]
