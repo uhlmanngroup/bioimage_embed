@@ -229,3 +229,8 @@ __schemas__ = {
     "model": Model,
     "lit_model": LightningModel,
 }
+
+def resolve_schema(schema):
+    cfg = OmegaConf.structured(Config())
+    schema = OmegaConf.structured(schema,parent=cfg)
+    return schema
