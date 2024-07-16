@@ -12,6 +12,7 @@
 
 # from .bolts import ResNet18VAEEncoder, ResNet18VAEDecoder
 
+from typing import Tuple
 import pythae
 from .pythae import legacy
 from . import bolts
@@ -209,7 +210,6 @@ MODELS = [
     "dummy_model",
 ]
 
-from typing import Tuple
 
 
 def create_model(
