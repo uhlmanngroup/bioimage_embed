@@ -193,7 +193,7 @@ class ModelFactory:
     #     )
 
 
-MODELS = [
+__all_models__ = [
     "resnet18_vae",
     "resnet50_vae",
     "resnet18_vae_bolt",
@@ -207,6 +207,12 @@ MODELS = [
     "resnet152_vqvae_legacy",
     "resnet18_vae_legacy",
     "resnet50_vae_legacy",
+    "dummy_model",
+]
+
+__all_small_models__ = [
+    "resnet18_vae",
+    "resnet18_vqvae",
     "dummy_model",
 ]
 

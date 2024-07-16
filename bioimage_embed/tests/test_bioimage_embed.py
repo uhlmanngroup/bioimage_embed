@@ -1,4 +1,3 @@
-from .. import bie
 import pytest
 import torch
 from ..bie import BioImageEmbed

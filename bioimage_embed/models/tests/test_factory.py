@@ -1,14 +1,7 @@
 import pytest
 import torch
-import pytorch_lightning as pl
-from bioimage_embed.models import MODELS
-from bioimage_embed.lightning import (
-    DataModule,
-    AESupervised,
-    AEUnsupervised,
-)
+from bioimage_embed.models import __all_models__
 from bioimage_embed.models import create_model
-from torch.utils.data import TensorDataset
 
 
 torch.manual_seed(42)
@@ -24,7 +17,7 @@ progress_options = [True, False]
 batch = [1,]
 
 
-@pytest.mark.parametrize("model", MODELS)
+@pytest.mark.parametrize("model", __all_models__)
 @pytest.mark.parametrize("ld", latent_dim)
 @pytest.mark.parametrize("c", channel_dim)
 @pytest.mark.parametrize("idim", image_dim)

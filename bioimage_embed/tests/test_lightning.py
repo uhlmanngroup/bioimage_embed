@@ -1,7 +1,7 @@
 import pytest
 import torch
 import pytorch_lightning as pl
-from bioimage_embed.models import MODELS
+from bioimage_embed.models import __all_models__
 from bioimage_embed.lightning import (
     DataModule,
     AESupervised,
@@ -13,7 +13,7 @@ from torch.utils.data import TensorDataset
 
 torch.manual_seed(42)
 
-@pytest.fixture(params=MODELS)
+@pytest.fixture(params=__all_models__)
 def model_name(request):
     return request.param
 
