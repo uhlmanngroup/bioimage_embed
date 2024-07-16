@@ -1,12 +1,7 @@
 from bioimage_embed.models import create_model
 import pytest
 import torch
-
 from bioimage_embed.models import MODELS
-
-# MODELS = ["resnet18_vae", "resnet50_vae", "resnet18_vqvae", "resnet50_vqvae"]
-
-# input_dim = [(3, 256, 256), (3, 224, 224),(1, 224, 224)]
 image_dim = [(256, 256), (224, 224)]
 channel_dim = [
     3,
@@ -15,6 +10,7 @@ latent_dim = [64, 16]
 pretrained_options = [True, False]
 progress_options = [True, False]
 batch = [1,]
+
 
 @pytest.mark.parametrize("model", MODELS)
 @pytest.mark.parametrize("ld", latent_dim)
