@@ -112,7 +112,7 @@ class NgffDataset(NdDataset):
 @dataclass
 class DataLoader:
     _target_: str = "bioimage_embed.lightning.dataloader.DataModule"
-    dataset: Any = Field(default_factory=ImageFolderDataset)
+    dataset: Any = Field(default_factory=FakeDataset)
     num_workers: int = 1
 
 @dataclass
@@ -223,7 +223,7 @@ class SupervisedConfig(Config):
 __schemas__ = {
     "recipe": Recipe,
     "transform": Transform,
-    "dataset": ImageFolderDataset,
+    "dataset": FakeDataset,
     "dataloader": DataLoader,
     "trainer": Trainer,
     "model": Model,
