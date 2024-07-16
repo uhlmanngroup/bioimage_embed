@@ -52,6 +52,7 @@ ray = {extras = ["all"], version = "^2.8.1"}
 pydantic = "^2.6.4"
 numpy = "1.23"
 monai = "^1.3.2"
+transformers = "^4.42.4"
 
 
 [tool.poetry.group.dev.dependencies]
