@@ -1,5 +1,5 @@
 # TODO: CLI autocomplete is currently quite slow
-from bioimage_embed import BioImageEmbed, Config
+from . import BioImageEmbed, Config
 
 from omegaconf import OmegaConf
 from hydra import compose, initialize

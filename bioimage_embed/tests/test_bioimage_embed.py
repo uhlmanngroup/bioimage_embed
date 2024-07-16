@@ -1,11 +1,11 @@
-from .. import bioimage_embed
+from .. import bie
 import pytest
 import torch
-
+from ..bie import BioImageEmbed
 
 @pytest.fixture()
 def test_bioimage_embed():
-    bie = bioimage_embed.BioImageEmbed()
+    bie = BioImageEmbed()
     bie.train()
     bie.infer()
     bie.validate()

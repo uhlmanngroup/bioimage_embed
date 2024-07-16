@@ -6,7 +6,7 @@ from .lightning import AESupervised, AEUnsupervised, AE,  AutoEncoderSupervised,
 
 # TODO: Fix this import as it currently produces too many warnings
 from .models import ModelFactory, create_model
-from .bioimage_embed import BioImageEmbed
+from .bie import BioImageEmbed
 from .config import Config
 from . import augmentations
 

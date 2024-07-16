@@ -1,5 +1,6 @@
 from .. import config
-from .. import bioimage_embed
+from .. import bie
+from ..bie import BioImageEmbed
 import pytest
 from hydra.utils import instantiate
 from torchvision.datasets import FakeData
@@ -56,7 +57,7 @@ def test_resolve(bie):
 
 @pytest.fixture
 def bie(cfg):
-    return bioimage_embed.BioImageEmbed(cfg)
+    return BioImageEmbed(cfg)
 
 
 def test_model_check(bie):

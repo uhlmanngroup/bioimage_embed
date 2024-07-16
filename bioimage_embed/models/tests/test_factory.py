@@ -1,7 +1,19 @@
-from bioimage_embed.models import create_model
 import pytest
 import torch
+import pytorch_lightning as pl
 from bioimage_embed.models import MODELS
+from bioimage_embed.lightning import (
+    DataModule,
+    AESupervised,
+    AEUnsupervised,
+)
+from bioimage_embed.models import create_model
+from torch.utils.data import TensorDataset
+
+
+torch.manual_seed(42)
+
+
 image_dim = [(256, 256), (224, 224)]
 channel_dim = [
     3,
