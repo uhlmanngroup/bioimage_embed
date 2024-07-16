@@ -4,7 +4,7 @@ import pytest
 from hydra.utils import instantiate
 from torchvision.datasets import FakeData
 from torchvision import transforms
-
+from omegaconf import OmegaConf
 schema_map = config.__schemas__
 schemas = list(schema_map.values())
 
@@ -14,12 +14,10 @@ def test_schema(Schema):
     Schema()
 
 
-@pytest.mark.skip(
-    reason="The receipe is tool complicated with the default values for this to work"
-)
 @pytest.mark.parametrize("Schema", schemas)
 def test_instantiate(Schema):
-    obj = instantiate(Schema())
+    schema = config.resolve_schema(Schema())
+    obj = instantiate(schema)
     assert obj is not None, "obj should not be None"
 
 @pytest.fixture
