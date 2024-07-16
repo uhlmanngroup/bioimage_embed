@@ -224,24 +224,42 @@ class AutoEncoderUnsupervised(AutoEncoder):
 class AEUnsupervised(AutoEncoder):
     pass
 
-# TODO check logic
 def create_label_based_pairs(
     features: torch.Tensor, labels: torch.Tensor
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Create positive pairs based on labels.
+    
+    Args:
+    features: Tensor of shape (b, latent_dim)
+    labels: Tensor of shape (b, 1)
+    
+    Returns:
+    tuple of two tensors, each of shape (n, latent_dim), where n is the number of pairs
     """
+    labels = labels.squeeze()  # Convert (b, 1) to (b,)
     unique_labels = torch.unique(labels)
+    
+    if len(unique_labels) == 1:
+        return torch.empty(0, features.size(1)), torch.empty(0, features.size(1))
+    
     positive_pairs = []
+    
     for label in unique_labels:
         mask = labels == label
-        if mask.sum() > 1:  # We need at least 2 samples of the same class
-            class_samples = features[mask]
-            positive_pairs.append(class_samples)
-
-    input_pairs = torch.cat([pair[::2] for pair in positive_pairs])
-    target_pairs = torch.cat([pair[1::2] for pair in positive_pairs])
-
+        class_samples = features[mask]
+        if class_samples.size(0) > 1:  # We need at least 2 samples of the same class
+            # Create all possible pairs within this class
+            num_samples = class_samples.size(0)
+            pairs = torch.combinations(torch.arange(num_samples), r=2)
+            positive_pairs.append((class_samples[pairs[:, 0]], class_samples[pairs[:, 1]]))
+    
+    if not positive_pairs:
+        return torch.empty(0, features.size(1)), torch.empty(0, features.size(1))
+    
+    input_pairs = torch.cat([pair[0] for pair in positive_pairs])
+    target_pairs = torch.cat([pair[1] for pair in positive_pairs])
+    
     return input_pairs, target_pairs
 
 class AutoEncoderSupervised(AutoEncoder):
