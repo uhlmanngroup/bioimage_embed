@@ -82,8 +82,11 @@ class Transform:
 @dataclass
 class Dataset:
     _target_: str = "torch.utils.data.Dataset"
-    transform: Transform = Field(default_factory=Transform)
+    transform: Any = Field(default_factory=Transform)
 
+@dataclass
+class FakeDataset(Dataset):
+    _target_: str = "torchvision.datasets.FakeData"
 
 @dataclass
 class ImageFolderDataset(Dataset):
