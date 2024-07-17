@@ -8,7 +8,6 @@ from .lightning import DataModule
 from hydra.utils import instantiate
 from torch.autograd import Variable
 from pytorch_lightning import seed_everything
-from omegaconf import OmegaConf
 from . import utils, config
 
 logging.basicConfig(level=logging.INFO)
@@ -49,16 +48,19 @@ class BioImageEmbed:
         data = dataloader.dataset[0][0].unsqueeze(0)
         assert self.icfg.lit_model(data)
         logging.info("Model Check Passed")
+        return self
 
     def trainer_check(self):
         trainer = instantiate(self.ocfg.trainer, fast_dev_run=True, accelerator="cpu")
         trainer.test(self.icfg.lit_model, self.icfg.dataloader)
         logging.info("Trainer Check Passed")
+        return self
 
     def trainer_check_fit(self):
         trainer = instantiate(self.ocfg.trainer, fast_dev_run=True)
         trainer.fit(self.icfg.lit_model, self.icfg.dataloader)
         logging.info("Trainer Check Passed")
+        return self
 
     # TODO fix resume
     def make_dirs(self):
@@ -71,54 +73,84 @@ class BioImageEmbed:
                 return callback.last_model_path
 
     def train(self, resume: bool = True):
-        # Find this dynamically
-        # chkpt_callbacks = self.icfg.trainer.callbacks[-1]
-        # chkpt_callbacks = self.find_checkpoint()
-
+        # FYI
         # last_checkpoint = chkpt_callbacks.last_model_path
         # best_checkpoint_path = chkpt_callbacks.best_model_path
-        # TODO better than try except
-        try:
-            self.icfg.trainer.fit(
-                self.icfg.lit_model,
-                datamodule=self.icfg.dataloader,
-                ckpt_path="last",
-            )
-        except:
-            self.icfg.trainer.fit(self.icfg.lit_model, datamodule=self.icfg.dataloader)
+
+        # TODO add tests for checkpointing (properply)
+        return self._train()
+
+    def train_resume(self):
+        return self.train("last")
+
+    def _train(self, ckpt_path=None):
+        self.icfg.trainer.fit(
+            self.icfg.lit_model,
+            datamodule=self.icfg.dataloader,
+            ckpt_path=ckpt_path,
+        )
+        return self
 
     def validate(self):
-        validation = self.icfg.trainer.validate(
-            self.lit_model, datamodule=self.dataloader
-        )
-
-    def test(self):
-        testing = self.icfg.trainer.test(
+        assert self.icfg.trainer.validate(
             self.icfg.lit_model, datamodule=self.icfg.dataloader
         )
+        return self
 
-    def __call__(self, x):
-        return self.icfg.lit_model(x)
+    def test(self):
+        assert self.icfg.trainer.test(
+            self.icfg.lit_model, datamodule=self.icfg.dataloader
+        )
+        return self
 
-    def infer(self):
+    def __call__(self, x, ckpt_path="best"):
         dataloader = DataModule(
-            self.icfg.dataset,
+            x,
             batch_size=1,
             shuffle=False,
             num_workers=self.icfg.receipe.num_workers,
             # TODO: Add transform here if batch_size > 1 assuming averaging?
             # Transform is commented here to avoid augmentations in real data
             # HOWEVER, applying a the transform multiple times and averaging the results might produce better latent embeddings
-            # transform=transform,
+            # transform=self.cfg.transform,
         )
         # dataloader.setup()
-        predictions = self.icfg.trainer.predict(
-            self.icfg.lit_model, datamodule=dataloader
+        return self.icfg.trainer.predict(
+            self.icfg.lit_model,
+            datamodule=dataloader,
+            ckpt_path=ckpt_path,
         )
-        return predictions
+
+        # return self.icfg.lit_model(x)
+
+    def forward(self, x):
+        self.icfg.lit_model(x)
+
+    def infer(self, ckpt_path="best"):
+        return self(self.icfg.dataset, ckpt_path)
+
+        # dataloader = DataModule(
+
+        #     batch_size=1,
+        #     shuffle=False,
+        #     num_workers=self.icfg.receipe.num_workers,
+        #     # TODO: Add transform here if batch_size > 1 assuming averaging?
+        #     # Transform is commented here to avoid augmentations in real data
+        #     # HOWEVER, applying a the transform multiple times and averaging the results might produce better latent embeddings
+        #     # transform=self.cfg.transform,
+        # )
+        # # dataloader.setup()
+        # return self.icfg.trainer.predict(
+        #     self.icfg.lit_model,
+        #     datamodule=dataloader,
+        #     ckpt_path=ckpt_path,
+        # )
 
     def export(self):
-        example_input = Variable(torch.rand(1, *self.cfg.recipe.input_dim))
+        # TODO export best model to onnx
+        data = torch.rand(1, *self.cfg.recipe.input_dim)
+        assert self(data)
+        example_input = Variable()
         self.icfg.lit_model.to_onnx(
             f"{self.icfg.uuid}.onnx",
             example_input,
