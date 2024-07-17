@@ -9,7 +9,7 @@ from hydra.utils import instantiate
 from torch.autograd import Variable
 from pytorch_lightning import seed_everything
 from omegaconf import OmegaConf
-from . import utils
+from . import utils, config
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,8 +28,7 @@ class BioImageEmbed:
         Resolves the config using omegaconf,
         without the flag this will crash with mixed types
         """
-        self.ocfg = OmegaConf.structured(self.cfg, flags={"allow_objects": True})
-        OmegaConf.resolve(self.ocfg)
+        self.ocfg = config.resolve_config(self.cfg)
         return self.ocfg
 
     def checkpoint_hash(self):

@@ -234,3 +234,12 @@ def resolve_schema(schema):
     cfg = OmegaConf.structured(Config())
     schema = OmegaConf.structured(schema,parent=cfg)
     return schema
+
+def resolve_config(cfg):
+    """
+    Resolves the config using omegaconf,
+    without the flag this will crash with mixed types
+    """
+    ocfg = OmegaConf.structured(cfg, flags={"allow_objects": True})
+    OmegaConf.resolve(ocfg)
+    return ocfg
