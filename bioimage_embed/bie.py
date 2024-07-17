@@ -28,8 +28,7 @@ class BioImageEmbed:
         Resolves the config using omegaconf,
         without the flag this will crash with mixed types
         """
-        self.ocfg = OmegaConf.structured(self.cfg,
-                                         flags={"allow_objects": True}) 
+        self.ocfg = OmegaConf.structured(self.cfg, flags={"allow_objects": True})
         OmegaConf.resolve(self.ocfg)
         return self.ocfg
 
@@ -53,7 +52,7 @@ class BioImageEmbed:
         logging.info("Model Check Passed")
 
     def trainer_check(self):
-        trainer = instantiate(self.ocfg.trainer, fast_dev_run=True,accelerator="cpu")
+        trainer = instantiate(self.ocfg.trainer, fast_dev_run=True, accelerator="cpu")
         trainer.test(self.icfg.lit_model, self.icfg.dataloader)
         logging.info("Trainer Check Passed")
 
