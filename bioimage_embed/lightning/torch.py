@@ -19,6 +19,7 @@ variational_loss -> loss - recon_loss
 
 """
 
+
 class AutoEncoder(pl.LightningModule):
     args = argparse.Namespace(
         opt="adamw",
@@ -86,9 +87,7 @@ class AutoEncoder(pl.LightningModule):
         self.log_dict(
             {
                 "loss/train": loss,
-                "mse/train": F.mse_loss(
-                    model_output.recon_x, model_output.data
-                ),
+                "mse/train": F.mse_loss(model_output.recon_x, model_output.data),
             },
             # on_step=True,
             on_epoch=True,
@@ -217,8 +216,10 @@ class AutoEncoder(pl.LightningModule):
             self.global_step,
         )
 
+
 class AE(AutoEncoder):
     pass
+
 
 class AutoEncoderUnsupervised(AutoEncoder):
     pass
@@ -227,27 +228,28 @@ class AutoEncoderUnsupervised(AutoEncoder):
 class AEUnsupervised(AutoEncoder):
     pass
 
+
 def create_label_based_pairs(
     features: torch.Tensor, labels: torch.Tensor
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Create positive pairs based on labels.
-    
+
     Args:
     features: Tensor of shape (b, latent_dim)
     labels: Tensor of shape (b, 1)
-    
+
     Returns:
     tuple of two tensors, each of shape (n, latent_dim), where n is the number of pairs
     """
     labels = labels.squeeze()  # Convert (b, 1) to (b,)
     unique_labels = torch.unique(labels)
-    
+
     if len(unique_labels) == 1:
         return torch.empty(0, features.size(1)), torch.empty(0, features.size(1))
-    
+
     positive_pairs = []
-    
+
     for label in unique_labels:
         mask = labels == label
         class_samples = features[mask]
@@ -255,19 +257,21 @@ def create_label_based_pairs(
             # Create all possible pairs within this class
             num_samples = class_samples.size(0)
             pairs = torch.combinations(torch.arange(num_samples), r=2)
-            positive_pairs.append((class_samples[pairs[:, 0]], class_samples[pairs[:, 1]]))
-    
+            positive_pairs.append(
+                (class_samples[pairs[:, 0]], class_samples[pairs[:, 1]])
+            )
+
     if not positive_pairs:
         return torch.empty(0, features.size(1)), torch.empty(0, features.size(1))
-    
+
     input_pairs = torch.cat([pair[0] for pair in positive_pairs])
     target_pairs = torch.cat([pair[1] for pair in positive_pairs])
-    
+
     return input_pairs, target_pairs
+
 
 class AutoEncoderSupervised(AutoEncoder):
     criteron = losses.ContrastiveLoss()
-
 
     def loss_function(self, model_output, batch_idx):
         # x, y = batch
@@ -276,18 +280,17 @@ class AutoEncoderSupervised(AutoEncoder):
         # Scale is used as the rest of the loss functions are sums rather than means, which may mean we need to scale up the contrastive loss
 
         scale = torch.prod(torch.tensor(model_output.z.shape[1:]))
-        pairs = create_label_based_pairs(
-            model_output.z.squeeze(), model_output.target
-        )
+        pairs = create_label_based_pairs(model_output.z.squeeze(), model_output.target)
         contrastive_loss = self.criteron(*pairs)
         loss["contrastive_loss"] = scale * contrastive_loss
         loss["loss"] += loss["contrastive_loss"]
         return loss
 
+
 class AESupervised(AutoEncoderSupervised):
     pass
 
+
 class NDAutoEncoder(AESupervised):
     def batch_to_xy(self, batch):
-        x,y = super().batch_to_xy(batch)
-
+        x, y = super().batch_to_xy(batch)
