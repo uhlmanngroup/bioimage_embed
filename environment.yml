@@ -16,4 +16,4 @@ dependencies:
 - pip
 - conda-forge::opencv
 - pip:
-  - -e .
+  - -e .[dev]
