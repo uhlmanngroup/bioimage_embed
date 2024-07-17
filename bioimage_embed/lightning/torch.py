@@ -6,15 +6,18 @@ from types import SimpleNamespace
 import argparse
 from transformers.utils import ModelOutput
 import torch.nn.functional as F
+from monai import losses
 
-# x_recon -> output of the model
-# z -> latent space
-# data -> input to the model
-# target -> target for supervised learning
-# recon_loss -> reconstruction loss
-# loss -> total loss
-# variational_loss -> loss - recon_loss
+"""
+x_recon -> output of the model
+z -> latent space
+data -> input to the model
+target -> target for supervised learning
+recon_loss -> reconstruction loss
+loss -> total loss
+variational_loss -> loss - recon_loss
 
+"""
 
 class AutoEncoder(pl.LightningModule):
     args = argparse.Namespace(
