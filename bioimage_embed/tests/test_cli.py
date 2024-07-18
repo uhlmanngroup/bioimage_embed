@@ -27,15 +27,12 @@ def config_path(config_dir, config_file):
 def config_directory_setup(config_dir, config_file, config_path):
     if config_path.is_file():
         config_path.unlink()
-
+    if config_path.parent.is_dir():
+        config_path.parent.rmdir()
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
     yield config_dir, config_file, config_path
 
-    if config_path.is_file():
-        config_path.unlink()
-    if config_dir.is_dir():
-        config_dir.rmdir()
 
 
 def test_write_default_config_file(
