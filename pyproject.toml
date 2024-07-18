@@ -1,6 +1,5 @@
 [tool.poetry]
 name = "bioimage_embed"
-version = "0.1.1"
 description = ""
 authors = ["Craig <ctr26@ebi.ac.uk>"]
 packages = [{include = "bioimage_embed"}]
@@ -65,9 +64,8 @@ pre-commit = "^3.7.1"
 isort = "^5.13.2"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
