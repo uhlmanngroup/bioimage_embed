@@ -121,6 +121,7 @@ def hydra_cfg():
         cfg.dataloader.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
         return cfg
 
+
 # TODO double check this is sensible
 @pytest.fixture
 def cfg():
@@ -132,6 +133,7 @@ def cfg():
 @pytest.mark.skip("Computationally heavy")
 def test_train(cfg):
     cli.train(cfg)
+
 
 @pytest.mark.skip("Computationally heavy")
 def test_check(cfg):
