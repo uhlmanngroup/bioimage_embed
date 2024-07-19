@@ -1,11 +1,10 @@
-from .. import bioimage_embed
 import pytest
 import torch
+from ..bie import BioImageEmbed
 
 @pytest.fixture()
-
 def test_bioimage_embed():
-    bie = bioimage_embed.BioImageEmbed()
+    bie = BioImageEmbed()
     bie.train()
     bie.infer()
     bie.validate()
@@ -13,4 +12,3 @@ def test_bioimage_embed():
     tensor = bie.model(torch.tensor([1, 2, 3, 4, 5]))
 
     bie.model(torch.tensor([1, 2, 3, 4, 5]))
-

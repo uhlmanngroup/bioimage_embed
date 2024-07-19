@@ -7,6 +7,7 @@ from .. import config
 
 runner = CliRunner()
 
+
 @pytest.fixture
 def config_dir():
     return "test_conf"
@@ -26,15 +27,14 @@ def config_path(config_dir, config_file):
 def config_directory_setup(config_dir, config_file, config_path):
     if config_path.is_file():
         config_path.unlink()
-
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-
-    yield config_dir, config_file, config_path
-
+    config_dir = config_path.parent
+    config_dir.mkdir(parents=True, exist_ok=True)
     if config_path.is_file():
         config_path.unlink()
     if config_dir.is_dir():
         config_dir.rmdir()
+
+    yield config_dir, config_file, config_path
 
 
 def test_write_default_config_file(
@@ -78,6 +78,7 @@ def test_hydra():
     cfg.recipe.model = "resnet18_vae"
     cfg.recipe.max_epochs = 1
 
+
 # def test_cli():
 #     # This test checks if the CLI correctly handles the dataset target input
 #     result = runner.invoke(app, ["bie_train", "--dataset-target", "bioimage_embed.datasets.FakeImageFolder"])
@@ -99,25 +100,41 @@ def test_hydra():
 #     assert config["config_file"] == config_file, "Config file should match"
 #     assert config["job_name"] == job_name, "Job name should match"
 
+
 def test_init_hydra_with_invalid_config_dir():
     with pytest.raises(Exception):
         cli.init_hydra(config_dir="invalid_dir")
+
 
 def test_init_hydra_with_invalid_config_file():
     with pytest.raises(Exception):
         cli.init_hydra(config_file="invalid_config.yaml")
 
+
 @pytest.fixture
 def hydra_cfg():
     with initialize(config_path="."):
-        cfg = compose(config_name="config", overrides=[
-            'dataloader.dataset._target_=bioimage_embed.datasets.FakeImageFolder'
-        ])
+        # cfg = compose(config_name="config", overrides=[
+        #     'dataloader.dataset._target_=bioimage_embed.datasets.FakeImageFolder'
+        # ])
+        cfg = compose(config_name="config")
+        cfg.dataloader.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
         return cfg
 
-@pytest.mark.skip("Computationally heavy")
-def test_train(hydra_cfg):
-    cli.train(hydra_cfg)
 
-def test_check(hydra_cfg):
-    cli.check(hydra_cfg)
+# TODO double check this is sensible
+@pytest.fixture
+def cfg():
+    cfg = config.Config()
+    cfg.dataloader.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
+    return cfg
+
+
+@pytest.mark.skip("Computationally heavy")
+def test_train(cfg):
+    cli.train(cfg)
+
+
+@pytest.mark.skip("Computationally heavy")
+def test_check(cfg):
+    cli.check(cfg)

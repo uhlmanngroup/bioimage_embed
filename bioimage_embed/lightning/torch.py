@@ -4,11 +4,20 @@ import pytorch_lightning as pl
 from timm import optim, scheduler
 from types import SimpleNamespace
 import argparse
-from pythae.models.base.base_utils import ModelOutput
+from transformers.utils import ModelOutput
 import torch.nn.functional as F
+from monai import losses
 
-_channel_aware_losses = [None]
-_3c_model_classes = [None]
+"""
+x_recon -> output of the model
+z -> latent space
+data -> input to the model
+target -> target for supervised learning
+recon_loss -> reconstruction loss
+loss -> total loss
+variational_loss -> loss - recon_loss
+
+"""
 
 
 class AutoEncoder(pl.LightningModule):
@@ -47,42 +56,38 @@ class AutoEncoder(pl.LightningModule):
         self.decoder = self.model.decoder
         if args:
             self.args = SimpleNamespace(**{**vars(args), **vars(self.args)})
-        # if kwargs:
-        # merged_kwargs = {k: v for d in kwargs.values() for k, v in d.items()}
-        # self.args = SimpleNamespace(**{**merged_kwargs, **vars(self.args)})
         self.save_hyperparameters(vars(self.args))
+        # TODO update all models to use this for export to onxx
+        # self.example_input_array = torch.randn(1, *self.model.input_dim)
         # self.model.train()
 
-    def forward(self, batch):
-        x = self.batch_to_tensor(batch)
-        return ModelOutput(x=x, out=self.model(x))
+    def forward(self, x):
+        # batch = self.training_batch(x)
+        batch = ModelOutput(data=x.float())
+        return self.model(batch)
 
-    def get_results(self, batch):
-        x = self.batch_to_tensor(batch)
-        return self.model.forward(x)
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        # model_input = self.training_batch(batch)
+        # model_output = self(x)
+        # Add the target to the model output
+        # model_output.data, model_output.target = batch
+        return self(batch)
 
-    def batch_to_tensor(self, batch):
-        raise NotImplementedError
+    # Function is redundant ?
+    def training_batch(self, batch, batch_idx):
+        x, y = batch
+        return ModelOutput(data=x.float(), target=y)
 
-    def embedding_from_output(self, model_output):
+    def embedding(self, model_output: ModelOutput):
         return model_output.z.view(model_output.z.shape[0], -1)
-
-    def get_model_output(self, x, batch_idx):
-        model_output = self.model(x, epoch=batch_idx)
-        loss = self.loss_function(model_output)
-        return model_output, loss
 
     def training_step(self, batch, batch_idx):
         self.model.train()
-        x = self.batch_to_tensor(batch)
-        model_output, loss = self.get_model_output(
-            x,
-            batch_idx,
-        )
+        loss, model_output = self.eval_step(batch, batch_idx)
         self.log_dict(
             {
                 "loss/train": loss,
-                "mse/train": F.mse_loss(model_output.recon_x, x["data"]),
+                "mse/train": F.mse_loss(model_output.recon_x, model_output.data),
             },
             # on_step=True,
             on_epoch=True,
@@ -90,14 +95,14 @@ class AutoEncoder(pl.LightningModule):
             logger=True,
         )
         if isinstance(self.logger, pl.loggers.TensorBoardLogger):
-            self.log_tensorboard(model_output, x)
+            self.log_tensorboard(model_output, model_output.data)
         return loss
 
-    def loss_function(self, model_output, *args, **kwargs):
+    def loss_function(self, model_output, batch_idx, *args, **kwargs):
         return {
             "loss": model_output.loss,
             "recon_loss": model_output.recon_loss,
-            "variational_loss":  model_output.loss-model_output.recon_loss,
+            "variational_loss": model_output.loss - model_output.recon_loss,
         }
 
     # def logging_step(self, z, loss, x, model_output, batch_idx):
@@ -116,16 +121,39 @@ class AutoEncoder(pl.LightningModule):
     #     )
 
     def validation_step(self, batch, batch_idx):
-        x = self.batch_to_tensor(batch)
-        model_output, loss = self.get_model_output(x, batch_idx)
-        z = self.embedding_from_output(model_output)
+        # x, y = batch
+        loss, model_output = self.eval_step(batch, batch_idx)
         self.log_dict(
             {
                 "loss/val": loss,
-                "mse/val": F.mse_loss(model_output.recon_x, x["data"]),
+                "mse/val": F.mse_loss(model_output.recon_x, model_output.data),
             }
         )
         return loss
+
+    def test_step(self, batch, batch_idx):
+        # x, y = batch
+        loss, model_output = self.eval_step(batch, batch_idx)
+        self.log_dict(
+            {
+                "loss/test": loss,
+                "mse/test": F.mse_loss(model_output.recon_x, model_output.data),
+            }
+        )
+        return loss
+
+    # Fangless function to be overloaded later
+    def batch_to_xy(self, batch):
+        x, y = batch
+        return x, y
+
+    def eval_step(self, batch, batch_idx):
+        x, y = self.batch_to_xy(batch)
+        model_output = self.predict_step(x, batch_idx)
+        model_output.data = x
+        model_output.target = y
+        loss = self.loss_function(model_output, batch_idx)
+        return loss, model_output
 
     # def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
     #     # Implement your own logic for updating the lr scheduler
@@ -160,35 +188,26 @@ class AutoEncoder(pl.LightningModule):
     def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
         scheduler.step(epoch=self.current_epoch, metric=metric)
 
-    # def configure_optimizers(self):
-    #     optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
-    #     return optimizer
-
     def test_step(self, batch, batch_idx):
-        x = self.batch_to_tensor(batch)
-        model_output = self.model(x)  # Forward pass with the test batch
-
-        # Optionally compute a loss or metric if relevant
-        loss = self.loss_function(model_output)
-
+        loss, model_output = self.eval_step(batch, batch_idx)
         # Log test metrics
         self.log_dict(
             {
                 "loss/test": loss,
-                "mse/test": F.mse_loss(model_output.recon_x, x["data"]),
+                "mse/test": F.mse_loss(model_output.recon_x, model_output.data),
             }
         )
 
         return loss
-    
+
     def log_wandb(self):
         pass
-    
+
     def log_tensorboard(self, model_output, x):
         # Optionally you can add more logging, for example, visualizations:
         self.logger.experiment.add_image(
             "test_input",
-            torchvision.utils.make_grid(x["data"]),
+            torchvision.utils.make_grid(model_output.data),
             self.global_step,
         )
         self.logger.experiment.add_image(
@@ -197,11 +216,81 @@ class AutoEncoder(pl.LightningModule):
             self.global_step,
         )
 
+
+class AE(AutoEncoder):
+    pass
+
+
 class AutoEncoderUnsupervised(AutoEncoder):
-    def batch_to_tensor(self, batch: torch.Tensor):
-        return ModelOutput(data=batch.float())
- 
+    pass
+
+
+class AEUnsupervised(AutoEncoder):
+    pass
+
+
+def create_label_based_pairs(
+    features: torch.Tensor, labels: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Create positive pairs based on labels.
+
+    Args:
+    features: Tensor of shape (b, latent_dim)
+    labels: Tensor of shape (b, 1)
+
+    Returns:
+    tuple of two tensors, each of shape (n, latent_dim), where n is the number of pairs
+    """
+    labels = labels.squeeze()  # Convert (b, 1) to (b,)
+    unique_labels = torch.unique(labels)
+
+    if len(unique_labels) == 1:
+        return torch.empty(0, features.size(1)), torch.empty(0, features.size(1))
+
+    positive_pairs = []
+
+    for label in unique_labels:
+        mask = labels == label
+        class_samples = features[mask]
+        if class_samples.size(0) > 1:  # We need at least 2 samples of the same class
+            # Create all possible pairs within this class
+            num_samples = class_samples.size(0)
+            pairs = torch.combinations(torch.arange(num_samples), r=2)
+            positive_pairs.append(
+                (class_samples[pairs[:, 0]], class_samples[pairs[:, 1]])
+            )
+
+    if not positive_pairs:
+        return torch.empty(0, features.size(1)), torch.empty(0, features.size(1))
+
+    input_pairs = torch.cat([pair[0] for pair in positive_pairs])
+    target_pairs = torch.cat([pair[1] for pair in positive_pairs])
+
+    return input_pairs, target_pairs
+
+
 class AutoEncoderSupervised(AutoEncoder):
-    def batch_to_tensor(self, batch: tuple):
-        x,y = batch
-        return ModelOutput(data=x.float(), target=y)
+    criteron = losses.ContrastiveLoss()
+
+    def loss_function(self, model_output, batch_idx):
+        # x, y = batch
+        loss = super().loss_function(model_output, batch_idx)
+        # TODO check this
+        # Scale is used as the rest of the loss functions are sums rather than means, which may mean we need to scale up the contrastive loss
+
+        scale = torch.prod(torch.tensor(model_output.z.shape[1:]))
+        pairs = create_label_based_pairs(model_output.z.squeeze(), model_output.target)
+        contrastive_loss = self.criteron(*pairs)
+        loss["contrastive_loss"] = scale * contrastive_loss
+        loss["loss"] += loss["contrastive_loss"]
+        return loss
+
+
+class AESupervised(AutoEncoderSupervised):
+    pass
+
+
+class NDAutoEncoder(AESupervised):
+    def batch_to_xy(self, batch):
+        x, y = super().batch_to_xy(batch)

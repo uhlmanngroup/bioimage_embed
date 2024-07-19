@@ -12,6 +12,7 @@
 
 # from .bolts import ResNet18VAEEncoder, ResNet18VAEDecoder
 
+from typing import Tuple
 import pythae
 from .pythae import legacy
 from . import bolts
@@ -43,6 +44,7 @@ class ModelFactory:
             encoder=encoder,
             decoder=decoder,
         )
+
     def dummy_model(self):
         return self.create_model(
             pythae.models.VAEConfig,
@@ -50,6 +52,7 @@ class ModelFactory:
             lambda x: None,
             lambda x: None,
         )
+
     def resnet_vae_bolt(
         self,
         enc_type,
@@ -95,7 +98,7 @@ class ModelFactory:
                 pythae.models.VAEConfig,
                 use_default_encoder=False,
                 use_default_decoder=False,
-                **self.kwargs
+                **self.kwargs,
             ),
             pythae.models.VAE,
             bolts.ResNet18VAEEncoder,
@@ -108,7 +111,7 @@ class ModelFactory:
                 pythae.models.VAEConfig,
                 use_default_encoder=False,
                 use_default_decoder=False,
-                **self.kwargs
+                **self.kwargs,
             ),
             pythae.models.VAE,
             bolts.ResNet50VAEEncoder,
@@ -121,7 +124,7 @@ class ModelFactory:
                 pythae.models.VQVAEConfig,
                 use_default_encoder=False,
                 use_default_decoder=False,
-                **self.kwargs
+                **self.kwargs,
             ),
             pythae.models.VQVAE,
             bolts.ResNet18VQVAEEncoder,
@@ -134,7 +137,7 @@ class ModelFactory:
                 pythae.models.VQVAEConfig,
                 use_default_encoder=False,
                 use_default_decoder=False,
-                **self.kwargs
+                **self.kwargs,
             ),
             pythae.models.VQVAE,
             bolts.ResNet50VQVAEEncoder,
@@ -178,9 +181,10 @@ class ModelFactory:
 
     def resnet152_vqvae_legacy(self):
         return self.resnet_vqvae_legacy(152)
-    
+
     def __call__(self, model):
-       return getattr(self, model)()
+        return getattr(self, model)()
+
     #    return getattr(self
     #         (
     #             self.input_dim, self.latent_dim, self.pretrained, self.progress),
@@ -188,7 +192,8 @@ class ModelFactory:
     #         model,
     #     )
 
-MODELS = [
+
+__all_models__ = [
     "resnet18_vae",
     "resnet50_vae",
     "resnet18_vae_bolt",
@@ -205,7 +210,12 @@ MODELS = [
     "dummy_model",
 ]
 
-from typing import Tuple
+__all_small_models__ = [
+    "resnet18_vae",
+    "resnet18_vqvae",
+    "dummy_model",
+]
+
 
 
 def create_model(
@@ -214,8 +224,7 @@ def create_model(
     latent_dim: int,
     pretrained=False,
     progress=True,
-    **kwargs
+    **kwargs,
 ):
     factory = ModelFactory(input_dim, latent_dim, pretrained, progress, **kwargs)
     return getattr(factory, model)()
-

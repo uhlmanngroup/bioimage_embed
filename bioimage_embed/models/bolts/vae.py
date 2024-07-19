@@ -1,5 +1,5 @@
 from torch import nn
-from pythae.models.base.base_utils import ModelOutput
+from transformers.utils import ModelOutput
 from pythae.models.nn import BaseDecoder, BaseEncoder
 
 
@@ -20,7 +20,7 @@ class ResNet50VAEEncoder(BaseEncoder):
     ):
         super(ResNet50VAEEncoder, self).__init__()
 
-        input_height = model_config.input_dim[-2]
+        # input_height = model_config.input_dim[-2]
         latent_dim = model_config.latent_dim
 
         self.encoder = ae.resnet50_encoder(first_conv, maxpool1)
@@ -63,7 +63,7 @@ class ResNet18VAEEncoder(BaseEncoder):
     ):
         super(ResNet18VAEEncoder, self).__init__()
 
-        input_height = model_config.input_dim[-2]
+        # input_height = model_config.input_dim[-2]
         latent_dim = model_config.latent_dim
 
         self.encoder = ae.resnet18_encoder(first_conv, maxpool1)
@@ -123,14 +123,14 @@ class VAEPythaeWrapper(models.VAE):
         )
         self.encoder = self.model.encoder
         self.decoder = self.model.decoder
+        self.input_dim = self.model_config.input_dim
 
     def forward(self, x, epoch=None):
         # return ModelOutput(x=x,recon_x=x,z=x,loss=1)
         # # Forward pass logic
         x = x["data"]
-        x_recon = self.model(x)
+        # x_recon = self.model(x)
         z, recon_x, p, q = self.model._run_step(x)
         loss, logs = self.model.step((x, x), batch_idx=epoch)
         # recon_loss = self.model.reconstruction_loss(x, recon_x)
-        return ModelOutput(recon_x=recon_x, z=z, logs=logs, loss=loss,
-                           recon_loss=loss)
+        return ModelOutput(recon_x=recon_x, z=z, logs=logs, loss=loss, recon_loss=loss)

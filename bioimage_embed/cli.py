@@ -1,5 +1,5 @@
 # TODO: CLI autocomplete is currently quite slow
-from bioimage_embed import BioImageEmbed, Config
+from . import BioImageEmbed, Config
 
 from omegaconf import OmegaConf
 from hydra import compose, initialize
@@ -23,7 +23,6 @@ def write_default_config_file(config_path):
 # @hydra.main(config_path="conf", config_name="config")
 # def main(cfg: DictConfig):
 #     print(cfg)
-
 
 
 def init_hydra(config_dir="conf", config_file="config.yaml", job_name="bie"):
@@ -51,12 +50,13 @@ def infer():
 def train(cfg: Config):
     bie = BioImageEmbed(cfg)
     bie.train()
-    pass
+
 
 @hydra.main(config_path=".", config_name="config", version_base="1.1.0")
 def check(cfg: Config):
     bie = BioImageEmbed(cfg)
     bie.check()
+
 
 @hydra.main(config_path=".", config_name="config", version_base="1.1.0")
 def finetune(cfg: Config):

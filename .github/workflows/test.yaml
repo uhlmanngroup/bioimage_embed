@@ -33,7 +33,7 @@ jobs:
         swap-storage: true
     - uses: conda-incubator/setup-miniconda@v2
       with:
-        environment-file: environment.yml
+        environment-file: environment.dev.yml
         miniforge-variant: Mambaforge
         miniforge-version: latest
         mamba-version: "*"
