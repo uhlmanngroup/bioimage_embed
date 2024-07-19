@@ -1,5 +1,6 @@
 [tool.poetry]
 name = "bioimage_embed"
+version = "0.0.0"
 description = ""
 authors = ["Craig <ctr26@ebi.ac.uk>"]
 packages = [{include = "bioimage_embed"}]
@@ -61,6 +62,7 @@ pytest-cov = "^5.0.0"
 flake8 = "^7.0.0"
 pre-commit = "^3.7.1"
 isort = "^5.13.2"
+poetry-dynamic-versioning = "^1.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
@@ -69,7 +71,7 @@ build-backend = "poetry_dynamic_versioning.backend"
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q --ignore=env"
-pythonpath = ["src/chem"]
+pythonpath = ["bioimage_embed"]
 
 [flake8]
 max-line-length = 80
@@ -77,8 +79,6 @@ max-line-length = 80
 [tool.black]
 line-length = 80
 
-[tool.poetry.group.dev.dependencies]
-poetry-dynamic-versioning = "^1.0.0"
 
 [tool.poetry-dynamic-versioning]
 enable = true
