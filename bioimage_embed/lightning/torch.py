@@ -57,6 +57,8 @@ class LitAutoEncoderTorch(pl.LightningModule):
         # TODO update all models to use this for export to onxx
         # self.example_input_array = torch.randn(1, *self.model.input_dim)
         # self.model.train()
+        # keep a handle on metrics logged by the model
+        self.metrics = {}
 
     def forward(self, x: torch.Tensor) -> ModelOutput:
         """
@@ -112,42 +114,16 @@ class LitAutoEncoderTorch(pl.LightningModule):
         }
 
     def validation_step(self, batch, batch_idx):
-        model_output = self.eval_step(batch, batch_idx)
-        self.log_dict(
-            {
-                "loss/val": model_output.loss,
-                "mse/val": F.mse_loss(model_output.recon_x, model_output.data),
-                "recon_loss/val": model_output.recon_loss,
-                "variational_loss/val": model_output.loss - model_output.recon_loss,
-            }
-        )
-        return model_output.loss
-
-    def test_step(self, batch, batch_idx):
-        # x, y = batch
-        model_output = self.eval_step(batch, batch_idx)
-        self.log_dict(
-            {
-                "loss/test": model_output.loss,
-                "mse/test": F.mse_loss(model_output.recon_x, model_output.data),
-                "recon_loss/test": model_output.recon_loss,
-                "variational_loss/test": model_output.loss - model_output.recon_loss,
-            }
-        )
-        return model_output.loss
-
-    def batch_to_xy(self, batch):
-        """
-        Fangless function to be overloaded later
-        """
-        x, y = batch
-        return x, y
-
-    def eval_step(self, batch, batch_idx):
-        """
-        This function should be overloaded in the child class to implement the evaluation logic.
-        """
-        return self.predict_step(batch, batch_idx)
+        x = self.batch_to_tensor(batch)
+        model_output, loss = self.get_model_output(x, batch_idx)
+        z = self.embedding_from_output(model_output)
+        val_metrics ={
+            "loss/val": loss,
+            "mse/val": F.mse_loss(model_output.recon_x, x["data"]),
+        }
+        self.log_dict( val_metrics,)
+        self.metrics = {**self.metrics, **val_metrics}
+        return loss
 
     # def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
     #     # Implement your own logic for updating the lr scheduler
@@ -182,6 +158,27 @@ class LitAutoEncoderTorch(pl.LightningModule):
     def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
         scheduler.step(epoch=self.current_epoch, metric=metric)
 
+    # def configure_optimizers(self):
+    #     optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+    #     return optimizer
+
+    def test_step(self, batch, batch_idx):
+        x = self.batch_to_tensor(batch)
+        model_output = self.model(x)  # Forward pass with the test batch
+
+        # Optionally compute a loss or metric if relevant
+        loss = self.loss_function(model_output)
+
+        # Log test metrics
+        test_metrics = {
+            "loss/test": loss,
+            "mse/test": F.mse_loss(model_output.recon_x, x["data"]),
+        }
+        self.log_dict(test_metrics)
+        self.metrics = {**self.metrics, **test_metrics}
+
+        return loss
+    
     def log_wandb(self):
         pass
 
