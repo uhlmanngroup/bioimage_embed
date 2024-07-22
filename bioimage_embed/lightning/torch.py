@@ -49,6 +49,8 @@ class LitAutoEncoderTorch(pl.LightningModule):
         # self.args = SimpleNamespace(**{**merged_kwargs, **vars(self.args)})
         self.save_hyperparameters(vars(self.args))
         # self.model.train()
+        # keep a handle on metrics logged by the model
+        self.metrics = {}
 
     def forward(self, batch):
         x = self.batch_to_tensor(batch)
@@ -118,12 +120,12 @@ class LitAutoEncoderTorch(pl.LightningModule):
         x = self.batch_to_tensor(batch)
         model_output, loss = self.get_model_output(x, batch_idx)
         z = self.embedding_from_output(model_output)
-        self.log_dict(
-            {
-                "loss/val": loss,
-                "mse/val": F.mse_loss(model_output.recon_x, x["data"]),
-            }
-        )
+        val_metrics ={
+            "loss/val": loss,
+            "mse/val": F.mse_loss(model_output.recon_x, x["data"]),
+        }
+        self.log_dict( val_metrics,)
+        self.metrics = {**self.metrics, **val_metrics}
         return loss
 
     # def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
@@ -171,12 +173,12 @@ class LitAutoEncoderTorch(pl.LightningModule):
         loss = self.loss_function(model_output)
 
         # Log test metrics
-        self.log_dict(
-            {
-                "loss/test": loss,
-                "mse/test": F.mse_loss(model_output.recon_x, x["data"]),
-            }
-        )
+        test_metrics = {
+            "loss/test": loss,
+            "mse/test": F.mse_loss(model_output.recon_x, x["data"]),
+        }
+        self.log_dict(test_metrics)
+        self.metrics = {**self.metrics, **test_metrics}
 
         return loss
     
