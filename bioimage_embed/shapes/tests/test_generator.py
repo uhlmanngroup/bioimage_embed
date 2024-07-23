@@ -153,11 +153,11 @@ def test_generate(model, binary_mask_tensor, distance_matrix_tensor, window_size
     mask = AsymmetricDistogramToMaskPipeline(window_size)(np_dist)
 
     plt.imshow(binary_mask_tensor, cmap="gray")
-    plt.savefig("tests/test_generate_img_crop.png")
+    plt.savefig("/tmp/test_generate_img_crop.png")
     plt.close()
 
     plt.imshow(mask.transpose([0, 3, 2, 1])[0].astype(float))
-    plt.savefig("tests/test_generate_mask.png")
+    plt.savefig("/tmp/test_generate_mask.png")
     plt.close()
     assert mask is not None, "Generated mask is None"
 
