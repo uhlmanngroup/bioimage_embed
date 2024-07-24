@@ -117,6 +117,8 @@ class DataLoader:
     _target_: str = "bioimage_embed.lightning.dataloader.DataModule"
     dataset: Any = Field(default_factory=FakeDataset)
     num_workers: int = 1
+    batch_size: int = II("recipe.batch_size")
+    collate_fn: Any = None
 
 
 @dataclass
