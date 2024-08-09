@@ -28,6 +28,7 @@ from . import utils
 class Recipe:
     _target_: str = "types.SimpleNamespace"
     model: str = "resnet18_vae"
+    batch_size: int = 16
     data: str = "data"
     opt: str = "adamw"
     max_epochs: int = 125
