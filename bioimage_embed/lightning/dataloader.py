@@ -5,17 +5,19 @@ from typing import Tuple
 from functools import partial
 
 
-class SimpleCustomBatch:
-    def __init__(self, dataset):
-        self.dataset = dataset
-
-    # custom memory pinning method on custom type
-    def pin_memory(self):
-        self.dataset = self.dataset.pin_memory()
-        return self
-
-
 class DataModule(pl.LightningDataModule):
+    """
+    A PyTorch Lightning DataModule for handling dataset loading and splitting.
+
+    Attributes:
+        dataset: The dataset to be handled.
+        batch_size: The size of each batch.
+        num_workers: The number of workers for data loading.
+        pin_memory: Whether to use pinned memory for data loading.
+        drop_last: Whether to drop the last incomplete batch.
+        collate_fn: The function to use for collating data into batches.
+    """
+
     def __init__(
         self,
         dataset: Dataset,
@@ -25,6 +27,17 @@ class DataModule(pl.LightningDataModule):
         drop_last: bool = False,
         collate_fn=None,
     ):
+        """
+        Initializes the DataModule with the given dataset and parameters.
+
+        Args:
+            dataset: The dataset to be handled.
+            batch_size: The size of each batch. Default is 32.
+            num_workers: The number of workers for data loading. Default is 4.
+            pin_memory: Whether to use pinned memory for data loading. Default is False.
+            drop_last: Whether to drop the last incomplete batch. Default is False.
+            collate_fn: The function to use for collating data into batches. Default is None.
+        """
         super().__init__()
         self.dataset = dataset
         collate_fn = collate_fn if collate_fn else self.collate_filter_for_none
@@ -43,10 +56,25 @@ class DataModule(pl.LightningDataModule):
         self.setup()
 
     def collate_filter_for_none(self, batch):
+        """
+        Collate function that filters out None values from the batch.
+
+        Args:
+            batch: The batch to be filtered.
+
+        Returns:
+            The filtered batch.
+        """
         batch = list(filter(lambda x: x is not None, batch))
         return torch.utils.data.dataloader.default_collate(batch)
 
     def setup(self, stage=None):
+        """
+        Sets up the datasets by splitting the main dataset into train, validation, and test sets.
+
+        Args:
+            stage: The stage of the setup. Default is None.
+        """
         (
             self.train_dataset,
             self.val_dataset,
@@ -56,6 +84,18 @@ class DataModule(pl.LightningDataModule):
     def splitting(
         self, dataset: Dataset, split_train=0.8, split_val=0.1, seed=42
     ) -> Tuple[Dataset, Dataset, Dataset]:
+        """
+        Splits the dataset into train, validation, and test sets.
+
+        Args:
+            dataset: The dataset to be split.
+            split_train: The proportion of the dataset to be used for training. Default is 0.8.
+            split_val: The proportion of the dataset to be used for validation. Default is 0.1.
+            seed: The random seed for splitting the dataset. Default is 42.
+
+        Returns:
+            A tuple containing the train, validation, and test datasets.
+        """
         dataset_size = len(dataset)
         indices = list(range(dataset_size))
         train_size = int(split_train * dataset_size)
@@ -90,7 +130,20 @@ class DataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return self.init_dataloader(self.test_dataset, shuffle=False)
 
+    def predict_dataloader(self):
+        return self.init_dataloader(self.dataset, shuffle=False)
+
     def init_dataloader(self, dataset, shuffle=False):
+        """
+        Initializes a dataloader for the given dataset.
+
+        Args:
+            dataset: The dataset to be loaded.
+            shuffle: Whether to shuffle the dataset. Default is False.
+
+        Returns:
+            The dataloader for the dataset.
+        """
         return (
             self.dataloader(
                 dataset,
