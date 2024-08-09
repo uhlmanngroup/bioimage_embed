@@ -44,7 +44,6 @@ class AutoEncoder(pl.LightningModule):
         noise_seed=None,
         cooldown_epochs=5,
         warmup_t=0,
-        channel_aware=False,
     )
 
     def __init__(self, model, args=SimpleNamespace()):
@@ -62,11 +61,15 @@ class AutoEncoder(pl.LightningModule):
         # self.model.train()
 
     def forward(self, x):
-        return self.model(x)
+        batch = ModelOutput(data=x.float())
+        return self.model(batch)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         x, y = self.batch_to_xy(batch)
-        return ModelOutput(data=x.float(), target=y)
+        model_output = self.forward(x)
+        model_output.data = x
+        model_output.target = y
+        return model_output
 
     # Function is redundant ?
     def training_batch(self, batch, batch_idx):
