@@ -62,16 +62,11 @@ class AutoEncoder(pl.LightningModule):
         # self.model.train()
 
     def forward(self, x):
-        # batch = self.training_batch(x)
-        batch = ModelOutput(data=x.float())
-        return self.model(batch)
+        return self.model(x)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
-        # model_input = self.training_batch(batch)
-        # model_output = self(x)
-        # Add the target to the model output
-        # model_output.data, model_output.target = batch
-        return self(batch)
+        x, y = self.batch_to_xy(batch)
+        return ModelOutput(data=x.float(), target=y)
 
     # Function is redundant ?
     def training_batch(self, batch, batch_idx):
@@ -148,10 +143,7 @@ class AutoEncoder(pl.LightningModule):
         return x, y
 
     def eval_step(self, batch, batch_idx):
-        x, y = self.batch_to_xy(batch)
-        model_output = self.predict_step(x, batch_idx)
-        model_output.data = x
-        model_output.target = y
+        model_output = self.predict_step(batch, batch_idx)
         loss = self.loss_function(model_output, batch_idx)
         return loss, model_output
 
@@ -187,18 +179,6 @@ class AutoEncoder(pl.LightningModule):
 
     def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
         scheduler.step(epoch=self.current_epoch, metric=metric)
-
-    def test_step(self, batch, batch_idx):
-        loss, model_output = self.eval_step(batch, batch_idx)
-        # Log test metrics
-        self.log_dict(
-            {
-                "loss/test": loss,
-                "mse/test": F.mse_loss(model_output.recon_x, model_output.data),
-            }
-        )
-
-        return loss
 
     def log_wandb(self):
         pass
