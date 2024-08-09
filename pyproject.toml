@@ -55,7 +55,7 @@ transformers = "^4.42.4"
 torch = "^2.3.1"
 torchvision = "^0.18.1"
 wandb = "^0.17.4"
-jupytext = "^1.16.2"
+
 
 
 [tool.poetry.group.dev.dependencies]
@@ -69,6 +69,7 @@ isort = "^5.13.2"
 poetry-dynamic-versioning = "^1.0.0"
 # torch = {version = "^2.3.1+cpu", source = "pytorch-cpu"}
 # torchvision="0.18.1+cpu"
+jupytext = "^1.16.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
