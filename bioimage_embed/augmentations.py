@@ -45,9 +45,12 @@ class VisionWrapper:
         self.transform = A.from_dict(transform_dict)
 
     def __call__(self, image):
-        img = np.array(image)
-        transformed = self.transform(image=img)
-        return transformed["image"]
+        try:
+            img = np.array(image)
+            transformed = self.transform(image=img)
+            return transformed["image"]
+        except:
+            return None,None
 
 
 class VisionWrapperSupervised:

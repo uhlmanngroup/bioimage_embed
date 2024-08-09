@@ -13,6 +13,7 @@ from torch.utils.data import TensorDataset
 
 torch.manual_seed(42)
 
+
 @pytest.fixture(params=__all_models__)
 def model_name(request):
     return request.param
@@ -27,16 +28,22 @@ def image_dim():
 def channel_dim():
     return 3
 
+
 @pytest.fixture()
 def samples():
     return 32
+
 
 @pytest.fixture(params=[16])
 def latent_dim(request):
     return request.param
 
 
-@pytest.fixture(params=[4,])
+@pytest.fixture(
+    params=[
+        4,
+    ]
+)
 def batch_size(request):
     return request.param
 
@@ -49,6 +56,7 @@ def pretrained():
 @pytest.fixture()
 def progress():
     return True
+
 
 # TODO put this in a conftest.py file
 @pytest.fixture
@@ -72,19 +80,18 @@ def input_dim(image_dim, channel_dim):
 def data(input_dim):
     return torch.rand(*input_dim)
 
+
 @pytest.fixture()
-def dataset(samples, input_dim,classes=2):
+def dataset(samples, input_dim, classes=2):
     x = torch.rand(samples, *input_dim)
-    y = torch.torch.randint(classes-1,(samples,))
-    return TensorDataset(x,y)
+    y = torch.torch.randint(classes - 1, (samples,))
+    return TensorDataset(x, y)
 
 
-
-@pytest.fixture(
-    params=[AESupervised, AEUnsupervised]
-)
+@pytest.fixture(params=[AESupervised, AEUnsupervised])
 def lit_model(request, model):
     return request.param(model)
+
 
 # @pytest.mark.skip(reason="Dictionaries not allowed")
 # def test_export_onxx(data, lit_model):
@@ -92,12 +99,12 @@ def lit_model(request, model):
 
 
 @pytest.fixture()
-def dataloader(dataset, batch_size):
+def datamodule(dataset, batch_size):
     return DataModule(
         dataset,
         batch_size=batch_size,
         # shuffle=True,
-        num_workers=0, # This avoids processes being forked
+        num_workers=0,  # This avoids processes being forked
         pin_memory=False,
     )
 
@@ -109,27 +116,34 @@ def trainer():
         max_epochs=1,
     )
 
+
 @pytest.fixture()
 def model_torchscript(lit_model):
     return lit_model.to_torchscript()
 
-def test_trainer_test(trainer, lit_model, dataloader):
-    return trainer.test(lit_model, dataloader)
+
+def test_trainer_test(trainer, lit_model, datamodule):
+    return trainer.test(lit_model, datamodule)
 
 
 @pytest.mark.skip(reason="Expensive")
-def test_trainer_fit(trainer, lit_model, dataloader):
-    return trainer.fit(lit_model, dataloader)
+def test_trainer_fit(trainer, lit_model, datamodule):
+    return trainer.fit(lit_model, datamodule)
+
 
 @pytest.mark.skip(reason="needs batched data")
 def test_dataset_trainer(trainer, lit_model, dataset):
     return trainer.test(lit_model, dataset)
 
 
+def test_trainer_predict(trainer, lit_model, datamodule):
+    return trainer.predict(lit_model, datamodule)
+
+
 # Has to be a list not a tuple
 def test_export_onnx(lit_model, data):
     example_input = data.unsqueeze(0)
-    return lit_model.to_onnx("model.onnx",example_input,export_params=True)
+    return lit_model.to_onnx("model.onnx", example_input, export_params=True)
 
 
 @pytest.mark.skip(reason="models cant take in variable length args and kwargs")
