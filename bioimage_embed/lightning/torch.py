@@ -16,7 +16,6 @@ target -> target for supervised learning
 recon_loss -> reconstruction loss
 loss -> total loss
 variational_loss -> loss - recon_loss
-
 """
 
 
