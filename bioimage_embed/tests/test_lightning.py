@@ -104,10 +104,6 @@ def lit_model_wrapper(request):
     return request.param
 
 
-def lit_model(lit_model_wrapper, model):
-    return lit_model_wrapper(model)
-
-
 # @pytest.mark.skip(reason="Dictionaries not allowed")
 # def test_export_onxx(data, lit_model):
 #     return lit_model.to_onnx("model.onnx", data)
@@ -140,6 +136,11 @@ def model_torchscript(lit_model):
 @pytest.fixture()
 def lit_dummy_model(lit_model_wrapper, dummy_model):
     return lit_model_wrapper(dummy_model)
+
+
+@pytest.fixture()
+def lit_model(lit_model_wrapper, model):
+    return lit_model_wrapper(model)
 
 
 def test_trainer_test(trainer, lit_model, datamodule):
