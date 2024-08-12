@@ -63,19 +63,17 @@ class AutoEncoder(pl.LightningModule):
         batch = ModelOutput(data=x.float())
         return self.model(batch)
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+    def predict_step(self, batch, batch_idx, dataloader_idx=0) -> ModelOutput:
+        return self.batch_to_tensor(batch, batch_idx)
+
+    def batch_to_tensor(self, batch, batch_idx) -> ModelOutput:
         x, y = self.batch_to_xy(batch)
         model_output = self.forward(x)
         model_output.data = x
         model_output.target = y
         return model_output
 
-    # Function is redundant ?
-    def training_batch(self, batch, batch_idx):
-        x, y = batch
-        return ModelOutput(data=x.float(), target=y)
-
-    def embedding(self, model_output: ModelOutput):
+    def embedding(self, model_output: ModelOutput) -> torch.Tensor:
         return model_output.z.view(model_output.z.shape[0], -1)
 
     def training_step(self, batch, batch_idx):
