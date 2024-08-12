@@ -72,6 +72,17 @@ def model(model_name, image_dim, channel_dim, latent_dim, pretrained, progress):
 
 
 @pytest.fixture()
+def dummy_model(channel_dim, image_dim, latent_dim):
+    return create_model(
+        "dummy_model",
+        input_dim=(channel_dim, *image_dim),
+        latent_dim=latent_dim,
+        pretrained=False,
+        progress=False,
+    )
+
+
+@pytest.fixture()
 def input_dim(image_dim, channel_dim):
     return (channel_dim, *image_dim)
 
@@ -122,8 +133,17 @@ def model_torchscript(lit_model):
     return lit_model.to_torchscript()
 
 
+@pytest.fixture(params=[AESupervised, AEUnsupervised])
+def lit_dummy_model(request, dummy_model):
+    return request.param(dummy_model)
+
+
 def test_trainer_test(trainer, lit_model, datamodule):
     return trainer.test(lit_model, datamodule)
+
+
+def test_trainer_dummy_model_fit(trainer, lit_dummy_model, datamodule):
+    return trainer.fit(lit_dummy_model, datamodule)
 
 
 @pytest.mark.skip(reason="Expensive")
