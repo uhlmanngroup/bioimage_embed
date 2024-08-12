@@ -64,9 +64,9 @@ class AutoEncoder(pl.LightningModule):
         return self.model(batch)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0) -> ModelOutput:
-        return self.batch_to_tensor(batch, batch_idx)
+        return self.batch_to_tensor(batch)
 
-    def batch_to_tensor(self, batch, batch_idx) -> ModelOutput:
+    def batch_to_tensor(self, batch) -> ModelOutput:
         x, y = self.batch_to_xy(batch)
         model_output = self.forward(x)
         model_output.data = x
