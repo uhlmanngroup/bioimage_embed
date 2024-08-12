@@ -32,6 +32,7 @@ DEFAULT_AUGMENTATION_LIST = [
     ),
     # Adjust image intensity with a specified range for individual channels
     A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+    A.ToFloat(),
     ToTensorV2(),
 ]
 
@@ -49,8 +50,8 @@ class VisionWrapper:
             img = np.array(image)
             transformed = self.transform(image=img)
             return transformed["image"]
-        except:
-            return None,None
+        except Exception:
+            return None, None
 
 
 class VisionWrapperSupervised:
