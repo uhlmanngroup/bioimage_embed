@@ -24,11 +24,11 @@ class MaskEmbed(AutoEncoderUnsupervised):
         """
         # x = batch[0].float()
         output = super().batch_to_tensor(batch)
-        normalised_data = output["data"]
+        normalised_data = output.data
         if self.args.frobenius_norm:
-            scalings = frobenius_norm_2D_torch(output["data"])
+            scalings = frobenius_norm_2D_torch(output.data)
         else:
-            scalings = torch.ones_like(output["data"])
+            scalings = torch.ones_like(output.data)
         return ModelOutput(data=normalised_data / scalings, scalings=scalings)
 
     def loss_function(self, model_output, *args, **kwargs):
@@ -53,7 +53,7 @@ class MaskEmbed(AutoEncoderUnsupervised):
         # loss += lf.triangle_inequality_loss(model_output.recon_x)
         # loss += lf.non_negative_loss(model_output.recon_x)
 
-        variational_loss = model_output.loss - model_output.recon_loss
+        # variational_loss = model_output.loss - model_output.recon_loss
 
         # loss_dict = {
         #     "loss": loss,
