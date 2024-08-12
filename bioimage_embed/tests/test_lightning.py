@@ -100,8 +100,12 @@ def dataset(samples, input_dim, classes=2):
 
 
 @pytest.fixture(params=[AESupervised, AEUnsupervised])
-def lit_model(request, model):
-    return request.param(model)
+def lit_model_wrapper(request):
+    return request.param
+
+
+def lit_model(lit_model_wrapper, model):
+    return lit_model_wrapper(model)
 
 
 # @pytest.mark.skip(reason="Dictionaries not allowed")
@@ -133,9 +137,9 @@ def model_torchscript(lit_model):
     return lit_model.to_torchscript()
 
 
-@pytest.fixture(params=[AESupervised, AEUnsupervised])
-def lit_dummy_model(request, dummy_model):
-    return request.param(dummy_model)
+@pytest.fixture()
+def lit_dummy_model(lit_model_wrapper, dummy_model):
+    return lit_model_wrapper(dummy_model)
 
 
 def test_trainer_test(trainer, lit_model, datamodule):
