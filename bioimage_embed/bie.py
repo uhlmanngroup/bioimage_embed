@@ -162,3 +162,4 @@ class BioImageEmbed:
     def check(self):
         self.model_check()
         self.trainer_check()
+        self.trainer_check_fit()
