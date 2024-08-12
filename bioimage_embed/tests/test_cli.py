@@ -69,14 +69,14 @@ def test_get_default_config(cfg):
 
 
 # @pytest.mark.skip("Computationally heavy")
-def test_hydra():
-    #  bie_train model.model="resnet50_vqvae" dataset._target_="bioimage_embed.datasets.FakeImageFolder"
-    input_dim = [3, 224, 224]
-    cfg = config.Config()
-    cfg.dataloader.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
-    cfg.dataloader.dataset.image_size = input_dim
-    cfg.recipe.model = "resnet18_vae"
-    cfg.recipe.max_epochs = 1
+# def test_hydra():
+#     #  bie_train model.model="resnet50_vqvae" dataset._target_="bioimage_embed.datasets.FakeImageFolder"
+#     input_dim = [3, 224, 224]
+#     cfg = config.Config()
+#     # cfg.dataloader.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
+#     # cfg.dataloader.dataset.image_size = input_dim
+#     cfg.recipe.model = "dummy_model"
+# cfg.recipe.max_epochs = 1
 
 
 # def test_cli():
@@ -114,11 +114,7 @@ def test_init_hydra_with_invalid_config_file():
 @pytest.fixture
 def hydra_cfg():
     with initialize(config_path="."):
-        # cfg = compose(config_name="config", overrides=[
-        #     'dataloader.dataset._target_=bioimage_embed.datasets.FakeImageFolder'
-        # ])
         cfg = compose(config_name="config")
-        cfg.dataloader.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
         return cfg
 
 
@@ -144,6 +140,5 @@ def test_train(cfg):
     cli.train(cfg)
 
 
-@pytest.mark.skip("Computationally heavy")
 def test_check(cfg):
     cli.check(cfg)
