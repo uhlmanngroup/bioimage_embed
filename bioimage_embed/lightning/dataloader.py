@@ -5,6 +5,26 @@ from typing import Tuple
 from functools import partial
 
 
+# https://stackoverflow.com/questions/74931838/cant-pickle-local-object-evaluationloop-advance-locals-batch-to-device-pyto
+class Collator:
+    def collate_filter_for_none(self, batch):
+        """
+        Collate function that filters out None values from the batch.
+
+        Args:
+            batch: The batch to be filtered.
+
+        Returns:
+            The filtered batch.
+        """
+        batch = list(filter(lambda x: x is not None, batch))
+        return torch.utils.data.dataloader.default_collate(batch)
+
+    def __call__(self, incoming):
+        # do stuff with incoming
+        return self.collate_filter_for_none(incoming)
+
+
 class DataModule(pl.LightningDataModule):
     """
     A PyTorch Lightning DataModule for handling dataset loading and splitting.
@@ -25,7 +45,6 @@ class DataModule(pl.LightningDataModule):
         num_workers: int = 4,
         pin_memory: bool = False,
         drop_last: bool = False,
-        collate_fn=None,
     ):
         """
         Initializes the DataModule with the given dataset and parameters.
@@ -40,33 +59,20 @@ class DataModule(pl.LightningDataModule):
         """
         super().__init__()
         self.dataset = dataset
-        collate_fn = collate_fn if collate_fn else self.collate_filter_for_none
+        self.collator = Collator()
         self.dataloader = partial(
             DataLoader,
             batch_size=batch_size,
             num_workers=num_workers,
             pin_memory=pin_memory,
             drop_last=drop_last,
-            collate_fn=collate_fn,
+            collate_fn=self.collator,
         )
 
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
         self.setup()
-
-    def collate_filter_for_none(self, batch):
-        """
-        Collate function that filters out None values from the batch.
-
-        Args:
-            batch: The batch to be filtered.
-
-        Returns:
-            The filtered batch.
-        """
-        batch = list(filter(lambda x: x is not None, batch))
-        return torch.utils.data.dataloader.default_collate(batch)
 
     def setup(self, stage=None):
         """
