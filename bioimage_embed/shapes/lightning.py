@@ -2,9 +2,8 @@ import torch
 import torchvision
 
 from torch import nn
-from ..lightning import AutoEncoderUnsupervised
+from ..lightning import AutoEncoderUnsupervised, AutoEncoderSupervised
 from . import loss_functions as lf
-from transformers.utils import ModelOutput
 from types import SimpleNamespace
 
 
@@ -25,11 +24,16 @@ class MaskEmbed(AutoEncoderUnsupervised):
         # x = batch[0].float()
         output = super().batch_to_tensor(batch)
         normalised_data = output.data
-        if self.args.frobenius_norm:
+
+        if hasattr(self.args, "frobenius_norm") and self.args.frobenius_norm:
             scalings = frobenius_norm_2D_torch(output.data)
         else:
             scalings = torch.ones_like(output.data)
-        return ModelOutput(data=normalised_data / scalings, scalings=scalings)
+
+        output.data = normalised_data / scalings
+        output.scalings = scalings
+
+        return output
 
     def loss_function(self, model_output, *args, **kwargs):
         loss_ops = lf.DistanceMatrixLoss(model_output.recon_x, norm=False)
@@ -62,6 +66,10 @@ class MaskEmbed(AutoEncoderUnsupervised):
         #     "variational_loss": variational_loss,
         # }
         return loss
+
+
+class MaskEmbedSupervised(AutoEncoderSupervised, MaskEmbed):
+    pass
 
 
 class FixedOutput(nn.Module):
