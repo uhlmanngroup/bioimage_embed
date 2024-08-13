@@ -124,6 +124,7 @@ class VAEPythaeWrapper(models.VAE):
         self.encoder = self.model.encoder
         self.decoder = self.model.decoder
         self.input_dim = self.model_config.input_dim
+        self.latent_dim = self.model_config.latent_dim
 
     def forward(self, x, epoch=None):
         # return ModelOutput(x=x,recon_x=x,z=x,loss=1)

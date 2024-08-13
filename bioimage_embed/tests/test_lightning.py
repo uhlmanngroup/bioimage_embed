@@ -161,8 +161,24 @@ def test_dataset_trainer(trainer, lit_model, dataset):
     return trainer.test(lit_model, dataset)
 
 
+def test_model_properties(model):
+    assert model.encoder is not None
+    assert model.decoder is not None
+    assert model.latent_dim is not None
+    assert model.input_dim is not None
+    assert model.model_name is not None
+    assert model.model_config is not None
+
+
 def test_trainer_predict(trainer, lit_model, datamodule):
-    return trainer.predict(lit_model, datamodule)
+    batch_size = datamodule.predict_dataloader().batch_size
+    latent_dim = lit_model.model.latent_dim
+    predictions = trainer.predict(lit_model, datamodule)
+    assert predictions is not None
+    assert len(predictions[0].z.flatten()) == batch_size * latent_dim
+    # TODO prefer
+    # assert list(predictions[0].z.shape) == [batch_size,latent_dim]
+    # assert len(list(predictions[0].z.shape)) == 2
 
 
 # Has to be a list not a tuple
