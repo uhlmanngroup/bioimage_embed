@@ -11,10 +11,7 @@ def frobenius_norm_2D_torch(tensor: torch.Tensor) -> torch.Tensor:
     return torch.norm(tensor, p="fro", dim=(-2, -1), keepdim=True)
 
 
-class MaskEmbed(AutoEncoderUnsupervised):
-    def __init__(self, model, args=SimpleNamespace()):
-        super().__init__(model, args)
-
+class MaskEmbedMixin:
     def batch_to_tensor(self, batch):
         """
         Converts a batch of data to a tensor
@@ -67,8 +64,14 @@ class MaskEmbed(AutoEncoderUnsupervised):
         }
 
 
-class MaskEmbedSupervised(AutoEncoderSupervised, MaskEmbed):
-    pass
+class MaskEmbed(AutoEncoderUnsupervised, MaskEmbedMixin):
+    def __init__(self, model, args=SimpleNamespace()):
+        super().__init__(model, args)
+
+
+class MaskEmbedSupervised(AutoEncoderSupervised, MaskEmbedMixin):
+    def __init__(self, model, args=SimpleNamespace()):
+        super().__init__(model, args)
 
 
 class FixedOutput(nn.Module):
