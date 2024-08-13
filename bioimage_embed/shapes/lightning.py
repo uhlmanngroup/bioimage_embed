@@ -57,15 +57,14 @@ class MaskEmbed(AutoEncoderUnsupervised):
         # loss += lf.triangle_inequality_loss(model_output.recon_x)
         # loss += lf.non_negative_loss(model_output.recon_x)
 
-        # variational_loss = model_output.loss - model_output.recon_loss
+        variational_loss = model_output.loss - model_output.recon_loss
 
-        # loss_dict = {
-        #     "loss": loss,
-        #     "shape_loss": shape_loss,
-        #     "reconstruction_loss": model_output.recon_x,
-        #     "variational_loss": variational_loss,
-        # }
-        return loss
+        return {
+            "loss": loss,
+            "shape_loss": shape_loss,
+            "reconstruction_loss": model_output.recon_x,
+            "variational_loss": variational_loss,
+        }
 
 
 class MaskEmbedSupervised(AutoEncoderSupervised, MaskEmbed):
