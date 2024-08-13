@@ -1,4 +1,4 @@
-from bioimage_embed.shapes.lightning import MaskEmbed
+from bioimage_embed.shapes.lightning import MaskEmbed, MaskEmbedSupervised
 import pytest
 from bioimage_embed import create_model
 from torchvision.datasets import FakeData
@@ -22,7 +22,7 @@ def dataset(transform):
     return FakeData(
         size=64,
         image_size=(3, 224, 224),
-        num_classes=10,
+        num_classes=2,
         transform=transform,
     )
 
@@ -38,7 +38,7 @@ def model():
 
 
 # TODO Add tests for MaskEmbedSupervised
-@pytest.fixture(params=[MaskEmbed])
+@pytest.fixture(params=[MaskEmbed, MaskEmbedSupervised])
 def wrapper(request):
     return request.param
 
