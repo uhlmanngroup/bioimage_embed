@@ -88,11 +88,13 @@ class AutoEncoder(pl.LightningModule):
 
     def training_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
         self.model.train()
-        loss, model_output = self.eval_step(batch, batch_idx)
+        model_output = self.eval_step(batch, batch_idx)
         self.log_dict(
             {
-                "loss/train": loss,
+                "loss/train": model_output.loss,
                 "mse/train": F.mse_loss(model_output.recon_x, model_output.data),
+                "recon_loss/train": model_output.recon_loss,
+                "variational_loss/train": model_output.variational_loss,
             },
             # on_step=True,
             on_epoch=True,
@@ -101,16 +103,22 @@ class AutoEncoder(pl.LightningModule):
         )
         if isinstance(self.logger, pl.loggers.TensorBoardLogger):
             self.log_tensorboard(model_output, model_output.data)
-        return loss
+        return model_output.loss
 
-    def loss_function(
-        self, model_output: ModelOutput, batch_idx: int, *args, **kwargs
-    ) -> dict:
-        return {
-            "loss": model_output.loss,
-            "recon_loss": model_output.recon_loss,
-            "variational_loss": model_output.loss - model_output.recon_loss,
-        }
+    def loss_function(self, model_output, batch_idx, *args, **kwargs) -> ModelOutput:
+        """
+        Function for overriding the loss function, should return a ModelOutput object. Preferably use super() to inherit the default loss function and then append the new loss.
+        """
+        return model_output
+
+    def _loss_function(self, model_output, batch_idx, *args, **kwargs) -> ModelOutput:
+        """
+        Internal default loss function, should not be overridden.
+        This function calculates the variational loss.
+        """
+
+        model_output.variational_loss = model_output.loss - model_output.recon_loss
+        return model_output
 
     # def logging_step(self, z, loss, x, model_output, batch_idx):
     #     self.logger.experiment.add_embedding(
@@ -129,25 +137,29 @@ class AutoEncoder(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         # x, y = batch
-        loss, model_output = self.eval_step(batch, batch_idx)
+        model_output = self.eval_step(batch, batch_idx)
         self.log_dict(
             {
-                "loss/val": loss,
+                "loss/val": model_output.loss,
                 "mse/val": F.mse_loss(model_output.recon_x, model_output.data),
+                "recon_loss/val": model_output.recon_loss,
+                "variational_loss/val": model_output.variational_loss,
             }
         )
-        return loss
+        return model_output.loss
 
     def test_step(self, batch, batch_idx):
         # x, y = batch
-        loss, model_output = self.eval_step(batch, batch_idx)
+        model_output = self.eval_step(batch, batch_idx)
         self.log_dict(
             {
-                "loss/test": loss,
+                "loss/test": model_output.loss,
                 "mse/test": F.mse_loss(model_output.recon_x, model_output.data),
+                "recon_loss/test": model_output.recon_loss,
+                "variational_loss/test": model_output.variational_loss,
             }
         )
-        return loss
+        return model_output.loss
 
     # Fangless function to be overloaded later
     def batch_to_xy(self, batch):
@@ -156,8 +168,10 @@ class AutoEncoder(pl.LightningModule):
 
     def eval_step(self, batch, batch_idx):
         model_output = self.predict_step(batch, batch_idx)
-        loss = self.loss_function(model_output, batch_idx)
-        return loss, model_output
+        # loss = model_output
+        model_output = self._loss_function(model_output, batch_idx)
+        model_output = self.loss_function(model_output, batch_idx)
+        return model_output
 
     # def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
     #     # Implement your own logic for updating the lr scheduler
@@ -267,18 +281,19 @@ class AutoEncoderSupervised(AutoEncoder):
 
     def loss_function(self, model_output, batch_idx):
         # x, y = batch
-        loss = super().loss_function(model_output, batch_idx)
+        # loss = super().loss_function(model_output, batch_idx)
+
         # TODO check this
         # Scale is used as the rest of the loss functions are sums rather than means, which may mean we need to scale up the contrastive loss
 
         scale = torch.prod(torch.tensor(model_output.z.shape[1:]))
         if model_output.target.unique().size(0) == 1:
-            return loss
+            return model_output
         pairs = create_label_based_pairs(model_output.z.squeeze(), model_output.target)
         contrastive_loss = self.criteron(*pairs)
-        loss["contrastive_loss"] = scale * contrastive_loss
-        loss["loss"] += loss["contrastive_loss"]
-        return loss
+        model_output.contrastive_loss = scale * contrastive_loss
+        model_output.loss += model_output.contrastive_loss
+        return model_output
 
 
 class AESupervised(AutoEncoderSupervised):
