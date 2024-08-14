@@ -2,9 +2,8 @@ import torch
 import torchvision
 
 from torch import nn
-from ..lightning import AutoEncoderUnsupervised
+from ..lightning import AutoEncoderUnsupervised, AutoEncoderSupervised
 from . import loss_functions as lf
-from transformers.utils import ModelOutput
 from types import SimpleNamespace
 
 
@@ -12,10 +11,7 @@ def frobenius_norm_2D_torch(tensor: torch.Tensor) -> torch.Tensor:
     return torch.norm(tensor, p="fro", dim=(-2, -1), keepdim=True)
 
 
-class MaskEmbed(AutoEncoderUnsupervised):
-    def __init__(self, model, args=SimpleNamespace()):
-        super().__init__(model, args)
-
+class MaskEmbedMixin:
     def batch_to_tensor(self, batch):
         """
         Converts a batch of data to a tensor
@@ -25,11 +21,15 @@ class MaskEmbed(AutoEncoderUnsupervised):
         # x = batch[0].float()
         output = super().batch_to_tensor(batch)
         normalised_data = output.data
-        if self.args.frobenius_norm:
-            scalings = frobenius_norm_2D_torch(output.data)
-        else:
-            scalings = torch.ones_like(output.data)
-        return ModelOutput(data=normalised_data / scalings, scalings=scalings)
+        scalings = torch.ones_like(output.data)
+        if hasattr(self.args, "frobenius_norm"):
+            if self.args.frobenius_norm:
+                scalings = frobenius_norm_2D_torch(output.data)
+
+        output.data = normalised_data / scalings
+        output.scalings = scalings
+
+        return output
 
     def loss_function(self, model_output, *args, **kwargs):
         loss_ops = lf.DistanceMatrixLoss(model_output.recon_x, norm=False)
@@ -53,15 +53,24 @@ class MaskEmbed(AutoEncoderUnsupervised):
         # loss += lf.triangle_inequality_loss(model_output.recon_x)
         # loss += lf.non_negative_loss(model_output.recon_x)
 
-        # variational_loss = model_output.loss - model_output.recon_loss
+        variational_loss = model_output.loss - model_output.recon_loss
 
-        # loss_dict = {
-        #     "loss": loss,
-        #     "shape_loss": shape_loss,
-        #     "reconstruction_loss": model_output.recon_x,
-        #     "variational_loss": variational_loss,
-        # }
-        return loss
+        return {
+            "loss": loss,
+            "shape_loss": shape_loss,
+            "reconstruction_loss": model_output.recon_loss,
+            "variational_loss": variational_loss,
+        }
+
+
+class MaskEmbed(MaskEmbedMixin, AutoEncoderUnsupervised):
+    def __init__(self, model, args=SimpleNamespace()):
+        super().__init__(model, args)
+
+
+class MaskEmbedSupervised(MaskEmbedMixin, AutoEncoderSupervised):
+    def __init__(self, model, args=SimpleNamespace()):
+        super().__init__(model, args)
 
 
 class FixedOutput(nn.Module):

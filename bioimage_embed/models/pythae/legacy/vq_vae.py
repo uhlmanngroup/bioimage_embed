@@ -28,8 +28,6 @@ class Encoder(BaseEncoder):
         num_residual_layers,
     ):
         super(Encoder, self).__init__()
-        embedding_dim = model_config.latent_dim
-        input_dim = model_config.input_dim[1:]
 
         self.model = ResnetEncoder(
             in_channels=model_config.input_dim[0],
@@ -104,6 +102,9 @@ class VQVAE(models.VQVAE):
         self.encoder = self.model._encoder
         self.decoder = self.model._decoder
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.latent_dim = model_config.latent_dim
+        self.input_dim = model_config.input_dim
+
         # This isn't completely necessary for training I don't think
         # self._set_quantizer(model_config)
 
@@ -188,6 +189,9 @@ class VAE(models.VAE):
         )
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(num_hiddens, model_config.latent_dim * 2)
+        self.latent_dim = model_config.latent_dim
+        self.input_dim = model_config.input_dim
+
         # shape is (batch_size, model_config.num_hiddens, 1, 1)
 
     def reparameterize(self, mu, log_var):

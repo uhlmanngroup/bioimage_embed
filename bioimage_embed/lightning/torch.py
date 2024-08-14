@@ -59,14 +59,24 @@ class AutoEncoder(pl.LightningModule):
         # self.example_input_array = torch.randn(1, *self.model.input_dim)
         # self.model.train()
 
-    def forward(self, x):
-        batch = ModelOutput(data=x.float())
-        return self.model(batch)
+    def forward(self, x: torch.Tensor) -> ModelOutput:
+        """
+        Forward pass of the model
+        Pythae models take in ModelOutput objects, and return ModelOutput objects so that we can pass in and return multiple tensors
+        """
+        return self.model(ModelOutput(data=x.float()))
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=0) -> ModelOutput:
-        return self.batch_to_tensor(batch, batch_idx)
+    def predict_step(
+        self, batch: tuple, batch_idx: int, dataloader_idx=0
+    ) -> ModelOutput:
+        return self.batch_to_tensor(batch)
 
-    def batch_to_tensor(self, batch, batch_idx) -> ModelOutput:
+    def batch_to_tensor(self, batch) -> ModelOutput:
+        """
+        This takes in a batch and returns a ModelOutput object.
+        Lightning batches are x,y pairs of tensors, but we only need the x tensor for the model.
+        x is fed into the self.forward method
+        """
         x, y = self.batch_to_xy(batch)
         model_output = self.forward(x)
         model_output.data = x
@@ -76,7 +86,7 @@ class AutoEncoder(pl.LightningModule):
     def embedding(self, model_output: ModelOutput) -> torch.Tensor:
         return model_output.z.view(model_output.z.shape[0], -1)
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
         self.model.train()
         loss, model_output = self.eval_step(batch, batch_idx)
         self.log_dict(
@@ -93,7 +103,9 @@ class AutoEncoder(pl.LightningModule):
             self.log_tensorboard(model_output, model_output.data)
         return loss
 
-    def loss_function(self, model_output, batch_idx, *args, **kwargs):
+    def loss_function(
+        self, model_output: ModelOutput, batch_idx: int, *args, **kwargs
+    ) -> dict:
         return {
             "loss": model_output.loss,
             "recon_loss": model_output.recon_loss,
@@ -260,6 +272,8 @@ class AutoEncoderSupervised(AutoEncoder):
         # Scale is used as the rest of the loss functions are sums rather than means, which may mean we need to scale up the contrastive loss
 
         scale = torch.prod(torch.tensor(model_output.z.shape[1:]))
+        if model_output.target.unique().size(0) == 1:
+            return loss
         pairs = create_label_based_pairs(model_output.z.squeeze(), model_output.target)
         contrastive_loss = self.criteron(*pairs)
         loss["contrastive_loss"] = scale * contrastive_loss
