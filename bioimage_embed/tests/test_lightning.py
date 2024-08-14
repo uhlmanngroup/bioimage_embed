@@ -8,10 +8,15 @@ from bioimage_embed.lightning import (
     AEUnsupervised,
 )
 from bioimage_embed.models import create_model
-from torch.utils.data import TensorDataset
-
+from torchvision.datasets import FakeData
+from torchvision import transforms
 
 torch.manual_seed(42)
+
+
+@pytest.fixture(params=[1, 2, 16])
+def classes(request):
+    return request.param
 
 
 @pytest.fixture(params=__all_models__)
@@ -93,10 +98,13 @@ def data(input_dim):
 
 
 @pytest.fixture()
-def dataset(samples, input_dim, classes=2):
-    x = torch.rand(samples, *input_dim)
-    y = torch.torch.randint(classes - 1, (samples,))
-    return TensorDataset(x, y)
+def dataset(samples, input_dim, classes):
+    return FakeData(
+        size=samples,
+        image_size=input_dim,
+        num_classes=classes,
+        transform=transforms.ToTensor(),
+    )
 
 
 @pytest.fixture(params=[AESupervised, AEUnsupervised])
