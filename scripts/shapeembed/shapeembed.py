@@ -65,6 +65,7 @@ models = [
 # set of parameters for a run, with default values
 dflt_params = types.SimpleNamespace(
   model_name='resnet18_vae'
+, supervise=False
 , dataset=types.SimpleNamespace(
     name='tiny_synthetic_shapes'
   , path='/nfs/research/uhlmann/afoix/datasets/image_datasets/tiny_synthetic_shapes'
@@ -106,6 +107,7 @@ def tag_cols(params):
   cols.append(('dataset', params.dataset.name))
   cols.append(('model', params.model_name))
   for k, v in vars(params.model_args).items(): cols.append((k, v))
+  cols.append(('supervised', params.supervise))
   cols.append(('compression_factor', params.compression_factor))
   cols.append(('latent_dim', params.latent_dim))
   cols.append(('batch_size', params.batch_size))
@@ -199,7 +201,10 @@ def get_model(params):
   , pretrained=params.pretrained
   , **vars(params.model_args)
   )
-  lit_model = bioimage_embed.shapes.MaskEmbed(model, params)
+  if params.supervise:
+    lit_model = bioimage_embed.shapes.MaskEmbedSupervised(model, params)
+  else:
+    lit_model = bioimage_embed.shapes.MaskEmbed(model, params)
   logger.info(f'model ready')
   return lit_model
 
@@ -410,6 +415,9 @@ if __name__ == '__main__':
       '--model-arg-beta', type=float, metavar='BETA'
     , help=f"The BETA parameter to use for a beta-vae model.")
   parser.add_argument(
+      '--supervise', action=argparse.BooleanOptionalAction, default=False
+    , help=f'supervise the model (using contrastive learning)')
+  parser.add_argument(
       '-d', '--dataset', nargs=3, metavar=('NAME', 'PATH', 'TYPE')
     , help=f"The NAME, PATH and TYPE of the dataset (default: {dflt_params.dataset})")
   parser.add_argument(
@@ -479,6 +487,7 @@ if __name__ == '__main__':
   if clargs.model_arg_beta:
     params.model_args.beta = clargs.model_arg_beta
   params.output_dir = clargs.output_dir
+  params.supervise = clargs.supervise
   if clargs.dataset:
     params.dataset = types.SimpleNamespace( name=clargs.dataset[0]
                                           , path=clargs.dataset[1]
