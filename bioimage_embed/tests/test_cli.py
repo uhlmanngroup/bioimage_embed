@@ -45,14 +45,14 @@ def test_write_default_config_file(
     assert config_path.is_file(), "Default config file was not created"
 
 
-@pytest.fixture
-def cfg():
-    mock_dataset = config.ImageFolderDataset(
-        _target_="bioimage_embed.datasets.FakeImageFolder",
-    )
-    cfg = cli.get_default_config()
-    cfg.recipe.data = mock_dataset
-    return cfg
+# @pytest.fixture
+# def cfg():
+#     mock_dataset = config.ImageFolderDataset(
+#         _target_="bioimage_embed.datasets.FakeImageFolder",
+#     )
+#     cfg = cli.get_default_config()
+#     cfg.recipe.data = mock_dataset
+#     return cfg
 
 
 def test_get_default_config(cfg):
@@ -60,12 +60,12 @@ def test_get_default_config(cfg):
     # Further assertions can be added to check specific config properties
 
 
-def test_main_with_default_config(
-    cfg, config_path, config_dir, config_file, config_directory_setup
-):
-    test_get_default_config
+# def test_main_with_default_config(
+#     cfg, config_path, config_dir, config_file, config_directory_setup
+# ):
+#     test_get_default_config
 
-    # cli.main(config_dir=config_dir, config_file=config_file, job_name="test_app")
+#     # cli.main(config_dir=config_dir, config_file=config_file, job_name="test_app")
 
 
 # @pytest.mark.skip("Computationally heavy")
@@ -122,15 +122,24 @@ def hydra_cfg():
         return cfg
 
 
+@pytest.fixture
+def model():
+    return "dummy_model"
+
+
 # TODO double check this is sensible
 @pytest.fixture
-def cfg():
+def cfg(model):
     cfg = config.Config()
-    cfg.dataloader.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
+    cfg.dataloader.num_workers = 0  # This avoids processes being forked
+    cfg.trainer.max_epochs = 1
+    cfg.trainer.max_steps = 1
+    cfg.trainer.fast_dev_run = True
+    cfg.recipe.model = model
     return cfg
 
 
-@pytest.mark.skip("Computationally heavy")
+# @pytest.mark.skip("Computationally heavy")
 def test_train(cfg):
     cli.train(cfg)
 

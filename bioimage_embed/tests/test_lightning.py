@@ -8,10 +8,16 @@ from bioimage_embed.lightning import (
     AEUnsupervised,
 )
 from bioimage_embed.models import create_model
+from bioimage_embed import config
+from hydra.utils import instantiate
 from torchvision.datasets import FakeData
-from torchvision import transforms
 
 torch.manual_seed(42)
+
+
+@pytest.fixture()
+def transform():
+    return instantiate(config.Transform())
 
 
 @pytest.fixture(params=[1, 2, 16])
@@ -26,7 +32,7 @@ def model_name(request):
 
 @pytest.fixture()
 def image_dim():
-    return (256, 256)
+    return (224, 224)
 
 
 @pytest.fixture()
@@ -98,12 +104,15 @@ def data(input_dim):
 
 
 @pytest.fixture()
-def dataset(samples, input_dim, classes):
+def dataset(samples, input_dim, transform, classes=2):
+    # x = torch.rand(samples, *input_dim)
+    # y = torch.torch.randint(classes - 1, (samples,))
+    # return TensorDataset(x, y)
     return FakeData(
         size=samples,
         image_size=input_dim,
         num_classes=classes,
-        transform=transforms.ToTensor(),
+        transform=transform,
     )
 
 
@@ -131,8 +140,8 @@ def datamodule(dataset, batch_size):
 @pytest.fixture()
 def trainer():
     return pl.Trainer(
-        max_steps=1,
-        max_epochs=1,
+        # max_steps=1,
+        max_epochs=2,
     )
 
 
@@ -159,7 +168,7 @@ def test_trainer_dummy_model_fit(trainer, lit_dummy_model, datamodule):
     return trainer.fit(lit_dummy_model, datamodule)
 
 
-@pytest.mark.skip(reason="Expensive")
+# @pytest.mark.skip(reason="Expensive")
 def test_trainer_fit(trainer, lit_model, datamodule):
     return trainer.fit(lit_model, datamodule)
 
