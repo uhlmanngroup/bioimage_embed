@@ -14,12 +14,14 @@ from hydra.utils import instantiate
 # and instantiate from hydra.utils to create instances based on configuration.
 
 # %%
+# We can instantiate a transformation from the default configuration using hydra.
 transform = instantiate(config.Transform())
 
 # Instantiate a transformation using the configuration provided.
 # This will likely include any data augmentation or preprocessing steps defined in the configuration.
 
 # %%
+# Create a fake dataset with 64 images of size 224x224x3 (3 channels), and 10 classes.
 dataset = FakeData(
     size=64,
     image_size=(3, 224, 224),
@@ -40,12 +42,15 @@ dataset = FakeData(
 # It would download the CelebA dataset and use the training split, storing it in the '/tmp' directory.
 
 # %% [markdown]
+# We can declare a recipe and configuration object to train the model.
+# I
+
+recipe = config.Recipe(model="resnet18_vae")
+# %% [markdown]
 #
 
 # %%
-cfg = config.Config(dataset=dataset)
-cfg.recipe.model = "resnet18_vae"
-cfg.recipe.max_epochs = 100
+cfg = config.Config(recipe=recipe, dataset=dataset)
 bie = bioimage_embed.BioImageEmbed(cfg)
 
 # Create a configuration object 'cfg' using the config module, and assign the fake dataset to it.
