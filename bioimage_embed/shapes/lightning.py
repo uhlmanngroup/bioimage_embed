@@ -33,7 +33,6 @@ class MaskEmbedMixin:
 
     def loss_function(self, model_output, *args, **kwargs):
         loss_ops = lf.DistanceMatrixLoss(model_output.recon_x, norm=False)
-        loss = model_output.loss
 
         shape_loss = torch.sum(
             torch.stack(
@@ -46,21 +45,15 @@ class MaskEmbedMixin:
                 ]
             )
         )
-        loss += shape_loss
+        model_output.loss += shape_loss
+        model_output.shape_loss = shape_loss
 
         # loss += lf.diagonal_loss(model_output.recon_x)
         # loss += lf.symmetry_loss(model_output.recon_x)
         # loss += lf.triangle_inequality_loss(model_output.recon_x)
         # loss += lf.non_negative_loss(model_output.recon_x)
 
-        variational_loss = model_output.loss - model_output.recon_loss
-
-        return {
-            "loss": loss,
-            "shape_loss": shape_loss,
-            "reconstruction_loss": model_output.recon_loss,
-            "variational_loss": variational_loss,
-        }
+        return model_output
 
 
 class MaskEmbed(MaskEmbedMixin, AutoEncoderUnsupervised):
