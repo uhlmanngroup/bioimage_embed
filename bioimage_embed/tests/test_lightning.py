@@ -168,7 +168,7 @@ def test_trainer_dummy_model_fit(trainer, lit_dummy_model, datamodule):
     return trainer.fit(lit_dummy_model, datamodule)
 
 
-@pytest.mark.skip(reason="Expensive")
+# @pytest.mark.skip(reason="Expensive")
 def test_trainer_fit(trainer, lit_model, datamodule):
     return trainer.fit(lit_model, datamodule)
 
