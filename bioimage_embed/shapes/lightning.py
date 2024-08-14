@@ -31,7 +31,9 @@ class MaskEmbedMixin:
 
         return output
 
-    def loss_function(self, model_output, *args, **kwargs):
+    def eval_step(self, batch, batch_idx):
+        # model_output = super().eval_step(batch, batch_idx)
+        model_output = self.predict_step(batch, batch_idx)
         loss_ops = lf.DistanceMatrixLoss(model_output.recon_x, norm=False)
 
         shape_loss = torch.sum(
