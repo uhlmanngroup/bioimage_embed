@@ -272,6 +272,8 @@ class AutoEncoderSupervised(AutoEncoder):
         # Scale is used as the rest of the loss functions are sums rather than means, which may mean we need to scale up the contrastive loss
 
         scale = torch.prod(torch.tensor(model_output.z.shape[1:]))
+        if model_output.target.unique().size(0) == 1:
+            return loss
         pairs = create_label_based_pairs(model_output.z.squeeze(), model_output.target)
         contrastive_loss = self.criteron(*pairs)
         loss["contrastive_loss"] = scale * contrastive_loss
