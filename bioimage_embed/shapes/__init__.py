@@ -1,4 +1,4 @@
-from .lightning import MaskEmbed, MaskEmbedLatentAugment
+from .lightning import MaskEmbed, MaskEmbedSupervised, MaskEmbedLatentAugment
 import torch
 import torch.nn.functional as F
 from .transforms import DistogramToMaskPipeline
