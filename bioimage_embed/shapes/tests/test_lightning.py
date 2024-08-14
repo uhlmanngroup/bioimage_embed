@@ -17,12 +17,17 @@ def transform():
     )
 
 
+@pytest.fixture(params=[1, 2, 16])
+def classes(request):
+    return request.param
+
+
 @pytest.fixture
-def dataset(transform):
+def dataset(transform, classes):
     return FakeData(
         size=64,
         image_size=(3, 224, 224),
-        num_classes=2,
+        num_classes=classes,
         transform=transform,
     )
 
