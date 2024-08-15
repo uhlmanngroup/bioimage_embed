@@ -45,14 +45,14 @@ def test_write_default_config_file(
     assert config_path.is_file(), "Default config file was not created"
 
 
-@pytest.fixture
-def cfg():
-    mock_dataset = config.ImageFolderDataset(
-        _target_="bioimage_embed.datasets.FakeImageFolder",
-    )
-    cfg = cli.get_default_config()
-    cfg.recipe.data = mock_dataset
-    return cfg
+# @pytest.fixture
+# def cfg():
+#     mock_dataset = config.ImageFolderDataset(
+#         _target_="bioimage_embed.datasets.FakeImageFolder",
+#     )
+#     cfg = cli.get_default_config()
+#     cfg.recipe.data = mock_dataset
+#     return cfg
 
 
 def test_get_default_config(cfg):
@@ -60,23 +60,23 @@ def test_get_default_config(cfg):
     # Further assertions can be added to check specific config properties
 
 
-def test_main_with_default_config(
-    cfg, config_path, config_dir, config_file, config_directory_setup
-):
-    test_get_default_config
+# def test_main_with_default_config(
+#     cfg, config_path, config_dir, config_file, config_directory_setup
+# ):
+#     test_get_default_config
 
-    # cli.main(config_dir=config_dir, config_file=config_file, job_name="test_app")
+#     # cli.main(config_dir=config_dir, config_file=config_file, job_name="test_app")
 
 
 # @pytest.mark.skip("Computationally heavy")
-def test_hydra():
-    #  bie_train model.model="resnet50_vqvae" dataset._target_="bioimage_embed.datasets.FakeImageFolder"
-    input_dim = [3, 224, 224]
-    cfg = config.Config()
-    cfg.dataloader.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
-    cfg.dataloader.dataset.image_size = input_dim
-    cfg.recipe.model = "resnet18_vae"
-    cfg.recipe.max_epochs = 1
+# def test_hydra():
+#     #  bie_train model.model="resnet50_vqvae" dataset._target_="bioimage_embed.datasets.FakeImageFolder"
+#     input_dim = [3, 224, 224]
+#     cfg = config.Config()
+#     # cfg.dataloader.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
+#     # cfg.dataloader.dataset.image_size = input_dim
+#     cfg.recipe.model = "dummy_model"
+# cfg.recipe.max_epochs = 1
 
 
 # def test_cli():
@@ -114,27 +114,50 @@ def test_init_hydra_with_invalid_config_file():
 @pytest.fixture
 def hydra_cfg():
     with initialize(config_path="."):
-        # cfg = compose(config_name="config", overrides=[
-        #     'dataloader.dataset._target_=bioimage_embed.datasets.FakeImageFolder'
-        # ])
         cfg = compose(config_name="config")
-        cfg.dataloader.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
         return cfg
+
+
+@pytest.fixture
+def model():
+    return "dummy_model"
+
+
+@pytest.fixture
+def cfg_recipe(model):
+    return config.Recipe(model=model)
+
+
+@pytest.fixture
+def cfg_trainer():
+    return config.Trainer(max_epochs=1, max_steps=1, fast_dev_run=True)
+
+
+@pytest.fixture
+def cfg_dataloader():
+    return config.DataLoader(num_workers=0)
 
 
 # TODO double check this is sensible
 @pytest.fixture
-def cfg():
-    cfg = config.Config()
-    cfg.dataloader.dataset._target_ = "bioimage_embed.datasets.FakeImageFolder"
+def cfg(cfg_recipe, cfg_trainer, cfg_dataloader):
+    cfg = config.Config(
+        recipe=cfg_recipe, trainer=cfg_trainer, dataloader=cfg_dataloader
+    )
     return cfg
+    # This is an alternative way to create a config object but it is less flexible and if the config object is changed in the future, this will break, i.e validation is not guaranteed
+
+    # cfg.dataloader.num_workers = 0  # This avoids processes being forked
+    # cfg.trainer.max_epochs = 1
+    # cfg.trainer.max_steps = 1
+    # cfg.trainer.fast_dev_run = True
+    # cfg.recipe.model = model
 
 
-@pytest.mark.skip("Computationally heavy")
+# @pytest.mark.skip("Computationally heavy")
 def test_train(cfg):
     cli.train(cfg)
 
 
-@pytest.mark.skip("Computationally heavy")
 def test_check(cfg):
     cli.check(cfg)

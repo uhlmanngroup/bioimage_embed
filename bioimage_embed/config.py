@@ -19,7 +19,7 @@ from dataclasses import field
 from pydantic.dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 
-from pydantic import Field, root_validator
+from pydantic import Field
 from omegaconf import II
 from . import utils
 
@@ -86,6 +86,12 @@ class Dataset:
     _target_: str = "torch.utils.data.Dataset"
     transform: Any = Field(default_factory=Transform)
 
+    # TODO add validation for transform to be floats
+    # @model_validator(mode="after")
+    # def validate(self):
+    #     dataset = instantiate(self)
+    #     return self
+
 
 @dataclass
 class FakeDataset(Dataset):
@@ -119,7 +125,6 @@ class DataLoader:
     dataset: Any = Field(default_factory=FakeDataset)
     num_workers: int = 1
     batch_size: int = II("recipe.batch_size")
-    collate_fn: Any = None
 
 
 @dataclass
@@ -202,15 +207,9 @@ class Paths:
     tensorboard: str = "tensorboard"
     wandb: str = "wandb"
 
-    @root_validator(
-        pre=False, skip_on_failure=True
-    )  # Ensures this runs after all other validations
-    @classmethod
-    def create_dirs(cls, values):
-        # The `values` dict contains all the validated field values
-        for path in values.values():
+    def __post_init__(self):
+        for path in self.__dict__.values():
             os.makedirs(path, exist_ok=True)
-        return values
 
 
 @dataclass

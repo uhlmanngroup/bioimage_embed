@@ -88,11 +88,13 @@ class AutoEncoder(pl.LightningModule):
 
     def training_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
         self.model.train()
-        loss, model_output = self.eval_step(batch, batch_idx)
+        model_output = self.eval_step(batch, batch_idx)
         self.log_dict(
             {
-                "loss/train": loss,
+                "loss/train": model_output.loss,
                 "mse/train": F.mse_loss(model_output.recon_x, model_output.data),
+                "recon_loss/train": model_output.recon_loss,
+                "variational_loss/train": model_output.loss - model_output.recon_loss,
             },
             # on_step=True,
             on_epoch=True,
@@ -101,63 +103,45 @@ class AutoEncoder(pl.LightningModule):
         )
         if isinstance(self.logger, pl.loggers.TensorBoardLogger):
             self.log_tensorboard(model_output, model_output.data)
-        return loss
-
-    def loss_function(
-        self, model_output: ModelOutput, batch_idx: int, *args, **kwargs
-    ) -> dict:
-        return {
-            "loss": model_output.loss,
-            "recon_loss": model_output.recon_loss,
-            "variational_loss": model_output.loss - model_output.recon_loss,
-        }
-
-    # def logging_step(self, z, loss, x, model_output, batch_idx):
-    #     self.logger.experiment.add_embedding(
-    #         z,
-    #         label_img=x["data"],
-    #         global_step=self.current_epoch,
-    #         tag="z",
-    #         )
-
-    #     self.logger.experiment.add_scalar("Loss/val", loss, batch_idx)
-    #     self.logger.experiment.add_image(
-    #         "val",
-    #         torchvision.utils.make_grid(model_output.recon_x),
-    #         batch_idx,
-    #     )
+        return model_output.loss
 
     def validation_step(self, batch, batch_idx):
-        # x, y = batch
-        loss, model_output = self.eval_step(batch, batch_idx)
+        model_output = self.eval_step(batch, batch_idx)
         self.log_dict(
             {
-                "loss/val": loss,
+                "loss/val": model_output.loss,
                 "mse/val": F.mse_loss(model_output.recon_x, model_output.data),
+                "recon_loss/val": model_output.recon_loss,
+                "variational_loss/val": model_output.loss - model_output.recon_loss,
             }
         )
-        return loss
+        return model_output.loss
 
     def test_step(self, batch, batch_idx):
         # x, y = batch
-        loss, model_output = self.eval_step(batch, batch_idx)
+        model_output = self.eval_step(batch, batch_idx)
         self.log_dict(
             {
-                "loss/test": loss,
+                "loss/test": model_output.loss,
                 "mse/test": F.mse_loss(model_output.recon_x, model_output.data),
+                "recon_loss/test": model_output.recon_loss,
+                "variational_loss/test": model_output.loss - model_output.recon_loss,
             }
         )
-        return loss
+        return model_output.loss
 
-    # Fangless function to be overloaded later
     def batch_to_xy(self, batch):
+        """
+        Fangless function to be overloaded later
+        """
         x, y = batch
         return x, y
 
     def eval_step(self, batch, batch_idx):
-        model_output = self.predict_step(batch, batch_idx)
-        loss = self.loss_function(model_output, batch_idx)
-        return loss, model_output
+        """
+        This function should be overloaded in the child class to implement the evaluation logic.
+        """
+        return self.predict_step(batch, batch_idx)
 
     # def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
     #     # Implement your own logic for updating the lr scheduler
@@ -265,20 +249,19 @@ def create_label_based_pairs(
 class AutoEncoderSupervised(AutoEncoder):
     criteron = losses.ContrastiveLoss()
 
-    def loss_function(self, model_output, batch_idx):
+    def eval_step(self, batch, batch_idx):
         # x, y = batch
-        loss = super().loss_function(model_output, batch_idx)
         # TODO check this
         # Scale is used as the rest of the loss functions are sums rather than means, which may mean we need to scale up the contrastive loss
-
+        model_output = self.predict_step(batch, batch_idx)
         scale = torch.prod(torch.tensor(model_output.z.shape[1:]))
         if model_output.target.unique().size(0) == 1:
-            return loss
+            return model_output
         pairs = create_label_based_pairs(model_output.z.squeeze(), model_output.target)
         contrastive_loss = self.criteron(*pairs)
-        loss["contrastive_loss"] = scale * contrastive_loss
-        loss["loss"] += loss["contrastive_loss"]
-        return loss
+        model_output.contrastive_loss = scale * contrastive_loss
+        model_output.loss += model_output.contrastive_loss
+        return model_output
 
 
 class AESupervised(AutoEncoderSupervised):

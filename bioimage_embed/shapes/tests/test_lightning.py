@@ -79,3 +79,9 @@ def test_model(trainer, lit_model, dataloader):
 
 def test_model_fit(trainer, lit_model, dataloader):
     return trainer.fit(lit_model, dataloader)
+
+
+def test_model_predict(trainer, lit_model, dataloader):
+    y = trainer.predict(lit_model, dataloader)
+    # TODO Add checks for shape_loss and potentially other losses (contrastive loss)
+    return y
