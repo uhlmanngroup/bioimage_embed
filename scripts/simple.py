@@ -44,8 +44,8 @@ dataset = FakeData(
 # %% [markdown]
 # We can declare a recipe and configuration object to train the model.
 # I
-
-recipe = config.Recipe(model="resnet18_vae")
+#
+# recipe = config.Recipe(model="resnet18_vae")
 # %% [markdown]
 #
 
