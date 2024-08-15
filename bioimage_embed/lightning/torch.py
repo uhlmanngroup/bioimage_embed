@@ -130,8 +130,10 @@ class AutoEncoder(pl.LightningModule):
         )
         return model_output.loss
 
-    # Fangless function to be overloaded later
     def batch_to_xy(self, batch):
+        """
+        Fangless function to be overloaded later
+        """
         x, y = batch
         return x, y
 
@@ -139,8 +141,7 @@ class AutoEncoder(pl.LightningModule):
         """
         This function should be overloaded in the child class to implement the evaluation logic.
         """
-        model_output = self.predict_step(batch, batch_idx)
-        return model_output
+        return self.predict_step(batch, batch_idx)
 
     # def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
     #     # Implement your own logic for updating the lr scheduler
