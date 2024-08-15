@@ -2,7 +2,7 @@ name: jupytext-changes
 
 on:
   push:
-  pull_request:
+  # pull_request:
 
 jobs:
   jupytext:
@@ -10,7 +10,8 @@ jobs:
     steps:
       # Checkout
       - uses: actions/checkout@v2
-
+        with:
+          ref: ${{ github.head_ref }}
       - name: Install Packages if changed files
         run: |
           pip install jupytext
