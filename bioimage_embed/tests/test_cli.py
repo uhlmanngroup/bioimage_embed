@@ -2,7 +2,6 @@ import pytest
 from .. import cli
 from pathlib import Path
 from typer.testing import CliRunner
-from .. import config
 
 runner = CliRunner()
 
@@ -110,11 +109,9 @@ def test_init_hydra_with_invalid_config_file():
         cli.init_hydra(config_file="invalid_config.yaml")
 
 
-@pytest.mark.skip("redundant")
 def test_train(cfg):
     cli.train(cfg)
 
 
-@pytest.mark.skip("redundant")
 def test_check(cfg):
     cli.check(cfg)
