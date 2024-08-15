@@ -152,7 +152,6 @@ def cfg(cfg_recipe, cfg_trainer, cfg_dataloader):
     # cfg.trainer.max_steps = 1
     # cfg.trainer.fast_dev_run = True
     # cfg.recipe.model = model
-    return cfg
 
 
 # @pytest.mark.skip("Computationally heavy")
