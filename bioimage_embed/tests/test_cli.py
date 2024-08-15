@@ -2,6 +2,7 @@ import pytest
 from .. import cli
 from pathlib import Path
 from typer.testing import CliRunner
+from .. import config
 
 runner = CliRunner()
 
