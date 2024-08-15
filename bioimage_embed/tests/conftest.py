@@ -21,23 +21,9 @@ def dataset(input_dim):
     return FakeData(size=64, image_size=input_dim, num_classes=2, transform=transform)
 
 
-# @pytest.fixture
-# def dataloader_cfg(dataset):
-#     return config.DataLoader(dataset=dataset, num_workers=0)
-
-
 @pytest.fixture
 def lite_model():
     return "dummy_model"
-
-
-# @pytest.fixture
-# def cfg_model(model,input_dim):
-# return config.Model(model=model,input_dim=input_dim)
-
-# @pytest.fixture
-# def cfg(dataloader_cfg,model_cfg):
-#     return config.Config(dataloader=dataloader_cfg, model=model_cfg)
 
 
 @pytest.fixture
