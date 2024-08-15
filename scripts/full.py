@@ -12,7 +12,7 @@ input_dim = [3, 224, 224]
 # %%
 # Use the default augmentation list
 transform = instantiate(config.Transform())
-print(transform.json())
+transform.transform
 
 # %%
 # Load the CelebA dataset with the specified transformations
