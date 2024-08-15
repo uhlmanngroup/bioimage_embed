@@ -12,6 +12,7 @@ from bioimage_embed import config
 from hydra.utils import instantiate
 from torchvision.datasets import FakeData
 
+
 torch.manual_seed(42)
 
 

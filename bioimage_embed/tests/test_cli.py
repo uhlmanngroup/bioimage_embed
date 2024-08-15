@@ -43,16 +43,6 @@ def test_write_default_config_file(
     assert config_path.is_file(), "Default config file was not created"
 
 
-# @pytest.fixture
-# def cfg():
-#     mock_dataset = config.ImageFolderDataset(
-#         _target_="bioimage_embed.datasets.FakeImageFolder",
-#     )
-#     cfg = cli.get_default_config()
-#     cfg.recipe.data = mock_dataset
-#     return cfg
-
-
 def test_get_default_config(cfg):
     assert cfg is not None, "Default config should not be None"
     # Further assertions can be added to check specific config properties

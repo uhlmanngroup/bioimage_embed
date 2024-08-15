@@ -36,3 +36,7 @@ def test_model_check(bie):
 
 def test_train_check(bie):
     bie.trainer_check()
+
+
+def test_bie_train(bie):
+    bie.train()
