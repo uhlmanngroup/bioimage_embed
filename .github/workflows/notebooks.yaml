@@ -1,0 +1,28 @@
+name: jupytext-changes
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  jupytext:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout
+      - uses: actions/checkout@v2
+
+      - name: Install Packages if changed files
+        if: ${{ steps.filter.outputs.notebooks == 'true' }}
+        run: |
+          pip install jupytext
+
+      - name: Synch changed files
+        if: ${{ steps.filter.outputs.notebooks == 'true' }}
+        run: |
+          jupytext --use-source-timestamp  --sync scripts/*.py
+
+      # Auto commit any updated notebook files
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          # This would be more useful if the git hash were referenced?
+          commit_message: "Auto-commit updated notebooks"
