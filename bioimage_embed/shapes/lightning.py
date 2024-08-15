@@ -32,8 +32,8 @@ class MaskEmbedMixin:
         return output
 
     def eval_step(self, batch, batch_idx):
-        # model_output = super().eval_step(batch, batch_idx)
-        model_output = self.predict_step(batch, batch_idx)
+        # Needs to be super because eval_step is overwritten in Supervised
+        model_output = super().eval_step(batch, batch_idx)
         loss_ops = lf.DistanceMatrixLoss(model_output.recon_x, norm=False)
 
         shape_loss = torch.sum(
