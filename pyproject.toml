@@ -57,6 +57,7 @@ torchvision = "^0.18.1"
 wandb = "^0.17.4"
 jupytext = "^1.16.4"
 jupyter = "^1.0.0"
+torchdata = "^0.8.0"
 
 
 [tool.poetry.group.dev.dependencies]
