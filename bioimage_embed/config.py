@@ -185,7 +185,8 @@ class Trainer:
     # logger: Optional[any]
     gradient_clip_val: float = 0.5
     enable_checkpointing: bool = True
-    devices: str = "auto"
+    devices: Any = "auto"
+    num_nodes: int = 1
     accelerator: str = "auto"
     accumulate_grad_batches: int = 16
     min_epochs: int = 1
