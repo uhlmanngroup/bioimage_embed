@@ -51,7 +51,7 @@ class VisionWrapper:
             transformed = self.transform(image=img)
             return transformed["image"]
         except Exception:
-            return None, None
+            return None
 
 
 class VisionWrapperSupervised:
