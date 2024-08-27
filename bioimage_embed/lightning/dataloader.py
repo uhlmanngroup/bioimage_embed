@@ -172,7 +172,7 @@ class DataModule2(pl.LightningDataModule):
         batch_size: int = 32,
         num_workers: int = 4,
         pin_memory: bool = False,
-        drop_last: bool = False,
+        drop_last: bool = True,
         split_train: float = 0.8,
         split_val: float = 0.1,
         seed: int = 42,
@@ -257,7 +257,11 @@ class DataModule2(pl.LightningDataModule):
             datapipe = datapipe.shuffle(buffer_size=len(datapipe))
         # TODO This is not sharding properly
         return DataLoader2(
-            (datapipe.sharding_filter().batch(self.batch_size)),
+            (
+                datapipe.sharding_filter().batch(
+                    self.batch_size, drop_last=self.drop_last
+                )
+            ),
             reading_service=rs,
         )
 
