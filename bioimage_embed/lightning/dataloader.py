@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 from typing import Tuple
 from functools import partial
+from torchdata.dataloader2 import DataLoader2, MultiProcessingReadingService
 
 
 # https://stackoverflow.com/questions/74931838/cant-pickle-local-object-evaluationloop-advance-locals-batch-to-device-pyto
@@ -157,6 +158,107 @@ class DataModule(pl.LightningDataModule):
             )
             if dataset
             else None
+        )
+
+
+class DataModule2(pl.LightningDataModule):
+    """
+    A PyTorch Lightning DataModule for handling data pipeline loading and splitting.
+    """
+
+    def __init__(
+        self,
+        datapipe,
+        batch_size: int = 32,
+        num_workers: int = 4,
+        pin_memory: bool = False,
+        drop_last: bool = False,
+        split_train: float = 0.8,
+        split_val: float = 0.1,
+        seed: int = 42,
+    ):
+        """
+        Initializes the DataModule with the given data pipeline and parameters.
+        """
+        super().__init__()
+        self.datapipe = datapipe
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.pin_memory = pin_memory
+        self.drop_last = drop_last
+        self.split_train = split_train
+        self.split_val = split_val
+        self.seed = seed
+
+        self.train_datapipe = None
+        self.val_datapipe = None
+        self.test_datapipe = None
+        self.setup()
+
+    def setup(self, stage=None):
+        """
+        Sets up the data pipelines by splitting the main data pipeline into train, validation, and test pipelines.
+        """
+        (
+            self.train_datapipe,
+            self.val_datapipe,
+            self.test_datapipe,
+        ) = self.splitting(self.datapipe)
+
+    def splitting(self, datapipe, split_train=0.8, split_val=0.1, seed=42) -> Tuple:
+        """
+        Splits the data pipeline into train, validation, and test pipelines.
+        """
+        split_test = 1 - split_train - split_val
+        # datapipe = datapipe.shuffle(buffer_size=len(datapipe))
+        # dataset_size = len(datapipe)
+        # train_size = int(split_train * dataset_size)
+        # val_size = int(split_val * dataset_size)
+        # test_size = dataset_size - train_size - val_size
+
+        # if train_size + val_size + test_size != dataset_size:
+        #     raise ValueError(
+        #         "The splitting ratios do not add up to the length of the dataset"
+        #     )
+        return datapipe.random_split(
+            total_length=len(datapipe),
+            weights={
+                "train": split_train,
+                "val": split_val,
+                "test": split_test,
+            },
+            seed=seed,
+        )
+        # train_datapipe, val_datapipe, test_datapipe = random_split(
+        #     datapipe, [train_size, val_size, test_size], generator=torch.Generator().manual_seed(seed)
+        # )
+
+        # return train_datapipe, val_datapipe, test_datapipe
+
+    def train_dataloader(self):
+        return self.init_dataloader(self.train_datapipe, shuffle=True)
+
+    def val_dataloader(self):
+        return self.init_dataloader(self.val_datapipe, shuffle=False)
+
+    def test_dataloader(self):
+        return self.init_dataloader(self.test_datapipe, shuffle=False)
+
+    def predict_dataloader(self):
+        return self.init_dataloader(self.datapipe, shuffle=False)
+
+    def init_dataloader(self, datapipe, shuffle=False):
+        """
+        Initializes a dataloader for the given data pipeline using torchdata's DataLoader2.
+        """
+        # Initialize DataLoader2 with the created DataPipe
+        rs = MultiProcessingReadingService(num_workers=self.num_workers)
+        if shuffle:
+            datapipe = datapipe.shuffle(buffer_size=len(datapipe))
+        # TODO This is not sharding properly
+        return DataLoader2(
+            (datapipe.sharding_filter().batch(self.batch_size)),
+            reading_service=rs,
         )
 
 
