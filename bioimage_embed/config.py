@@ -124,7 +124,7 @@ class DataLoader:
     _target_: str = "bioimage_embed.lightning.dataloader.DataModule"
     dataset: Any = Field(default_factory=FakeDataset)
     num_workers: int = 1
-    batch_size: int = II("recipe.batch_size")
+    batch_size: Any = II("recipe.batch_size")
 
 
 @dataclass
@@ -176,13 +176,13 @@ class LightningModelSupervised(LightningModel):
 class Callbacks:
     # _target_: str = "collections.OrderedDict"
     model_checkpoint: ModelCheckpoint = Field(default_factory=ModelCheckpoint)
-    early_stopping: EarlyStopping = Field(default_factory=EarlyStopping)
+    # early_stopping: EarlyStopping = Field(default_factory=EarlyStopping)
 
 
 @dataclass
 class Trainer:
     _target_: str = "pytorch_lightning.Trainer"
-    # logger: Optional[any]
+    # logger: Optional[Any]
     gradient_clip_val: float = 0.5
     enable_checkpointing: bool = True
     devices: Any = "auto"
@@ -196,6 +196,7 @@ class Trainer:
     callbacks: List[Any] = Field(
         default_factory=lambda: list(vars(Callbacks()).values()), frozen=True
     )
+    logger: Any = None
 
 
 # TODO add argument caching for checkpointing
@@ -206,7 +207,6 @@ class Paths:
     model: str = "models"
     logs: str = "logs"
     tensorboard: str = "tensorboard"
-    wandb: str = "wandb"
 
     def __post_init__(self):
         for path in self.__dict__.values():
