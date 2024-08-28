@@ -199,14 +199,20 @@ def slurm(spec):
     )
     job = executor.submit(train, spec, NUM_GPUS_PER_NODE, NUM_NODES)
     print(job)
+    # %%
+    # Entry point for running the training script directly
 
 
-# %%
-# Entry point for running the training script directly
 if __name__ == "__main__":
     # Use the FTP spec to train the model
     spec = fsspec_ftp
     # Start local training
     train(spec)
+
+# %%
+# Entry point for running the training script directly
+if __name__ == "__main__":
+    # Use the local spec to train the model
+    spec = fsspec_local
     # Alternatively, submit the job to SLURM
-    slurm(spec)
+    # slurm(spec)
