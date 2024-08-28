@@ -1,8 +1,9 @@
 # %%
 # Import necessary libraries
+# These libraries are crucial for data processing, model training, and logging.
 import fsspec
 from torchdata.datapipes.iter import IterableWrapper
-from PIL import Image, UnidentifiedImageError
+from PIL import Image
 import io
 from joblib import Memory
 from pytorch_lightning import loggers as pl_loggers
@@ -20,23 +21,25 @@ import bioimage_embed.config as config
 memory = Memory(location=".", verbose=0)
 
 # %%
-# Define FTP host, root directory, and dataset information
-# We will download images from an FTP server to use in training our model.
-host = "ftp.ebi.ac.uk"
-root = "pub/databases/IDR"
-dataset = "idr0093-mueller-perturbation"
-
-# Create a glob pattern to match .tif and .tiff files in the dataset directory.
-glob_str = f"{root}/{dataset}/**/*.tif*"
-
 # Define the number of GPUs per node and the number of nodes for distributed training.
 NUM_GPUS_PER_NODE = 1
 NUM_NODES = 1
 
 # %%
-# Setup fsspec filesystem for FTP access
-# fsspec is used to interact with remote filesystems. Here, we set it up for FTP.
-fs = fsspec.filesystem("ftp", host=host, anon=True)
+# Define FTP host, root directory, and dataset information
+# We will download images from an FTP server to use in training our model.
+# The 'spec' dictionary holds information required to access the FTP server and the dataset location.
+
+fsspec_local = {"protocol": "file", "root": ""}
+
+fsspec_ftp = {
+    "protocol": "ftp",
+    "host": "ftp.ebi.ac.uk",
+    "anon": True,
+    "mode": "rb",
+    "filecache": {"cache_storage": "/tmp/idr"},
+    "root": "pub/databases/IDR/idr0093-mueller-perturbation",
+}
 
 
 # %%
@@ -49,12 +52,13 @@ def get_file_list(glob_str, fs):
 
 # %%
 # Function to read a file from the FTP server
-def read_file(x):
+# This function reads the file and attempts to open it as an image.
+def read(x):
     try:
         # Attempt to open the image file and read its contents.
         print(x[0])
         stream = x[1].read()
-        return stream
+        return read_image(stream)
     except Exception:
         # If an error occurs (e.g., the file is not found), return None.
         return None
@@ -62,28 +66,16 @@ def read_file(x):
 
 # %%
 # Function to convert the binary stream into a PIL Image object
+# This ensures the image is opened correctly and converted to RGB format.
 def read_image(x):
-    return Image.open(io.BytesIO(x))
+    return Image.open(io.BytesIO(x)).convert("RGB")
 
 
 # %%
 # Function to check if the image is valid
+# This function checks whether the image file is not None, indicating it was successfully read.
 def is_valid_image(x):
-    try:
-        # Try to open the image and verify that it's not corrupted.
-        image = read_image(x)
-        image.verify()
-        return True
-    except (IOError, UnidentifiedImageError):
-        # If the image is invalid or corrupted, return False.
-        return False
-
-
-# %%
-# Function to convert the image to RGB format
-# This ensures that the image has 3 channels (Red, Green, Blue).
-def image_open(x):
-    return Image.open(io.BytesIO(x)).convert("RGB")
+    return x is not None
 
 
 # %%
@@ -95,29 +87,25 @@ def add_label(x):
 
 # %%
 # The main training function
-def train(num_gpus_per_node=1, num_nodes=1):
+def train(spec, num_gpus_per_node=1, num_nodes=1):
     # Setup fsspec filesystem for FTP access
-    fs = fsspec.filesystem("ftp", host=host, anon=True)
+    fs = fsspec.filesystem(**spec)
 
-    # Get the list of files to process
+    # Define a glob pattern to match .tif and .tiff files in the dataset directory.
+    glob_str = spec["root"] + "/**/*.tif*"
+
+    # Get the list of files to process using the glob pattern
     files = get_file_list(glob_str, fs)
 
     # Instantiate the data transformation pipeline from the configuration
     transform = instantiate(config.Transform())
 
-    # Create the data pipeline using TorchData
+    # Create the data pipeline
     datapipe = (
-        IterableWrapper(files)
-        .open_files_by_fsspec(
-            anon=True,
-            protocol="ftp",
-            host=host,
-            mode="rb",
-            filecache={"cache_storage": "/tmp/idr"},
-        )
-        .map(read_file)  # Read the files from the FTP server
+        IterableWrapper(files)  # Wrap the file list in an iterable
+        .open_files_by_fsspec(**spec)  # Open the files using fsspec
+        .map(read)  # Read the files from the FTP server
         .filter(filter_fn=is_valid_image)  # Filter out invalid images
-        .map(image_open)  # Convert the binary streams to RGB images
         .map(transform)  # Apply transformations to the images
         .map(add_label)  # Add labels to the images
         .set_length(len(files))  # Set the length of the data pipeline
@@ -193,8 +181,8 @@ def train(num_gpus_per_node=1, num_nodes=1):
 
 
 # %%
-# Main function to submit the training job
-def main():
+# Main function to submit the training job using SLURM
+def slurm(spec):
     logdir = "lightning_slurm/"
     os.makedirs(logdir, exist_ok=True)
 
@@ -209,11 +197,16 @@ def main():
         nodes=NUM_NODES,
         slurm_constraint="a100",
     )
-    job = executor.submit(train, NUM_GPUS_PER_NODE, NUM_NODES)
+    job = executor.submit(train, spec, NUM_GPUS_PER_NODE, NUM_NODES)
     print(job)
 
 
 # %%
 # Entry point for running the training script directly
 if __name__ == "__main__":
-    train()
+    # Use the FTP spec to train the model
+    spec = fsspec_ftp
+    # Start local training
+    train(spec)
+    # Alternatively, submit the job to SLURM
+    slurm(spec)
