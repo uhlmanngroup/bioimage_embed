@@ -182,7 +182,7 @@ def main_process(clargs, logger=logging.getLogger(__name__)):
   dff=df[df['mse/test']<df['mse/test'].quantile(0.9)] # drop mse outlier
   #mse=df['mse/test']
   #print(f'mse, mean: {mse.mean()}, std: {mse.std()}')
-  ax = seaborn.relplot(data=dff, x='mse/test', y='test_f1', hue='model', aspect=1.61)
+  ax = seaborn.relplot(data=dff, x='mse/test', y='test_f1', hue='model', aspect=1.61, style='model')
   ax.figure.savefig(f'{clargs.output_dir}/f1VSmse_scatter.png')
 
   dff = df.dropna(subset=['model'])
