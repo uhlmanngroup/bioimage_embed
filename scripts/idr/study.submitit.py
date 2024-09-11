@@ -20,7 +20,7 @@ from pydantic.dataclasses import dataclass
 from pytorch_lightning import loggers as pl_loggers
 import submitit
 import os 
-
+import fsspec
 NUM_GPUS_PER_NODE = 1
 NUM_NODES = 1
 
@@ -43,8 +43,11 @@ params = {
 memory = Memory(location='.', verbose=0)
 
 @memory.cache
-def get_file_list(glob_str):
-    return glob.glob(os.path.join(glob_str), recursive=True)
+def get_file_list(glob_str,fs):
+    return fs.glob(glob_str)
+    # return fs.open(glob_str,filecache={'cache_storage':'tmp/idr'})
+    # return fsspec.open_files(glob_str, recursive=True)
+    # return glob.glob(os.path.join(glob_str), recursive=True)
 
 def collate_fn(batch):
     # Filter out None values
@@ -52,8 +55,10 @@ def collate_fn(batch):
     return torch.utils.data.dataloader.default_collate(batch)
 
 class GlobDataset(Dataset):
-    def __init__(self, glob_str,transform=None):
-        self.file_list = get_file_list(glob_str)
+    def __init__(self, glob_str,transform=None,fs=fsspec.filesystem('file')):
+        print("Getting file list, this may take a while")
+        self.file_list = get_file_list(glob_str,fs)
+        print("Done getting file list")
         self.transform = transform
     
     def __len__(self):
@@ -64,8 +69,11 @@ class GlobDataset(Dataset):
             idx = idx.tolist()
 
         img_name = self.file_list[idx]
+        obj = fs.open(img_name,filecache={'cache_storage':'tmp/idr'})
         try:
-            image = Image.open(img_name)
+            with obj as f:
+                image = Image.open(f)
+            # image = Image.open(img_name)
         except:
             return None,None
         # breakpoint()
@@ -79,10 +87,15 @@ class GlobDataset(Dataset):
 
         return image["image"], 0
 
-root_dir = '/nfs/ftp/public/databases/IDR/idr0093-mueller-perturbation/'
 root_dir = '/nfs/research/uhlmann/ctr26/idr/idr0093-mueller-perturbation/'
+fs = fsspec.filesystem('file')
+fs = fsspec.filesystem(
+        'ftp', host='ftp.ebi.ac.uk',
+        cache_storage='/tmp/files/')
+root_dir = '/pub/databases/IDR/idr0093-mueller-perturbation/'
 
-
+# /nfs/ftp/public/databases/IDR/idr0093-mueller-perturbation/'
+# /nfs/ftp/public/databases/IDR/
 
 def train(num_gpus_per_node=1,num_nodes=1):
 
@@ -96,7 +109,7 @@ def train(num_gpus_per_node=1,num_nodes=1):
     # )
     
     transform = instantiate(config.ATransform())
-    dataset = GlobDataset(root_dir+'**/*.tif*',transform)
+    dataset = GlobDataset(root_dir+'**/*.tif*',transform,fs=fs)
     # dataset = RandomDataset(32, 64)
     dataloader = config.DataLoader(dataset=dataset,num_workers=os.cpu_count(),collate_fn=collate_fn)
 
@@ -155,4 +168,4 @@ def main():
     job = executor.submit(train, NUM_GPUS_PER_NODE, NUM_NODES)
 
 if __name__ == "__main__":
-    main()
+    train()
