@@ -346,7 +346,10 @@ class AutoEncoderSupervised(AutoEncoder):
         if model_output.target.unique().size(0) == 1:
             return model_output
         contrastive_loss = compute_contrastive_loss(
-            model_output.z, model_output.target, criterion=self.criterion
+            # Belt and braces on this view
+            model_output.z.view(-1, self.model.latent_dim),
+            model_output.target,
+            criterion=self.criterion,
         )
         model_output.contrastive_loss = scale * contrastive_loss
         model_output.loss += model_output.contrastive_loss
