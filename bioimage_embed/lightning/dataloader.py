@@ -86,6 +86,7 @@ class DataModule(pl.LightningDataModule):
         super().__init__()
         self.dataset = dataset
         self.collator = Collator()
+        self.sampler = sampler
         self.dataloader = partial(
             DataLoader,
             batch_size=batch_size,
