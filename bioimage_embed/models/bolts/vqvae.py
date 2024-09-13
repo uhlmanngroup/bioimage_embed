@@ -32,6 +32,7 @@ class BaseResNetVQVAEEncoder(BaseEncoder):
         # log_covariance = self.log_var(x)
         x = x.view(-1, self.enc_out_dim, 1, 1)
         embedding = self.prequantized(x)
+        embedding = embedding.view(-1, self.latent_dim)
         return ModelOutput(embedding=embedding)
         # return ModelOutput(embedding=embedding, log_covariance=log_covariance)
 
@@ -98,6 +99,7 @@ class BaseResNetVQVAEDecoder(BaseDecoder):
         # https://github.com/AntixK/PyTorch-VAE/blob/a6896b944c918dd7030e7d795a8c13e5c6345ec7/models/vq_vae.py#L166
 
     def forward(self, x):
+        x = x.view(-1, self.latent_dim, 1, 1)
         x = self.postquantized(x)
         x = x.view(-1, self.enc_out_dim)
         x = self.decoder(x)
