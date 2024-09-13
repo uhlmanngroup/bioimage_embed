@@ -205,11 +205,68 @@ class AEUnsupervised(AutoEncoder):
     pass
 
 
+"""
+This function generates positive pairs of feature vectors (`input_pairs` and `target_pairs`)
+based on the class labels provided.
+
+For each unique class in the labels:
+- It selects all samples from the same class and creates pairs of feature vectors.
+- Only pairs within the same class are generated, no cross-class pairs.
+- If there is only one sample in a class, no pairs are created for that class.
+
+The resulting `input_pairs` and `target_pairs`:
+- `input_pairs`: Feature vectors of the first sample in each pair.
+- `target_pairs`: Feature vectors of the second sample in each pair.
+
+### Example 1: Two Classes
+Suppose `X` (features) and `y` (labels) are:
+X = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0], [10.0, 11.0, 12.0]]
+y = [[0], [0], [1], [1]]
+
+For class 0:
+- Input pair: [1.0, 2.0, 3.0]
+- Target pair: [4.0, 5.0, 6.0]
+
+For class 1:
+- Input pair: [7.0, 8.0, 9.0]
+- Target pair: [10.0, 11.0, 12.0]
+
+Final pairs:
+input_pairs = [[1.0, 2.0, 3.0], [7.0, 8.0, 9.0]]
+target_pairs = [[4.0, 5.0, 6.0], [10.0, 11.0, 12.0]]
+
+### Example 2: Multiple Classes
+Suppose `X` and `y` have three classes:
+X = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0], [10.0, 11.0, 12.0],
+     [13.0, 14.0, 15.0], [16.0, 17.0, 18.0]]
+y = [[0], [0], [1], [1], [2], [2]]
+
+For class 0:
+- Input pair: [1.0, 2.0, 3.0]
+- Target pair: [4.0, 5.0, 6.0]
+
+For class 1:
+- Input pair: [7.0, 8.0, 9.0]
+- Target pair: [10.0, 11.0, 12.0]
+
+For class 2:
+- Input pair: [13.0, 14.0, 15.0]
+- Target pair: [16.0, 17.0, 18.0]
+
+Final pairs:
+input_pairs = [[1.0, 2.0, 3.0], [7.0, 8.0, 9.0], [13.0, 14.0, 15.0]]
+target_pairs = [[4.0, 5.0, 6.0], [10.0, 11.0, 12.0], [16.0, 17.0, 18.0]]
+
+This is used in contrastive learning settings like SimCLR, where pairs from the same class
+are treated as positive examples to learn class-consistent embeddings.
+"""
+
+
 def create_label_based_pairs(
     features: torch.Tensor, labels: torch.Tensor
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """
-    Create positive pairs based on labels.
+    Create positive pairs based on labels for contrastive learning (SimCLR/MoCo).
 
     Args:
     features: Tensor of shape (b, latent_dim)
@@ -221,7 +278,8 @@ def create_label_based_pairs(
     labels = labels.squeeze()  # Convert (b, 1) to (b,)
     unique_labels = torch.unique(labels)
 
-    if len(unique_labels) == 1:
+    # If there's only one unique label or no samples, return empty tensors
+    if len(unique_labels) == 1 or features.size(0) == 1:
         return torch.empty(0, features.size(1)), torch.empty(0, features.size(1))
 
     positive_pairs = []
@@ -229,25 +287,55 @@ def create_label_based_pairs(
     for label in unique_labels:
         mask = labels == label
         class_samples = features[mask]
-        if class_samples.size(0) > 1:  # We need at least 2 samples of the same class
-            # Create all possible pairs within this class
+        if class_samples.size(0) > 1:  # Need at least 2 samples to form pairs
+            # Generate all possible pairs of samples within this class
             num_samples = class_samples.size(0)
             pairs = torch.combinations(torch.arange(num_samples), r=2)
             positive_pairs.append(
                 (class_samples[pairs[:, 0]], class_samples[pairs[:, 1]])
             )
 
+    # If no valid pairs were found, return empty tensors
     if not positive_pairs:
         return torch.empty(0, features.size(1)), torch.empty(0, features.size(1))
 
+    # Concatenate all positive pairs across classes
     input_pairs = torch.cat([pair[0] for pair in positive_pairs])
     target_pairs = torch.cat([pair[1] for pair in positive_pairs])
 
     return input_pairs, target_pairs
 
 
+def compute_contrastive_loss(
+    X: torch.Tensor, y: torch.Tensor, criterion=losses.ContrastiveLoss()
+):
+    """
+    Wrapper function that computes contrastive loss using the MONAI ContrastiveLoss function.
+
+    Args:
+    - X (torch.Tensor): The feature tensor of shape (batch_size, latent_dim).
+    - y (torch.Tensor): The label tensor of shape (batch_size, 1).
+    - contrastive_criterion: The criterion to compute contrastive loss. If None, defaults to monai.losses.ContrastiveLoss.
+
+    Returns:
+    - loss (torch.Tensor): The computed contrastive loss.
+    """
+
+    # Create positive pairs from X and y
+    input_pairs, target_pairs = create_label_based_pairs(X, y)
+
+    # If no pairs are created, return zero loss
+    if input_pairs.numel() == 0 or target_pairs.numel() == 0:
+        return torch.tensor(0.0, device=X.device)
+
+    # Compute the contrastive loss
+    contrastive_loss = criterion(input_pairs, target_pairs)
+
+    return contrastive_loss
+
+
 class AutoEncoderSupervised(AutoEncoder):
-    criteron = losses.ContrastiveLoss()
+    criterion = losses.ContrastiveLoss()
 
     def eval_step(self, batch, batch_idx):
         # x, y = batch
@@ -257,8 +345,9 @@ class AutoEncoderSupervised(AutoEncoder):
         scale = torch.prod(torch.tensor(model_output.z.shape[1:]))
         if model_output.target.unique().size(0) == 1:
             return model_output
-        pairs = create_label_based_pairs(model_output.z.squeeze(), model_output.target)
-        contrastive_loss = self.criteron(*pairs)
+        contrastive_loss = compute_contrastive_loss(
+            model_output.z, model_output.target, criterion=self.criterion
+        )
         model_output.contrastive_loss = scale * contrastive_loss
         model_output.loss += model_output.contrastive_loss
         return model_output
