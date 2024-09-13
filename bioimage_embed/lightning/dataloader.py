@@ -1,8 +1,32 @@
+from torch.utils.data import DataLoader, WeightedRandomSampler
 import pytorch_lightning as pl
 import torch
-from torch.utils.data import DataLoader, Dataset, random_split
+from torch.utils.data import Dataset, random_split
 from typing import Tuple
 from functools import partial
+import numpy as np
+
+
+class StratifiedSampler(WeightedRandomSampler):
+    def __init__(self, dataset, replacement=True):
+        # Get the labels (targets) from the dataset
+        self.targets = np.array([dataset[i][1] for i in range(len(dataset))])
+
+        # Count the occurrences of each class
+        class_counts = np.bincount(self.targets)
+
+        # Calculate the weight for each class (inverse of frequency)
+        class_weights = 1.0 / class_counts
+
+        # Assign weights to each sample based on its class
+        sample_weights = class_weights[self.targets]
+
+        # Initialize the parent class (WeightedRandomSampler) with sample weights
+        super().__init__(
+            weights=sample_weights,
+            num_samples=len(self.targets),
+            replacement=replacement,
+        )
 
 
 # https://stackoverflow.com/questions/74931838/cant-pickle-local-object-evaluationloop-advance-locals-batch-to-device-pyto
@@ -45,6 +69,8 @@ class DataModule(pl.LightningDataModule):
         num_workers: int = 4,
         pin_memory: bool = False,
         drop_last: bool = False,
+        # sampler=None,
+        sampler=StratifiedSampler,
     ):
         """
         Initializes the DataModule with the given dataset and parameters.
@@ -128,7 +154,11 @@ class DataModule(pl.LightningDataModule):
         return self.dataset
 
     def train_dataloader(self):
-        return self.init_dataloader(self.train_dataset, shuffle=True)
+        return self.init_dataloader(
+            self.train_dataset,
+            shuffle=False,
+            sampler=self.sampler(self.train_dataset),
+        )
 
     def val_dataloader(self):
         return self.init_dataloader(self.val_dataset, shuffle=False)
@@ -139,7 +169,7 @@ class DataModule(pl.LightningDataModule):
     def predict_dataloader(self):
         return self.init_dataloader(self.dataset, shuffle=False)
 
-    def init_dataloader(self, dataset, shuffle=False):
+    def init_dataloader(self, dataset, shuffle=False, sampler=None):
         """
         Initializes a dataloader for the given dataset.
 
@@ -154,6 +184,7 @@ class DataModule(pl.LightningDataModule):
             self.dataloader(
                 dataset,
                 shuffle=shuffle,
+                sampler=sampler,
             )
             if dataset
             else None
