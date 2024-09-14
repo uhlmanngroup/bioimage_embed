@@ -11,6 +11,9 @@ from bioimage_embed.models import create_model
 from bioimage_embed import config
 from hydra.utils import instantiate
 from torchvision.datasets import FakeData
+import numpy as np
+from torch.utils.data import DataLoader, TensorDataset
+from bioimage_embed.lightning.dataloader import StratifiedSampler
 
 
 torch.manual_seed(42)
@@ -213,3 +216,112 @@ def test_export_jit(model_torchscript):
 @pytest.mark.skip(reason="models cant take in variable length args and kwargs")
 def test_jit_save(model_torchscript):
     return torch.jit.save(model_torchscript, "model.pt", method="script")
+
+
+@pytest.fixture(params=[128])
+def large_batch(request):
+    return request.param
+
+
+@pytest.fixture
+def large_data(input_dim, large_batch):
+    return torch.empty(large_batch**2, *input_dim)
+
+
+@pytest.fixture(params=[8])
+def many_classes(request):
+    return request.param
+
+
+@pytest.fixture
+def imbalanced_dataset(large_data, many_classes):
+    """
+    Return 'classes' and an imbalanced distribution 'p'. 'classes' can be any length.
+    The distribution 'p' must sum to 1.
+    """
+    data, classes = large_data, many_classes
+    samples = len(data)
+    if classes == 1:
+        pytest.skip("Cannot create an imbalanced dataset with only one class.")
+
+    p = 2 ** np.arange(1, classes + 1)
+
+    p = p / p.sum()  # Normalize to sum to 1
+
+    labels = np.random.choice(a=np.arange(classes), size=(samples,), p=p)
+    # Set the dataset's targets
+    # dataset.targets = torch.tensor(labels)
+    dataset = TensorDataset(data, torch.tensor(labels))
+    return dataset
+
+
+@pytest.fixture(params=[16])
+def batch_split(request):
+    return request.param
+
+
+@pytest.fixture()
+def stratified_dataloader(imbalanced_dataset):
+    dataset = imbalanced_dataset
+    samples = len(dataset)
+
+    return DataLoader(
+        dataset,
+        batch_size=int(np.sqrt(samples)),
+        sampler=StratifiedSampler(dataset),
+        num_workers=0,
+        drop_last=True,
+    )
+
+
+def test_stratified_sampler(stratified_dataloader):
+    # Unpack the dataloader
+    dataloader = stratified_dataloader
+
+    # Collect all sampled labels
+    all_labels = []
+    for inputs, labels in dataloader:
+        all_labels.extend(labels.numpy())
+
+    # Convert to NumPy array
+    all_labels = np.array(all_labels)
+
+    # Calculate the number of classes
+    num_classes = len(np.unique(all_labels))
+
+    # Calculate the sampled label distribution
+    sampled_counts = np.bincount(all_labels, minlength=num_classes)
+    sampled_distribution = sampled_counts / len(all_labels)
+
+    # Expected proportion for each class (uniform distribution)
+    expected_proportion = num_classes * [1.0 / num_classes]
+    # Assert that the sampled distribution is close to the expected proportions
+    assert np.allclose(
+        sampled_distribution, expected_proportion, atol=0.05
+    ), f"Sampled distribution {sampled_distribution} does not match expected {expected_proportion}"
+
+
+def test_sanity_check_stratified():
+    # Create an imbalanced dataset (e.g., class 0 has more samples than class 1)
+    labels = [0] * 80 + [1] * 20
+    dataset = [(data, label) for data, label in zip(range(100), labels)]
+
+    # Initialize the sampler
+    sampler = StratifiedSampler(dataset)
+
+    # Create a DataLoader
+    dataloader = DataLoader(dataset, batch_size=10, sampler=sampler)
+
+    # Collect sampled labels
+    sampled_labels = []
+    for _, label_batch in dataloader:
+        sampled_labels.extend(label_batch.numpy())
+
+    # Analyze the distribution
+    sampled_labels = np.array(sampled_labels)
+    sampled_counts = np.bincount(sampled_labels)
+    sampled_distribution = sampled_counts / len(sampled_labels)
+
+    print("Sampled Label Distribution:")
+    for i, proportion in enumerate(sampled_distribution):
+        print(f"Class {i}: {proportion*100:.2f}%")
