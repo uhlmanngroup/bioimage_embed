@@ -228,7 +228,7 @@ def large_data(input_dim, large_batch):
     return torch.empty(large_batch**2, *input_dim)
 
 
-@pytest.fixture(params=[8])
+@pytest.fixture(params=[1, 8])
 def many_classes(request):
     return request.param
 
@@ -241,9 +241,8 @@ def imbalanced_dataset(large_data, many_classes):
     """
     data, classes = large_data, many_classes
     samples = len(data)
-    if classes == 1:
-        pytest.skip("Cannot create an imbalanced dataset with only one class.")
-
+    # if classes == 0:
+    # return TensorDataset(data,[None] * samples)
     p = 2 ** np.arange(1, classes + 1)
 
     p = p / p.sum()  # Normalize to sum to 1
