@@ -143,16 +143,6 @@ class AutoEncoder(pl.LightningModule):
         """
         return self.predict_step(batch, batch_idx)
 
-    # def lr_scheduler_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
-    #     # Implement your own logic for updating the lr scheduler
-    #     # This method will be called at each training step
-    #     # Update the lr scheduler based on the provided arguments
-    #     # You can access the lr scheduler using `self.lr_schedulers()`
-
-    #     # Example:
-    #     for lr_scheduler in self.lr_schedulers():
-    #         lr_scheduler.step()
-
     def timm_optimizers(self, model):
         optimizer = optim.create_optimizer(self.args, model.parameters())
         lr_scheduler = scheduler.create_scheduler(self.args, optimizer)[0]
@@ -168,8 +158,6 @@ class AutoEncoder(pl.LightningModule):
         }
 
     def configure_optimizers(self):
-        # optimizer = optim.create_optimizer(self.args, self.model.parameters())
-        # lr_scheduler = scheduler.create_scheduler(self.args, optimizer)[0]
         optimizer, lr_scheduler = self.timm_optimizers(self.model)
         return self.timm_to_lightning(optimizer, lr_scheduler)
 
