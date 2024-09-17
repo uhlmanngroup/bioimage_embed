@@ -12,6 +12,7 @@ are valid.
 
 """
 
+import pytorch_lightning
 from omegaconf import OmegaConf
 from bioimage_embed import augmentations as augs
 import os
@@ -180,7 +181,7 @@ class Callbacks:
 
 
 @dataclass
-class Trainer:
+class Trainer(pytorch_lightning.Trainer):
     _target_: str = "pytorch_lightning.Trainer"
     # logger: Optional[any]
     gradient_clip_val: float = 0.5
