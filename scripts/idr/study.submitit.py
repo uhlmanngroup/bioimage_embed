@@ -87,7 +87,6 @@ class GlobDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
         img_name = self.file_list[idx]
-        obj = fs.open(img_name,filecache={'cache_storage':'tmp/idr'})
         try:
             image = read_image(fs,img_name)
             if self.transform:
@@ -190,6 +189,7 @@ def train(name, num_gpus_per_node=1,num_nodes=1):
         callbacks=None,
         # default_root_dir=f"lightning_logs/{name}",
         # plugin=[],
+        
         logger=[wandb],
         accumulate_grad_batches=16,
         max_epochs=params["max_epochs"],
