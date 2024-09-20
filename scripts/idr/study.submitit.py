@@ -87,7 +87,6 @@ class GlobDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
         img_name = self.file_list[idx]
-        obj = fs.open(img_name,filecache={'cache_storage':'tmp/idr'})
         try:
             image = read_image(fs,img_name)
             if self.transform:
