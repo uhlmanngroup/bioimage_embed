@@ -197,7 +197,7 @@ class Trainer:
     accumulate_grad_batches: int = 16
     min_epochs: int = 1
     max_epochs: int = II("recipe.max_epochs")
-    num_nodes: int = 1,
+    num_nodes: int = 1
     log_every_n_steps: int = 1
     # This is not a clean implementation but I am not sure how to do it better
     callbacks: Any = Field(
