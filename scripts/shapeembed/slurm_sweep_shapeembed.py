@@ -21,8 +21,8 @@ datasets = [
 #  ("synthetic_shapes", f"{datasets_pfx}/synthetic_shapes/", "mask")
 #  ("tiny_synthcell", f"{datasets_pfx}/tiny_synthcellshapes_dataset/", "mask")
 #  ("vampire", f"{datasets_pfx}/vampire/torchvision/Control/", "mask")
-# ("vampire_cells", f"{datasets_pfx}/vampire_cells/", "mask")
- ("vampire_nuclei", f"{datasets_pfx}/vampire_nuclei/", "mask")
+ ("mefs_cells", f"{datasets_pfx}/mefs_single_object_cell/", "mask")
+# ("vampire_nuclei", f"{datasets_pfx}/vampire_nuclei/", "mask")
 #, ("binary_vampire", f"{datasets_pfx}/binary_vampire/", "mask")
 #, ("bbbc010", f"{datasets_pfx}/bbbc010/BBBC010_v1_foreground_eachworm/", "mask")
 #, ("synthcell", f"{datasets_pfx}/synthcellshapes_dataset/", "mask")
@@ -32,11 +32,11 @@ datasets = [
 
 models = [
   "resnet18_vqvae"
-, "resnet50_vqvae"
-, "resnet18_vae"
-, "resnet50_vae"
+#, "resnet50_vqvae"
+#, "resnet18_vae"
+#, "resnet50_vae"
 , "resnet18_beta_vae"
-, "resnet50_beta_vae"
+#, "resnet50_beta_vae"
 #, "resnet18_vae_bolt"
 #, "resnet50_vae_bolt"
 #, "resnet18_vqvae_legacy"
@@ -49,8 +49,10 @@ models = [
 ]
 
 model_params = {
-  "resnet18_beta_vae": {'beta': [2,5]}
-, "resnet50_beta_vae": {'beta': [2,5]}
+  #"resnet18_beta_vae": {'beta': [2,5]}
+  "resnet18_beta_vae": {'beta': [0.0001]}
+#, "resnet50_beta_vae": {'beta': [2,5]}
+, "resnet50_beta_vae": {'beta': [0.00001]}
 }
 
 compression_factors = [1,2,3,5,10]
@@ -119,7 +121,7 @@ dflt_slurm_dir=f'{os.getcwd()}/slurm_info_{datetime.datetime.now().strftime("%Y%
 dflt_out_dir=f'{os.getcwd()}/output_results_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}'
 
 slurm_time = '50:00:00'
-slurm_mem = '250G'
+slurm_mem = '80G'
 slurm_gpus = 'a100:1'
 
 shapeembed_script=f'{os.getcwd()}/shapeembed.py'
