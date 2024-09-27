@@ -26,7 +26,7 @@ def trial_table(df, tname):
 
 #def simple_table(df, tname, model_re=".*vq.*"):
 def simple_table(df, tname, model_re=".*", sort_by_col=None, ascending=False, best_n=40):
-  cols=['model', 'compression_factor', 'latent_dim', 'batch_size', 'beta', 'test_f1', 'mse/test']
+  cols=['model', 'compression_factor', 'latent_dim', 'batch_size', 'beta', 'test_f1', 'test_f1_std', 'mse/test']
   df = df.loc[df.model.str.contains(model_re), cols].sort_values(by=cols)
   if sort_by_col:
     df = df.sort_values(by=sort_by_col, ascending=ascending)
@@ -34,11 +34,11 @@ def simple_table(df, tname, model_re=".*", sort_by_col=None, ascending=False, be
 
   with open(f'{tname}_tabular.tex', 'w') as fp:
     fp.write("\\begin{tabular}{|llll|r|r|} \hline\n")
-    fp.write("Model & CF (and latent space size) & batch size & BETA & F1 score & Mse \\\\ \hline\n")
+    fp.write("Model & CF (and latent space size) & batch size & BETA & F1 score & F1 score (std) & Mse \\\\ \hline\n")
     for _, r in df.iterrows():
       mname = r['model'].replace('_','\_')
       beta = '-' if pd.isna(r['beta']) else r['beta']
-      fp.write(f"{mname} & {r['compression_factor']} ({r['latent_dim']}) & {r['batch_size']} & {beta} & {r['test_f1']:f} & {r['mse/test']:f} \\\\\n")
+      fp.write(f"{mname} & {r['compression_factor']} ({r['latent_dim']}) & {r['batch_size']} & {beta} & {r['test_f1']:f} & {r['test_f1_std']:f} & {r['mse/test']:f} \\\\\n")
     fp.write("\hline\n")
     fp.write("\end{tabular}\n")
 
@@ -146,12 +146,14 @@ def main_process(clargs, logger=logging.getLogger(__name__)):
   df.set_index(idx_cols, inplace=True)
   df.sort_index(inplace=True)
   #df = df.groupby(level=['trial', 'dataset', 'model', 'compression_factor', 'latent_dim', 'batch_size']).agg({
+  df['test_f1_std'] = df['test_f1'].astype(float)
   df = df.groupby(level=idx_cols, dropna=False).agg({
     'beta': 'mean'
   , 'test_accuracy': 'mean'
   , 'test_precision': 'mean'
   , 'test_recall': 'mean'
   , 'test_f1': 'mean'
+  , 'test_f1_std': 'std'
   , 'mse/test': 'mean'
   , 'loss/test': 'mean'
   , 'mse/val': 'mean'
