@@ -18,7 +18,6 @@ from .pythae import legacy
 from . import bolts
 from functools import partial
 
-
 class ModelFactory:
     def __init__(
         self, input_dim, latent_dim, pretrained=False, progress=True, **kwargs
