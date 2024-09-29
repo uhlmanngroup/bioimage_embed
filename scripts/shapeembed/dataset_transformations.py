@@ -146,3 +146,69 @@ def mask2distmatrix(mask, matrix_size=512, raw_sampling_sparsity=1):
   dm = build_distance_matrix(x_reinterpolated, y_reinterpolated)
   logger.debug(f'mask2distmatrix: created distance matrix shape {dm.shape}')
   return dm
+
+def bbox(img):
+  """
+  This function returns the bounding box of the content of an image, where
+  "content" is any non 0-valued pixel. The bounding box is returned as the
+  quadruple ymin, ymax, xmin, xmax.
+
+  Parameters
+  ----------
+  img : 2-d numpy array
+    An image with an object to find the bounding box for. The truth value of
+    object pixels should be True and of non-object pixels should be False.
+
+  Returns
+  -------
+  ymin: int
+    The lowest index row containing object pixels
+  ymax: int
+    The highest index row containing object pixels
+  xmin: int
+    The lowest index column containing object pixels
+  xmax: int
+    The highest index column containing object pixels
+  """
+  rows = np.any(img, axis=1)
+  cols = np.any(img, axis=0)
+  ymin, ymax = np.where(rows)[0][[0, -1]]
+  xmin, xmax = np.where(cols)[0][[0, -1]]
+  return ymin, ymax, xmin, xmax
+
+def recrop_image(img, square=False):
+  """
+  This function returns an image recroped to its content.
+
+  Parameters
+  ----------
+  img : 3-d numpy array
+    A 3-channels (rgb) 2-d image with an object to recrop around. The value of
+    object pixels should be non-zero (and zero for non-object pixels).
+
+  Returns
+  -------
+  3-d numpy array
+    The recroped image
+  """
+
+  ymin, ymax, xmin, xmax = bbox(img)
+  newimg = img[ymin:ymax+1, xmin:xmax+1]
+
+  if square: # slot the new image into a black square
+    dx, dy = xmax - xmin + 1, ymax - ymin + 1
+    dmax = max(dx, dy)
+    dmin = min(dx, dy)
+    dd = max(dx, dy) - min(dx, dy)
+    off = dd // 2
+    res = np.full((dmax, dmax, 3), [.0,.0,.0]) # big black square
+    if dx < dy: # fewer columns, center horizontally
+      res[:, off+1:off+1+newimg.shape[1]] = newimg
+    else: # fewer lines, center vertically
+      #print(f"DEBUG: dx {dx}, dy {dy}, dmax {dmax}, dd {dd}, off {off}")
+      #print(f"DEBUG: res[off+1:off+1+newimg.shape[0],:].shape: {res[off+1:off+1+newimg.shape[0],:].shape}")
+      #print(f"DEBUG: newimg.shape: {newimg.shape}")
+      res[off+1:off+1+newimg.shape[0],:] = newimg
+    return res
+  else:
+    return newimg

@@ -60,6 +60,7 @@ models = [
 , "resnet152_vqvae_legacy"
 , "resnet18_vae_legacy"
 , "resnet50_vae_legacy"
+, "o2vae"
 ]
 
 # set of parameters for a run, with default values
@@ -165,12 +166,30 @@ def get_dataloader(params):
   if params.dataset.type == 'raw_image': # TODO
     raise NotImplementedError("raw images not yet supported")
   elif params.dataset.type == 'mask': # mask data, convert to distance matrix first
+    #dataset = datasets.ImageFolder(
+    #  params.dataset.path
+    #, transforms.Compose([ np.array
+    #                     , functools.partial( mask2distmatrix
+    #                                        , matrix_size=params.distance_matrix_size )
+    #                     , distmat_ts ]))
+    def f(x):
+      print(f"DEBUG: shape:{x.shape}")
+      return x
+    def g(x):
+      print(f"-------------")
+      return x
     dataset = datasets.ImageFolder(
       params.dataset.path
     , transforms.Compose([ np.array
-                         , functools.partial( mask2distmatrix
-                                            , matrix_size=params.distance_matrix_size )
-                         , distmat_ts ]))
+                         , functools.partial(recrop_image, square=True)
+                         , torch.as_tensor
+                         , lambda x: torch.transpose(x, 0, 2)
+                         , transforms.Resize(64)
+                         , lambda x: torch.transpose(x, 0, 2)
+                         , rgb2grey
+                         #, lambda x: x.repeat(3, 1, 1)
+                         , lambda x: x.repeat(1, 1, 1)
+                         ]))
   elif params.dataset.type == 'distance_matrix': # distance matrix data
     dataset = datasets.DatasetFolder( params.dataset.path
                                     , loader=np.load
