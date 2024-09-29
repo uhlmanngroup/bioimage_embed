@@ -196,19 +196,21 @@ def recrop_image(img, square=False):
   newimg = img[ymin:ymax+1, xmin:xmax+1]
 
   if square: # slot the new image into a black square
-    dx, dy = xmax - xmin + 1, ymax - ymin + 1
+    dx, dy = xmax+1 - xmin, ymax+1 - ymin
     dmax = max(dx, dy)
-    dmin = min(dx, dy)
+    #dmin = min(dx, dy)
     dd = max(dx, dy) - min(dx, dy)
     off = dd // 2
     res = np.full((dmax, dmax, 3), [.0,.0,.0]) # big black square
+    #print(f"DEBUG: dx {dx}, dy {dy}, dmax {dmax}, dd {dd}, off {off}")
+    #print(f"DEBUG: res[off+1:off+1+newimg.shape[0],:].shape: {res[off+1:off+1+newimg.shape[0],:].shape}")
+    #print(f"DEBUG: newimg.shape: {newimg.shape}")
     if dx < dy: # fewer columns, center horizontally
-      res[:, off+1:off+1+newimg.shape[1]] = newimg
+      res[:, off:off+newimg.shape[1]] = newimg
     else: # fewer lines, center vertically
-      #print(f"DEBUG: dx {dx}, dy {dy}, dmax {dmax}, dd {dd}, off {off}")
-      #print(f"DEBUG: res[off+1:off+1+newimg.shape[0],:].shape: {res[off+1:off+1+newimg.shape[0],:].shape}")
-      #print(f"DEBUG: newimg.shape: {newimg.shape}")
-      res[off+1:off+1+newimg.shape[0],:] = newimg
+      res[off:off+newimg.shape[0],:] = newimg
+    #print(f"DEBUG: res img updated")
+    #print(f"DEBUG: ------------------------------")
     return res
   else:
     return newimg
