@@ -2,6 +2,7 @@ from torch import nn
 from transformers.utils import ModelOutput
 from pythae.models.nn import BaseDecoder, BaseEncoder
 from pythae.models import VAEConfig
+from . import resnets
 
 
 class BaseResNetVQVAEEncoder(BaseEncoder):
@@ -47,7 +48,7 @@ class ResNet50VQVAEEncoder(BaseResNetVQVAEEncoder):
     ):
         super(ResNet50VQVAEEncoder, self).__init__(
             model_config,
-            ae.resnet50_encoder,
+            resnets.resnet50_encoder,
             self.enc_out_dim,
             first_conv,
             maxpool1,
@@ -67,7 +68,7 @@ class ResNet18VQVAEEncoder(BaseResNetVQVAEEncoder):
     ):
         super(ResNet18VQVAEEncoder, self).__init__(
             model_config,
-            ae.resnet18_encoder,
+            resnets.resnet18_encoder,
             self.enc_out_dim,
             first_conv,
             maxpool1,
@@ -115,7 +116,7 @@ class ResNet50VQVAEDecoder(BaseResNetVQVAEDecoder):
         **kwargs,
     ):
         super(ResNet50VQVAEDecoder, self).__init__(
-            model_config, ae.resnet50_decoder, first_conv, maxpool1, **kwargs
+            model_config, resnets.resnet50_decoder, first_conv, maxpool1, **kwargs
         )
 
 
@@ -130,5 +131,5 @@ class ResNet18VQVAEDecoder(BaseResNetVQVAEDecoder):
         **kwargs,
     ):
         super(ResNet18VQVAEDecoder, self).__init__(
-            model_config, ae.resnet18_decoder, first_conv, maxpool1, **kwargs
+            model_config, resnets.resnet18_decoder, first_conv, maxpool1, **kwargs
         )
