@@ -3,9 +3,9 @@ from transformers.utils import ModelOutput
 from pythae.models.nn import BaseDecoder, BaseEncoder
 
 
-from pythae import models
 from pythae.models import VAEConfig
 from . import resnets
+
 
 def count_params(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -93,44 +93,3 @@ class ResNet18VAEDecoder(BaseDecoder):
         x = self.embedding(x)
         x = self.decoder(x)
         return ModelOutput(reconstruction=x)
-
-
-# class VAEPythaeWrapper(models.VAE):
-#     def __init__(
-#         self,
-#         model_config,
-#         input_height,
-#         enc_type="resnet18",
-#         enc_out_dim=512,
-#         first_conv=False,
-#         maxpool1=False,
-#         kl_coeff=0.1,
-#         encoder=None,
-#         decoder=None,
-#     ):
-#         super(models.BaseAE, self).__init__()
-#         self.model_name = "VAE"
-#         self.model_config = model_config
-#         self.model = ae.VAE(
-#             input_height=input_height,
-#             enc_type=enc_type,
-#             enc_out_dim=enc_out_dim,
-#             first_conv=first_conv,
-#             maxpool1=maxpool1,
-#             kl_coeff=kl_coeff,
-#             latent_dim=model_config.latent_dim,
-#         )
-#         self.encoder = self.model.encoder
-#         self.decoder = self.model.decoder
-
-#     def forward(self, x, epoch=None):
-#         # return ModelOutput(x=x,recon_x=x,z=x,loss=1)
-#         # # Forward pass logic
-#         x = x["data"]
-#         x_recon = self.model(x)
-#         z, recon_x, p, q = self.model._run_step(x)
-#         loss, logs = self.model.step((x, x), batch_idx=epoch)
-#         # recon_loss = self.model.reconstruction_loss(x, recon_x)
-#         return ModelOutput(recon_x=recon_x, z=z, logs=logs, loss=loss, recon_loss=loss)
-
-

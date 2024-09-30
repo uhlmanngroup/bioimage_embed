@@ -1,5 +1,4 @@
 # import torch
-
 # import torch.nn.functional as F
 
 # Note - you must have torchvision installed for this example
@@ -7,9 +6,7 @@
 
 # from bioimage_embed.transforms import DistogramToMaskPipeline
 
-
 # from .vae_bio import Mask_VAE, Image_VAE
-
 # from .bolts import ResNet18VAEEncoder, ResNet18VAEDecoder
 
 from typing import Tuple
@@ -52,45 +49,6 @@ class ModelFactory:
             lambda x: None,
             lambda x: None,
         )
-
-    # def resnet_vae_bolt(
-    #     self,
-    #     enc_type,
-    #     enc_out_dim,
-    #     first_conv=False,
-    #     maxpool1=False,
-    #     kl_coeff=1.0,
-    # ):
-    #     return self.create_model(
-    #         pythae.models.VAEConfig,
-    #         partial(
-    #             bolts.vae.VAEPythaeWrapper,
-    #             input_height=self.input_dim[1],
-    #             enc_type=enc_type,
-    #             enc_out_dim=enc_out_dim,
-    #             first_conv=first_conv,
-    #             maxpool1=maxpool1,
-    #             kl_coeff=kl_coeff,
-    #         ),
-    #         encoder_class=lambda x: None,
-    #         decoder_class=lambda x: None,
-    #     )
-
-    # bolts.vae.VAEPythaeWrapper(
-    #         input_height=self.input_dim[1],
-    #         enc_type=enc_type,
-    #         enc_out_dim=enc_out_dim,
-    #         first_conv=first_conv,
-    #         maxpool1=maxpool1,
-    #         kl_coeff=kl_coeff,
-    #         latent_dim=self.latent_dim,
-    #     )
-
-    # def resnet18_vae_bolt(self, **kwargs):
-    #     return self.resnet_vae_bolt(enc_type="resnet18", enc_out_dim=512, **kwargs)
-
-    # def resnet50_vae_bolt(self, **kwargs):
-    #     return self.resnet_vae_bolt(enc_type="resnet50", enc_out_dim=2048, **kwargs)
 
     def resnet18_vae(self):
         return self.create_model(
@@ -185,19 +143,10 @@ class ModelFactory:
     def __call__(self, model):
         return getattr(self, model)()
 
-    #    return getattr(self
-    #         (
-    #             self.input_dim, self.latent_dim, self.pretrained, self.progress),
-    #         ),
-    #         model,
-    #     )
-
 
 __all_models__ = [
     "resnet18_vae",
     "resnet50_vae",
-    # "resnet18_vae_bolt",
-    # "resnet50_vae_bolt",
     "resnet18_vqvae",
     "resnet50_vqvae",
     "resnet18_vqvae_legacy",
@@ -215,7 +164,6 @@ __all_small_models__ = [
     "resnet18_vqvae",
     "dummy_model",
 ]
-
 
 
 def create_model(
