@@ -194,7 +194,6 @@ class Trainer:
     min_epochs: int = 1
     max_epochs: int = II("recipe.max_epochs")
     log_every_n_steps: int = 1
-    ckpt_path: str = "last"
     # This is not a clean implementation but I am not sure how to do it better
     callbacks: List[Any] = Field(
         default_factory=lambda: list(vars(Callbacks()).values()), frozen=True

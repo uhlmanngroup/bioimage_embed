@@ -173,7 +173,7 @@ class AutoEncoder(pl.LightningModule):
         optimizer, lr_scheduler = self.timm_optimizers(self.model)
         return self.timm_to_lightning(optimizer, lr_scheduler)
 
-    def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+    def lr_scheduler_step(self, scheduler, metric):
         scheduler.step(epoch=self.current_epoch, metric=metric)
 
     def log_wandb(self):
