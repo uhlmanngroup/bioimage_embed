@@ -3,8 +3,6 @@ from transformers.utils import ModelOutput
 from pythae.models.nn import BaseDecoder, BaseEncoder
 from pythae.models import VAEConfig
 
-from pl_bolts.models import autoencoders as ae
-
 
 class BaseResNetVQVAEEncoder(BaseEncoder):
     def __init__(
