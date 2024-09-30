@@ -78,7 +78,12 @@ class BioImageEmbed:
         # best_checkpoint_path = chkpt_callbacks.best_model_path
 
         # TODO add tests for checkpointing (properply)
-        return self._train()
+        try:
+            logging.info("Attempting to resume training")
+            return self._train("last")
+        except Exception:
+            logging.info("Forced to start from scratch")
+            return self._train(None)
 
     def train_resume(self):
         return self.train("last")
