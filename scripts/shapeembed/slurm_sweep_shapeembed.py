@@ -21,21 +21,22 @@ datasets = [
 #  ("synthetic_shapes", f"{datasets_pfx}/synthetic_shapes/", "mask")
 #  ("tiny_synthcell", f"{datasets_pfx}/tiny_synthcellshapes_dataset/", "mask")
 #  ("vampire", f"{datasets_pfx}/vampire/torchvision/Control/", "mask")
- ("mefs_cells", f"{datasets_pfx}/mefs_single_object_cell/", "mask")
-# ("vampire_nuclei", f"{datasets_pfx}/vampire_nuclei/", "mask")
-#, ("binary_vampire", f"{datasets_pfx}/binary_vampire/", "mask")
-#, ("bbbc010", f"{datasets_pfx}/bbbc010/BBBC010_v1_foreground_eachworm/", "mask")
-#, ("synthcell", f"{datasets_pfx}/synthcellshapes_dataset/", "mask")
-#, ("helakyoto", f"{datasets_pfx}/H2b_10x_MD_exp665/samples/", "mask")
-#, ("allen", f"{datasets_pfx}/allen_dataset/", "mask")
+  ("mefs_cells", f"{datasets_pfx}/mefs_single_object_cell/", "mask")
+, ("vampire_nuclei", f"{datasets_pfx}/vampire_nuclei/", "mask")
+, ("binary_vampire", f"{datasets_pfx}/binary_vampire/", "mask")
+, ("bbbc010", f"{datasets_pfx}/bbbc010/BBBC010_v1_foreground_eachworm/", "mask")
+, ("synthcell", f"{datasets_pfx}/synthcellshapes_dataset/", "mask")
+, ("helakyoto", f"{datasets_pfx}/H2b_10x_MD_exp665/samples/", "mask")
+, ("allen", f"{datasets_pfx}/allen_dataset/", "mask")
 ]
 
 models = [
-  "resnet18_vqvae"
+  "o2vae"
+#  "resnet18_vqvae"
 #, "resnet50_vqvae"
 #, "resnet18_vae"
 #, "resnet50_vae"
-, "resnet18_beta_vae"
+#, "resnet18_beta_vae"
 #, "resnet50_beta_vae"
 #, "resnet18_vae_bolt"
 #, "resnet50_vae_bolt"
@@ -50,14 +51,15 @@ models = [
 
 model_params = {
   #"resnet18_beta_vae": {'beta': [2,5]}
-  "resnet18_beta_vae": {'beta': [0.0001]}
+#  "resnet18_beta_vae": {'beta': [0.0001]}
 #, "resnet50_beta_vae": {'beta': [2,5]}
-, "resnet50_beta_vae": {'beta': [0.00001]}
+#, "resnet50_beta_vae": {'beta': [0.00001]}
 }
 
-compression_factors = [1,2,3,5,10]
+#compression_factors = [1,2,3,5,10]
+compression_factors = [1]
 
-batch_sizes = [4, 8, 16]
+batch_sizes = [4, 16, 64, 128, 256]
 
 # XXX XXX XXX XXX XXX XXX XXX #
 # XXX ad-hoc one-off config XXX #
