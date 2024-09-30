@@ -35,6 +35,7 @@ class DataModule(pl.LightningDataModule):
             "pin_memory": True,
             "shuffle": False,
             "sampler": sampler,
+            "drop_last": True,
             # "collate_fn": self.collate_wrapper(self.collate_filter_for_none),
             # "collate_fn": self.collate_filter_for_none,
         }
