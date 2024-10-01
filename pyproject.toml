@@ -93,3 +93,7 @@ line-length = 80
 # url = "https://download.pytorch.org/whl/cpu"
 # default = false
 # secondary = true
+
+[tool.poetry-dynamic-versioning]
+enable = true
+source = "tag"
