@@ -213,7 +213,7 @@ def shape_embed_process():
 
     path = Path(metadata(""))
     path.mkdir(parents=True, exist_ok=True)
-    # %%
+# %%
 
     transform_crop = CropCentroidPipeline(window_size)
     # transform_dist = MaskToDistogramPipeline(
@@ -372,7 +372,7 @@ def shape_embed_process():
         # callbacks=[EarlyStopping(monitor="loss/val", mode="min")],
         log_every_n_steps=1,
     )
-    # %%
+# %%
 
     # Determine the checkpoint path for resuming
     last_checkpoint_path = f"{model_dir}/last.ckpt"
@@ -446,7 +446,7 @@ def shape_embed_process():
     df = df.set_index("Class")
     df_shape_embed = df.copy()
 
-    # %%
+# %%
 
     X = df_shape_embed.to_numpy()
     y = df_shape_embed.index

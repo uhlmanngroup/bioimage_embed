@@ -146,7 +146,7 @@ def shape_embed_process():
     path = Path(metadata(""))
     path.mkdir(parents=True, exist_ok=True)
     model_dir = f"models/{dataset_path}_{args.model}"
-    # %%
+# %%
 
     transform_crop = CropCentroidPipeline(window_size)
     transform_dist = MaskToDistogramPipeline(
@@ -394,7 +394,7 @@ def shape_embed_process():
     # plt.show()
     plt.close()
 
-    # %%
+# %%
 
     X = df_shape_embed.to_numpy()
     y = df_shape_embed.index.values
