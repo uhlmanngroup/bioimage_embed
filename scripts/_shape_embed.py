@@ -23,7 +23,7 @@ import torch.multiprocessing
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
-from bioimage_embed import shapes
+from shape_embed import shapes
 import bioimage_embed
 
 # Note - you must have torchvision installed for this example

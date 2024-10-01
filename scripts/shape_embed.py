@@ -33,14 +33,14 @@ logging.basicConfig(level=logging.INFO)
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
-from bioimage_embed import shapes
+from shape_embed import shapes
 import bioimage_embed
 from pytorch_lightning import loggers as pl_loggers
 from torchvision import transforms
 from bioimage_embed.lightning import DataModule
 
 from torchvision import datasets
-from bioimage_embed.shapes.transforms import (
+from shape_embed.shapes.transforms import (
     ImageToCoords,
     CropCentroidPipeline,
     DistogramToCoords,
