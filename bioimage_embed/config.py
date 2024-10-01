@@ -34,6 +34,8 @@ class Recipe:
     batch_size: int = 16
     data: str = "data"
     opt: str = "adamw"
+    latent_dim: int = 64
+    batch_size: int = 16
     max_epochs: int = 125
     weight_decay: float = 0.001
     momentum: float = 0.9
@@ -63,7 +65,7 @@ class Recipe:
 # that pydantic can use
 @dataclass(config=dict(extra="allow"))
 class ATransform:
-    _target_: str = "albumentations.from_dict"
+    _target_: Any = "albumentations.from_dict"
     _convert_: str = "object"
     # _convert_: str = "all"
     transform_dict: Dict = Field(
@@ -76,7 +78,7 @@ class ATransform:
 
 @dataclass(config=dict(extra="allow"))
 class Transform:
-    _target_: str = "bioimage_embed.augmentations.VisionWrapper"
+    _target_: Any = "bioimage_embed.augmentations.VisionWrapper"
     _convert_: str = "object"
     # transform: ATransform = field(default_factory=ATransform)
     transform_dict: Dict = Field(
@@ -132,10 +134,10 @@ class DataLoader:
 
 @dataclass(config=dict(extra="allow"))
 class Model:
-    _target_: str = "bioimage_embed.models.create_model"
+    _target_: Any = "bioimage_embed.models.create_model"
     model: str = II("recipe.model")
     input_dim: List[int] = Field(default_factory=lambda: [3, 224, 224])
-    latent_dim: int = 64
+    latent_dim: int = II("recipe.latent_dim")
     pretrained: bool = True
 
 
@@ -146,7 +148,7 @@ class Callback:
 
 @dataclass(config=dict(extra="allow"))
 class EarlyStopping(Callback):
-    _target_: str = "pytorch_lightning.callbacks.EarlyStopping"
+    _target_: Any = "pytorch_lightning.callbacks.EarlyStopping"
     monitor: str = "loss/val"
     mode: str = "min"
     patience: int = 3
@@ -154,7 +156,7 @@ class EarlyStopping(Callback):
 
 @dataclass(config=dict(extra="allow"))
 class ModelCheckpoint(Callback):
-    _target_: str = "pytorch_lightning.callbacks.ModelCheckpoint"
+    _target_: Any = "pytorch_lightning.callbacks.ModelCheckpoint"
     save_last = True
     save_top_k = 1
     monitor = "loss/val"
@@ -167,8 +169,8 @@ class ModelCheckpoint(Callback):
 class LightningModel:
     _target_: str = "bioimage_embed.lightning.torch.AEUnsupervised"
     # This should be pythae base autoencoder?
-    model: Model = Field(default_factory=Model)
-    args: Recipe = Field(default_factory=lambda: II("recipe"))
+    model: Any = Field(default_factory=Model)
+    args: Any = Field(default_factory=lambda: II("recipe"))
 
 
 class LightningModelSupervised(LightningModel):
@@ -178,14 +180,16 @@ class LightningModelSupervised(LightningModel):
 @dataclass(config=dict(extra="allow"))
 class Callbacks:
     # _target_: str = "collections.OrderedDict"
-    model_checkpoint: ModelCheckpoint = Field(default_factory=ModelCheckpoint)
-    early_stopping: EarlyStopping = Field(default_factory=EarlyStopping)
+    model_checkpoint: Any = Field(default_factory=ModelCheckpoint)
+    # early_stopping: Any = Field(default_factory=EarlyStopping)
+
 
 
 @dataclass(config=dict(extra="allow"))
 class Trainer:
-    _target_: str = "pytorch_lightning.Trainer"
-    # logger: Optional[any]
+# class Trainer(pytorch_lightning.Trainer):
+    _target_: Any = "pytorch_lightning.Trainer"
+    logger: Any = None
     gradient_clip_val: float = 0.5
     enable_checkpointing: bool = True
     devices: Any = "auto"
@@ -193,13 +197,13 @@ class Trainer:
     accumulate_grad_batches: int = 16
     min_epochs: int = 1
     max_epochs: int = II("recipe.max_epochs")
+    num_nodes: int = 1
     log_every_n_steps: int = 1
     # This is not a clean implementation but I am not sure how to do it better
-    callbacks: List[Any] = Field(
+    callbacks: Any = Field(
         default_factory=lambda: list(vars(Callbacks()).values()), frozen=True
     )
     # TODO idea here would be to use pydantic to validate omegaconf
-
 
 # TODO add argument caching for checkpointing
 
