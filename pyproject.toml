@@ -3,7 +3,7 @@ name = "shape_embed"
 version = "0.0.0"
 description = ""
 authors = ["Craig <ctr26@ebi.ac.uk>"]
-packages = [{ include = "bioimage_embed" }]
+packages = [{ include = "shape_embed" }]
 
 
 [tool.poetry.dependencies]
