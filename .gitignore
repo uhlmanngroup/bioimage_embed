@@ -321,6 +321,7 @@ manuscript
 !scripts
 !conf
 !bioimage_embed
+!shape_embed
 !Dockerfile
 !environment.yml
 !Makefile
