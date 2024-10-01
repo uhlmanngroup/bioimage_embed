@@ -18,6 +18,7 @@ from .pythae import legacy
 from . import bolts
 from functools import partial
 
+
 class ModelFactory:
     def __init__(
         self, input_dim, latent_dim, pretrained=False, progress=True, **kwargs
@@ -136,24 +137,11 @@ class ModelFactory:
                 pythae.models.BetaVAEConfig,
                 use_default_encoder=False,
                 use_default_decoder=False,
-                **self.kwargs
+                **self.kwargs,
             ),
             pythae.models.BetaVAE,
             bolts.ResNet18VAEEncoder,
             bolts.ResNet18VAEDecoder,
-        )
-
-    def resnet50_vae(self):
-        return self.create_model(
-            partial(
-                pythae.models.VAEConfig,
-                use_default_encoder=False,
-                use_default_decoder=False,
-                **self.kwargs
-            ),
-            pythae.models.VAE,
-            bolts.ResNet50VAEEncoder,
-            bolts.ResNet50VAEDecoder,
         )
 
     def resnet50_vqvae(self):
@@ -175,7 +163,7 @@ class ModelFactory:
                 pythae.models.BetaVAEConfig,
                 use_default_encoder=False,
                 use_default_decoder=False,
-                **self.kwargs
+                **self.kwargs,
             ),
             pythae.models.BetaVAE,
             bolts.ResNet50VAEEncoder,
@@ -255,7 +243,6 @@ __all_small_models__ = [
     "resnet18_vqvae",
     "dummy_model",
 ]
-
 
 
 def create_model(
