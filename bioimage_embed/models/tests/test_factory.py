@@ -14,7 +14,9 @@ channel_dim = [
 latent_dim = [64, 16]
 pretrained_options = [True, False]
 progress_options = [True, False]
-batch = [1,]
+batch = [
+    1,
+]
 
 
 @pytest.mark.parametrize("model", __all_models__)

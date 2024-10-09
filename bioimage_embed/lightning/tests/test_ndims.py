@@ -1,6 +1,7 @@
 import pytest
 import torch
 
+
 # Fixture for batch sizes
 @pytest.fixture(params=[1, 16])
 def batch_size(request):

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bioimage_embed"
-version = "0.0.0"
+version = "0.1.1"
 description = ""
 authors = ["Craig <ctr26@ebi.ac.uk>"]
 packages = [{ include = "bioimage_embed" }]
@@ -93,3 +93,7 @@ line-length = 80
 # url = "https://download.pytorch.org/whl/cpu"
 # default = false
 # secondary = true
+
+[tool.poetry-dynamic-versioning]
+enable = true
+source = "tag"

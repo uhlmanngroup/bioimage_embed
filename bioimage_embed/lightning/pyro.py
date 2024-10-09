@@ -7,6 +7,10 @@ import torchvision
 
 
 class LitAutoEncoderPyro(pl.LightningModule):
+    """
+    WIP Unsupported
+    """
+
     def __init__(self, model, batch_size=1, learning_rate=1e-3):
         super().__init__()
         # self.autoencoder = AutoEncoder(batch_size, 1)
@@ -59,6 +63,3 @@ class LitAutoEncoderPyro(pl.LightningModule):
 
     def training_step(self, train_batch, batch_idx):
         return self.torch_training_step(train_batch, batch_idx)
-
-    def training_step(self, train_batch, batch_idx):
-        return self.pyro_training_step(train_batch, batch_idx)
