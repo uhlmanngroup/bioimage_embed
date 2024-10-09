@@ -1,0 +1,6 @@
+site_name: "Bioimage Embed"
+site_url: ""
+nav:
+  - 'cli.md'
+  - 'library.md'
+theme: readthedocs
