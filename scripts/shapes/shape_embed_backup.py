@@ -1,40 +1,40 @@
 # %%
 import seaborn as sns
 import pyefd
-from sklearn.discriminant_analysis import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import (
-    cross_validate,
-    KFold,
-    train_test_split,
-)
+from sklearn.model_selection import cross_validate, KFold, train_test_split
 from sklearn.metrics import make_scorer
 import pandas as pd
 from sklearn import metrics
 import matplotlib as mpl
+import seaborn as sns
 from pathlib import Path
-from sklearn.pipeline import Pipeline
+import umap
 from torch.autograd import Variable
 from types import SimpleNamespace
 import numpy as np
+import logging
 from skimage import measure
+import umap.plot
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import pytorch_lightning as pl
 import torch
 from types import SimpleNamespace
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from umap import UMAP
+import argparse
+import wandb
+import shutil
+
 # Deal with the filesystem
 import torch.multiprocessing
-import logging
-from tqdm import tqdm
-
-logging.basicConfig(level=logging.INFO)
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
 from bioimage_embed import shapes
 import bioimage_embed
+
+# Note - you must have torchvision installed for this example
+
 from pytorch_lightning import loggers as pl_loggers
 from torchvision import transforms
 from bioimage_embed.lightning import DataModule
@@ -44,66 +44,28 @@ from bioimage_embed.shapes.transforms import (
     ImageToCoords,
     CropCentroidPipeline,
     DistogramToCoords,
+    MaskToDistogramPipeline,
     RotateIndexingClockwise,
-    CoordsToDistogram,
-    AsymmetricDistogramToCoordsPipeline,
 )
+
 import matplotlib.pyplot as plt
 
+from bioimage_embed.lightning import DataModule
+import matplotlib as mpl
 from matplotlib import rc
 
-import pickle
+import logging
+import pickle 
 import base64
 import hashlib
 
 logger = logging.getLogger(__name__)
-
-# Seed everything
-np.random.seed(42)
-pl.seed_everything(42)
-
 
 def hashing_fn(args):
     serialized_args = pickle.dumps(vars(args))
     hash_object = hashlib.sha256(serialized_args)
     hashed_string = base64.urlsafe_b64encode(hash_object.digest()).decode()
     return hashed_string
-
-
-def umap_plot(df, metadata, width=3.45, height=3.45 / 1.618):
-    umap_reducer = UMAP(n_neighbors=15, min_dist=0.1, n_components=2, random_state=42)
-    mask = np.random.rand(len(df)) < 0.7
-
-    semi_labels = df["Class"].copy()
-    semi_labels[~mask] = -1  # Assuming -1 indicates unknown label for semi-supervision
-
-    umap_embedding = umap_reducer.fit_transform(df, y=semi_labels)
-
-    ax = sns.relplot(
-        data=pd.DataFrame(umap_embedding, columns=["umap0", "umap1"]),
-        x="umap0",
-        y="umap1",
-        hue="Class",
-        palette="deep",
-        alpha=0.5,
-        edgecolor=None,
-        s=5,
-        height=height,
-        aspect=0.5 * width / height,
-    )
-
-    sns.move_legend(
-        ax,
-        "upper center",
-    )
-    ax.set(xlabel=None, ylabel=None)
-    sns.despine(left=True, bottom=True)
-    plt.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False)
-    plt.tight_layout()
-    plt.savefig(metadata("umap_no_axes.pdf"))
-    # plt.show()
-    plt.close()
-
 
 def scoring_df(X, y):
     # Split the data into training and test sets
@@ -112,32 +74,24 @@ def scoring_df(X, y):
     )
     # Define a dictionary of metrics
     scoring = {
-        "accuracy": make_scorer(metrics.balanced_accuracy_score),
+        "accuracy": make_scorer(metrics.accuracy_score),
         "precision": make_scorer(metrics.precision_score, average="macro"),
         "recall": make_scorer(metrics.recall_score, average="macro"),
         "f1": make_scorer(metrics.f1_score, average="macro"),
-        "roc_auc": make_scorer(metrics.roc_auc_score, average="macro"),
     }
 
     # Create a random forest classifier
-    pipeline = Pipeline(
-        [
-            ("scaler", StandardScaler()),
-            #  ("pca", PCA(n_components=0.95, whiten=True, random_state=42)),
-            ("clf", RandomForestClassifier()),
-            # ("clf", DummyClassifier()),
-        ]
-    )
+    clf = RandomForestClassifier()
 
     # Specify the number of folds
-    k_folds = 5
+    k_folds = 10
 
     # Perform k-fold cross-validation
     cv_results = cross_validate(
-        estimator=pipeline,
+        estimator=clf,
         X=X,
         y=y,
-        cv=StratifiedKFold(n_splits=k_folds),
+        cv=KFold(n_splits=k_folds),
         scoring=scoring,
         n_jobs=-1,
         return_train_score=False,
@@ -157,11 +111,7 @@ def shape_embed_process(clargs):
     height = width / 1.618
     plt.rcParams["figure.figsize"] = [width, height]
 
-    sns.set(
-        style="white",
-        context="notebook",
-        rc={"figure.figsize": (width, height)},
-    )
+    sns.set(style="white", context="notebook", rc={"figure.figsize": (width, height)})
 
     # matplotlib.use("TkAgg")
     interp_size = clargs.latent_space_size * 2
@@ -171,9 +121,11 @@ def shape_embed_process(clargs):
     #window_size = 128 * 2
 
     params = {
-        "model": "resnet50_vqvae",
-        "epochs": 250,
-        "batch_size": 4,
+        "model":clargs.model,
+        #"model":"resnet18_vae",
+        "epochs": 75,
+        "batch_size": clargs.batch_size,
+        #"batch_size": 4,
         "num_workers": 2**4,
         "input_dim": (3, interp_size, interp_size),
         "latent_dim": interp_size,
@@ -183,10 +135,6 @@ def shape_embed_process(clargs):
         "commitment_cost": 0.25,
         "decay": 0.99,
         "frobenius_norm": False,
-        # dataset = "bbbc010/BBBC010_v1_foreground_eachworm"
-        # dataset = "vampire/mefs/data/processed/Control"
-        #"dataset": "synthcellshapes_dataset",
-        "dataset": clargs.dataset[0],
     }
 
     optimizer_params = {
@@ -208,9 +156,8 @@ def shape_embed_process(clargs):
 
     args = SimpleNamespace(**params, **optimizer_params, **lr_scheduler_params)
 
-    dataset_path = args.dataset
-
-    # train_data_path = f"scripts/shapes/data/{dataset_path}"
+    dataset_path = "bbbc010/BBBC010_v1_foreground_eachworm/"
+    dataset = "bbbc010"
     train_data_path = f"/nfs/research/uhlmann/afoix/{dataset_path}"
     metadata = lambda x: f"results/{dataset_path}_{args.model}/{x}"
 
@@ -219,11 +166,10 @@ def shape_embed_process(clargs):
     # %%
 
     transform_crop = CropCentroidPipeline(window_size)
-    # transform_dist = MaskToDistogramPipeline(
-    # window_size, interp_size, matrix_normalised=False
-    # )
-    transform_coord_to_dist = CoordsToDistogram(interp_size, matrix_normalised=False)
-    #transform_mdscoords = DistogramToCoords(window_size)
+    transform_dist = MaskToDistogramPipeline(
+        window_size, interp_size, matrix_normalised=False
+    )
+    transform_mdscoords = DistogramToCoords(window_size)
     transform_coords = ImageToCoords(window_size)
 
     transform_mask_to_gray = transforms.Compose([transforms.Grayscale(1)])
@@ -236,27 +182,16 @@ def shape_embed_process(clargs):
         ]
     )
 
+    transform_mask_to_dist = transforms.Compose(
+        [
+            transform_mask_to_crop,
+            transform_dist,
+        ]
+    )
     transform_mask_to_coords = transforms.Compose(
         [
             transform_mask_to_crop,
             transform_coords,
-        ]
-    )
-
-    transform_mask_to_dist = transforms.Compose(
-        [
-            transform_mask_to_coords,
-            transform_coord_to_dist,
-        ]
-    )
-
-    gray2rgb = transforms.Lambda(lambda x: x.repeat(3, 1, 1))
-    transform = transforms.Compose(
-        [
-            transform_mask_to_dist,
-            transforms.ToTensor(),
-            RotateIndexingClockwise(p=1),
-            gray2rgb,
         ]
     )
 
@@ -267,39 +202,26 @@ def shape_embed_process(clargs):
         "transform_coords": transform_mask_to_coords,
     }
 
-    # Apply transform to find which images don't work
-    dataset = datasets.ImageFolder(train_data_path, transform=transform)
-
-    valid_indices = []
-    # Iterate through the dataset and apply the transform to each image
-    for idx in range(len(dataset)):
-        try:
-            image, label = dataset[idx]
-            # If the transform works without errors, add the index to the list of valid indices
-            valid_indices.append(idx)
-        except Exception as e:
-            # A better way to do with would be with batch collation
-            logger.warning(f"Error occurred for image {idx}: {e}")
-
     train_data = {
-        key: torch.utils.data.Subset(
-            datasets.ImageFolder(train_data_path, transform=value),
-            valid_indices,
-        )
+        key: datasets.ImageFolder(train_data_path, transform=value)
         for key, value in transforms_dict.items()
     }
 
-    dataset = torch.utils.data.Subset(
-        datasets.ImageFolder(train_data_path, transform=transform),
-        valid_indices,
-    )
-
     for key, value in train_data.items():
-        logger.info(key, len(value))
-        plt.imshow(np.array(train_data[key][0][0]), cmap="gray")
+        print(key, len(value))
+        plt.imshow(train_data[key][0][0], cmap="gray")
         plt.imsave(metadata(f"{key}.png"), train_data[key][0][0], cmap="gray")
         # plt.show()
         plt.close()
+
+    # plt.scatter(*train_data["transform_coords"][0][0])
+    # plt.savefig(metadata(f"transform_coords.png"))
+    # plt.show()
+
+    # plt.imshow(train_data["transform_crop"][0][0], cmap="gray")
+    # plt.scatter(*train_data["transform_coords"][0][0],c=np.arange(interp_size), cmap='rainbow', s=1)
+    # plt.show()
+    # plt.savefig(metadata(f"transform_coords.png"))
 
     # Retrieve the coordinates and cropped image
     coords = train_data["transform_coords"][0][0]
@@ -317,10 +239,34 @@ def shape_embed_process(clargs):
     plt.scatter(*coords, c=np.arange(interp_size), cmap="rainbow", s=2)
 
     # Save the plot as an image without border and coordinate axes
-    plt.savefig(metadata("transform_coords.png"), bbox_inches="tight", pad_inches=0)
+    plt.savefig(metadata(f"transform_coords.png"), bbox_inches="tight", pad_inches=0)
 
     # Close the plot
     plt.close()
+    # import albumentations as A
+    # %%
+    gray2rgb = transforms.Lambda(lambda x: x.repeat(3, 1, 1))
+    transform = transforms.Compose(
+        [
+            transform_mask_to_dist,
+            transforms.ToTensor(),
+            RotateIndexingClockwise(p=1),
+            gray2rgb,
+        ]
+    )
+
+    dataset = datasets.ImageFolder(train_data_path, transform=transform)
+
+    valid_indices = []
+    # Iterate through the dataset and apply the transform to each image
+    for idx in range(len(dataset)):
+        try:
+            image, label = dataset[idx]
+            # If the transform works without errors, add the index to the list of valid indices
+            valid_indices.append(idx)
+        except Exception as e:
+            # A better way to do with would be with batch collation
+            print(f"Error occurred for image {idx}: {e}")
 
     # Create a Subset using the valid indices
     dataset = torch.utils.data.Subset(dataset, valid_indices)
@@ -331,12 +277,16 @@ def shape_embed_process(clargs):
         num_workers=args.num_workers,
     )
 
+    # model = bioimage_embed.models.create_model("resnet18_vqvae_legacy", **vars(args))
+    # 
     model = bioimage_embed.models.create_model(
         model=args.model,
         input_dim=args.input_dim,
         latent_dim=args.latent_dim,
         pretrained=args.pretrained,
     )
+
+    # model = bioimage_embed.models.factory.ModelFactory(**vars(args)).resnet50_vqvae_legacy()
 
     # lit_model = shapes.MaskEmbedLatentAugment(model, args)
     lit_model = shapes.MaskEmbed(model, args)
@@ -352,22 +302,16 @@ def shape_embed_process(clargs):
       shutil.rmtree("checkpoints/")
     model_dir = f"checkpoints/{hashing_fn(args)}"
 
-    tb_logger = pl_loggers.TensorBoardLogger("logs/")
-    wandb = pl_loggers.WandbLogger(project="bioimage-embed", name="shapes")
+    tb_logger = pl_loggers.TensorBoardLogger(f"logs/")
+    wandblogger = pl_loggers.WandbLogger(project="shape-embed", name=f"{params['model']}_{interp_size}_{params['batch_size']}")
 
     Path(f"{model_dir}/").mkdir(parents=True, exist_ok=True)
 
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=f"{model_dir}/",
-        save_last=True,
-        save_top_k=1,
-        monitor="loss/val",
-        mode="min",
-    )
-    wandb.watch(lit_model, log="all")
+    checkpoint_callback = ModelCheckpoint(dirpath=f"{model_dir}/", save_last=True)
+    wandblogger.watch(lit_model, log="all")
 
     trainer = pl.Trainer(
-        logger=[wandblogger, tb_logger],
+        logger=[wandblogger,tb_logger],
         gradient_clip_val=0.5,
         enable_checkpointing=True,
         devices=1,
@@ -376,24 +320,15 @@ def shape_embed_process(clargs):
         callbacks=[checkpoint_callback],
         min_epochs=50,
         max_epochs=args.epochs,
-        # callbacks=[EarlyStopping(monitor="loss/val", mode="min")],
         log_every_n_steps=1,
     )
     # %%
-
-    # Determine the checkpoint path for resuming
-    last_checkpoint_path = f"{model_dir}/last.ckpt"
-    best_checkpoint_path = checkpoint_callback.best_model_path
-
-    # Check if a last checkpoint exists to resume from
-    if os.path.isfile(last_checkpoint_path):
-        resume_checkpoint = last_checkpoint_path
-    elif best_checkpoint_path and os.path.isfile(best_checkpoint_path):
-        resume_checkpoint = best_checkpoint_path
-    else:
-        resume_checkpoint = None
-
-    trainer.fit(lit_model, datamodule=dataloader, ckpt_path=resume_checkpoint)
+    try:
+        trainer.fit(
+            lit_model, datamodule=dataloader, ckpt_path=f"{model_dir}/last.ckpt"
+        )
+    except:
+        trainer.fit(lit_model, datamodule=dataloader)
 
     lit_model.eval()
 
@@ -405,36 +340,21 @@ def shape_embed_process(clargs):
     # torch.onnx.export(lit_model, example_input, f"{model_dir}/model.onnx")
 
     # %%
-    # Inference on full dataset
+    # Inference
+
     dataloader = DataModule(
         dataset,
         batch_size=1,
         shuffle=False,
         num_workers=args.num_workers,
         # Transform is commented here to avoid augmentations in real data
-        # HOWEVER, applying the transform multiple times and averaging the results might produce better latent embeddings
+        # HOWEVER, applying a the transform multiple times and averaging the results might produce better latent embeddings
+        # transform=transform,
         # transform=transform,
     )
     dataloader.setup()
 
     predictions = trainer.predict(lit_model, datamodule=dataloader)
-
-    test_dist_pred = predictions[0].out.recon_x
-    plt.imsave(metadata("test_dist_pred.png"), test_dist_pred.mean(axis=(0, 1)))
-    plt.close()
-
-    test_dist_in = predictions[0].x.data
-    plt.imsave(metadata("test_dist_in.png"), test_dist_in.mean(axis=(0, 1)))
-    plt.close()
-
-    test_pred_coords = AsymmetricDistogramToCoordsPipeline(window_size=window_size)(
-        np.array(test_dist_pred[:, 0, :, :].unsqueeze(dim=0))
-    )
-
-    plt.scatter(*test_pred_coords[0, 0].T)
-    # Save the plot as an image without border and coordinate axes
-    plt.savefig(metadata("test_pred_coords.png"), bbox_inches="tight", pad_inches=0)
-    plt.close()
 
     # Use the namespace variables
     latent_space = torch.stack([d.out.z.flatten() for d in predictions])
@@ -448,7 +368,10 @@ def shape_embed_process(clargs):
     y_blind = -1 * np.ones_like(y)
 
     df = pd.DataFrame(latent_space.numpy())
-    df["Class"] = pd.Series(y).map(idx_to_class).astype("category")
+    df["Class"] = y
+    # Map numeric classes to their labels
+    idx_to_class = {0: "alive", 1: "dead"}
+    df["Class"] = df["Class"].map(idx_to_class)
     df["Scale"] = scalings[:, 0].squeeze()
     df = df.set_index("Class")
     df_shape_embed = df.copy()
@@ -456,7 +379,7 @@ def shape_embed_process(clargs):
     # %%
 
     X = df_shape_embed.to_numpy()
-    y = df_shape_embed.index
+    y = df_shape_embed.index.values
 
     properties = [
         "area",
@@ -467,12 +390,11 @@ def shape_embed_process(clargs):
         "orientation",
     ]
     dfs = []
-    # Distance matrix data
-    for i, data in enumerate(tqdm(train_data["transform_crop"])):
+    for i, data in enumerate(train_data["transform_crop"]):
         X, y = data
         # Do regionprops here
         # Calculate shape summary statistics using regionprops
-        # We're considering that the mask has only one object, so we take the first element [0]
+        # We're considering that the mask has only one object, thus we take the first element [0]
         # props = regionprops(np.array(X).astype(int))[0]
         props_table = measure.regionprops_table(
             np.array(X).astype(int), properties=properties
@@ -488,8 +410,9 @@ def shape_embed_process(clargs):
 
     df_regionprops = pd.concat(dfs)
 
+    # Assuming 'dataset_contour' is your DataLoader for the dataset
     dfs = []
-    for i, data in enumerate(tqdm(train_data["transform_coords"])):
+    for i, data in enumerate(train_data["transform_coords"]):
         # Convert the tensor to a numpy array
         X, y = data
 
@@ -538,18 +461,26 @@ def shape_embed_process(clargs):
         y = trial["labels"]
         trial["score_df"] = scoring_df(X, y)
         trial["score_df"]["trial"] = trial["name"]
-        logger.info(trial["score_df"])
+        print(trial["score_df"])
         trial["score_df"].to_csv(metadata(f"{trial['name']}_score_df.csv"))
         trial_df = pd.concat([trial_df, trial["score_df"]])
     trial_df = trial_df.drop(["fit_time", "score_time"], axis=1)
 
-    trial_df.to_csv(metadata("trial_df.csv"))
-    trial_df.groupby("trial").mean().to_csv(metadata("trial_df_mean.csv"))
+    trial_df.to_csv(metadata(f"trial_df.csv"))
+    trial_df.groupby("trial").mean().to_csv(metadata(f"trial_df_mean.csv"))
     trial_df.plot(kind="bar")
-
-    avg = trial_df.groupby("trial").mean()
-    logger.info(avg)
-    avg.to_latex(metadata("trial_df.tex"))
+    
+    #mean_df = trial_df.groupby("trial").mean()
+    #std_df = trial_df.groupby("trial").std()
+    #wandb.log_table(mean_df)
+    #wandb.log_table(std_df) 
+    
+    #Special metrics for f1 score for wandb
+    wandblogger.experiment.log({"trial_df": wandb.Table(dataframe=trial_df)})
+    mean_df = trial_df.groupby("trial").mean()
+    std_df = trial_df.groupby("trial").std()
+    wandblogger.experiment.log({"Mean": wandb.Table(dataframe=mean_df)})
+    wandblogger.experiment.log({"Std": wandb.Table(dataframe=std_df)})
 
     melted_df = trial_df.melt(id_vars="trial", var_name="Metric", value_name="Score")
     # fig, ax = plt.subplots(figsize=(width, height))
@@ -568,7 +499,7 @@ def shape_embed_process(clargs):
     # sns.move_legend(ax, "lower center", bbox_to_anchor=(1, 1))
     # ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     # plt.tight_layout()
-    plt.savefig(metadata("trials_barplot.pdf"))
+    plt.savefig(metadata(f"trials_barplot.pdf"))
     plt.close()
 
     avs = (
@@ -577,7 +508,7 @@ def shape_embed_process(clargs):
         .groupby("trial")
         .mean()
     )
-    logger.info(avs)
+    print(avs)
     # tikzplotlib.save(metadata(f"trials_barplot.tikz"))
 
 
@@ -614,12 +545,6 @@ if __name__ == "__main__":
         '-m', '--model', choices=models, default=models[0], metavar='MODEL'
       , help=f"The MODEL to use, one of {models} (default {models[0]}).")
     parser.add_argument(
-        '-d', '--dataset', nargs=2, default=("vampire", "vampire/torchvision/Control/"), metavar=('NAME', 'PATH')
-      , help=f"The NAME of and PATH to the dataset")
-    parser.add_argument(
-        '-w', '--wandb-project', default="shape-embed", metavar='PROJECT'
-      , help=f"The wandb PROJECT name")
-    parser.add_argument(
         '-b', '--batch-size', default=int(4), metavar='BATCH_SIZE', type=auto_pos_int
       , help="The BATCH_SIZE for the run, a positive integer (default 4)")
     parser.add_argument(
@@ -630,6 +555,4 @@ if __name__ == "__main__":
     #parser.add_argument('-v', '--verbose', action='count', default=0,
     #  help="Increase verbosity level by adding more \"v\".")
     
-    #clargs=parser.parse_args()
-    #print(clargs.dataset)
     shape_embed_process(parser.parse_args())
