@@ -19,13 +19,13 @@ from common_helpers import *
 
 datasets_pfx = '/nfs/research/uhlmann/afoix/datasets/image_datasets'
 datasets = [
-  ("synthetic_shapes", f"{datasets_pfx}/synthetic_shapes/", "mask", 1579)
+#  ("synthetic_shapes", f"{datasets_pfx}/synthetic_shapes/", "mask", 1579)
 #  ("tiny_synthcell", f"{datasets_pfx}/tiny_synthcellshapes_dataset/", "mask")
 #  ("vampire", f"{datasets_pfx}/vampire/torchvision/Control/", "mask")
-, ("mefs_cells", f"{datasets_pfx}/mefs_single_object_cell/", "mask", 83)
-, ("vampire_nuclei", f"{datasets_pfx}/vampire_nuclei/", "mask", 23)
-, ("binary_vampire", f"{datasets_pfx}/binary_vampire/", "mask", 291)
-, ("bbbc010", f"{datasets_pfx}/bbbc010/BBBC010_v1_foreground_eachworm/", "mask", 323)
+  ("mefs_cells", f"{datasets_pfx}/mefs_single_object_cell/", "mask", 83)
+, ("mefs_nuclei", f"{datasets_pfx}/mefs_single_object_nuclei/", "mask", 23)
+#, ("binary_vampire", f"{datasets_pfx}/binary_vampire/", "mask", 291)
+#, ("bbbc010", f"{datasets_pfx}/bbbc010/BBBC010_v1_foreground_eachworm/", "mask", 323)
 #, ("synthcell", f"{datasets_pfx}/synthcellshapes_dataset/", "mask")
 , ("helakyoto", f"{datasets_pfx}/H2b_10x_MD_exp665/samples/", "mask", 61)
 #, ("allen", f"{datasets_pfx}/allen_dataset/", "mask")
