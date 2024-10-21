@@ -26,24 +26,24 @@ def trial_table(df, tname):
 
 #def simple_table(df, tname, model_re=".*vq.*"):
 def simple_table(df, tname, model_re=".*", sort_by_col=None, ascending=False, best_n=40):
-  cols=['model', 'compression_factor', 'latent_dim', 'batch_size', 'beta', 'test_f1', 'test_f1_std', 'mse/test']
+  cols=['model', 'compression_factor', 'distance_matrix_size', 'latent_dim', 'batch_size', 'beta', 'test_f1', 'test_f1_std', 'mse/test']
   df = df.loc[df.model.str.contains(model_re), cols].sort_values(by=cols)
   if sort_by_col:
     df = df.sort_values(by=sort_by_col, ascending=ascending)
   df = df.iloc[:best_n]
 
   with open(f'{tname}_tabular.tex', 'w') as fp:
-    fp.write("\\begin{tabular}{|llll|r|r|} \hline\n")
-    fp.write("Model & CF (and latent space size) & batch size & BETA & F1 score & F1 score (std) & Mse \\\\ \hline\n")
+    fp.write("\\begin{tabular}{|lllll|r|r|} \hline\n")
+    fp.write("Model & distance matrix size & CF (and latent space size) & batch size & BETA & F1 score & F1 score (std) & Mse \\\\ \hline\n")
     for _, r in df.iterrows():
       mname = r['model'].replace('_','\_')
       beta = '-' if pd.isna(r['beta']) else r['beta']
-      fp.write(f"{mname} & {r['compression_factor']} ({r['latent_dim']}) & {r['batch_size']} & {beta} & {r['test_f1']:f} & {r['test_f1_std']:f} & {r['mse/test']:f} \\\\\n")
+      fp.write(f"{mname} & {r['distance_matrix_size']} & {r['compression_factor']} ({r['latent_dim']}) & {r['batch_size']} & {beta} & {r['test_f1']:f} & {r['test_f1_std']:f} & {r['mse/test']:f} \\\\\n")
     fp.write("\hline\n")
     fp.write("\end{tabular}\n")
 
 def compare_f1_mse_table(df, tname, best_n=40):
-  cols=['model', 'compression_factor', 'latent_dim', 'batch_size', 'beta', 'test_f1', 'mse/test']
+  cols=['model', 'compression_factor', 'distance_matrix_size', 'latent_dim', 'batch_size', 'beta', 'test_f1', 'mse/test']
   df0 = df[cols].sort_values(by=cols)
   df0 = df0.sort_values(by='test_f1', ascending=False)
   df0 = df0.iloc[:best_n]
@@ -53,15 +53,15 @@ def compare_f1_mse_table(df, tname, best_n=40):
   df = pd.concat([df0.reset_index(), df1.reset_index()], axis=1, keys=['f1', 'mse'])
   print(df)
   with open(f'{tname}_tabular.tex', 'w') as fp:
-    fp.write("\\begin{tabular}{|llll|r|r|llll|r|r|} \hline\n")
-    fp.write("\multicolumn{6}{|l}{Best F1 score} & \multicolumn{6}{|l|}{Best Mse} \\\\\n")
-    fp.write("Model & CF (latent space) & batch size & BETA & F1 score & Mse & Model & CF (latent space) & batch size & BETA & F1 score & Mse \\\\ \hline\n")
+    fp.write("\\begin{tabular}{|lllll|r|r|lllll|r|r|} \hline\n")
+    fp.write("\multicolumn{7}{|l}{Best F1 score} & \multicolumn{7}{|l|}{Best Mse} \\\\\n")
+    fp.write("Model & distance matrix size & CF (latent space) & batch size & BETA & F1 score & Mse & Model & distance matrix size & CF (latent space) & batch size & BETA & F1 score & Mse \\\\ \hline\n")
     for _, r in df.iterrows():
       f1_name = r[('f1', 'model')].replace('_','\_')
       mse_name = r[('mse', 'model')].replace('_','\_')
       f1_beta = '-' if pd.isna(r[('f1', 'beta')]) else r[('f1', 'beta')]
       mse_beta = '-' if pd.isna(r[('mse', 'beta')]) else r[('mse', 'beta')]
-      fp.write(f"{f1_name} & {r[('f1', 'compression_factor')]} ({r[('f1', 'latent_dim')]}) & {r[('f1', 'batch_size')]} & {f1_beta} & {r[('f1', 'test_f1')]:f} & {r[('f1', 'mse/test')]:f} & {mse_name} & {r[('mse', 'compression_factor')]} ({r[('mse', 'latent_dim')]}) & {r[('mse', 'batch_size')]} & {mse_beta} & {r[('mse', 'test_f1')]:f} & {r[('mse', 'mse/test')]:f} \\\\\n")
+      fp.write(f"{f1_name} & {r[('f1', 'distance_matrix_size')]} & {r[('f1', 'compression_factor')]} ({r[('f1', 'latent_dim')]}) & {r[('f1', 'batch_size')]} & {f1_beta} & {r[('f1', 'test_f1')]:f} & {r[('f1', 'mse/test')]:f} & {mse_name} & {r[('mse', 'distance_matrix_size')]} & {r[('mse', 'compression_factor')]} ({r[('mse', 'latent_dim')]}) & {r[('mse', 'batch_size')]} & {mse_beta} & {r[('mse', 'test_f1')]:f} & {r[('mse', 'mse/test')]:f} \\\\\n")
     fp.write("\hline\n")
     fp.write("\end{tabular}\n")
 
@@ -142,7 +142,7 @@ def main_process(clargs, logger=logging.getLogger(__name__)):
   # function for finding total
   def keep_first_fname(series): 
     return functools.reduce(lambda x, y: y if str(x) == 'nofile' else x, series)
-  idx_cols = ['trial', 'classifier', 'dataset', 'model', 'compression_factor', 'latent_dim', 'batch_size']
+  idx_cols = ['trial', 'classifier', 'dataset', 'model', 'compression_factor', 'distance_matrix_size', 'latent_dim', 'batch_size']
   df.set_index(idx_cols, inplace=True)
   df.sort_index(inplace=True)
   #df = df.groupby(level=['trial', 'dataset', 'model', 'compression_factor', 'latent_dim', 'batch_size']).agg({

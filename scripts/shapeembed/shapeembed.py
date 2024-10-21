@@ -107,6 +107,7 @@ def tag_cols(params):
   cols.append(('model', params.model_name))
   for k, v in vars(params.model_args).items(): cols.append((k, v))
   cols.append(('compression_factor', params.compression_factor))
+  cols.append(('distance_matrix_size', params.distance_matrix_size))
   cols.append(('latent_dim', params.latent_dim))
   cols.append(('batch_size', params.batch_size))
   return cols
