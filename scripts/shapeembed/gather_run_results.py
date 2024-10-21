@@ -142,7 +142,7 @@ def main_process(clargs, logger=logging.getLogger(__name__)):
   # function for finding total
   def keep_first_fname(series): 
     return functools.reduce(lambda x, y: y if str(x) == 'nofile' else x, series)
-  idx_cols = ['trial', 'dataset', 'model', 'compression_factor', 'latent_dim', 'batch_size']
+  idx_cols = ['trial', 'classifier', 'dataset', 'model', 'compression_factor', 'latent_dim', 'batch_size']
   df.set_index(idx_cols, inplace=True)
   df.sort_index(inplace=True)
   #df = df.groupby(level=['trial', 'dataset', 'model', 'compression_factor', 'latent_dim', 'batch_size']).agg({

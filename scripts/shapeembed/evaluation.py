@@ -105,7 +105,8 @@ def score_dataframe( df, name
     # Put the results into a DataFrame
     df = pandas.DataFrame(cv_results)
     df = df.drop(["fit_time", "score_time"], axis=1)
-    df.insert(loc=0, column='trial', value=f'{name}_{pipename}')
+    df.insert(loc=0, column='classifier', value=pipename)
+    df.insert(loc=0, column='trial', value=name)
     tag_columns.reverse()
     for tag_col_name, tag_col_value in tag_columns:
       df.insert(loc=0, column=tag_col_name, value=tag_col_value)
