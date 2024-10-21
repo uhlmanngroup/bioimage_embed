@@ -355,11 +355,12 @@ def main_process(params):
   logger.info(f'-- generate shapeembed umap --')
   umap_plot(shapeembed_df, f'{pfx}-shapeembed', outputdir=params.output_dir)
   logger.info(f'-- score shape embed --')
-  shapeembed_cm, shapeembed_score_df = score_dataframe(shapeembed_df, pfx, tag_cols(params)+[(k, v.item()) for k, v in model.metrics.items()])
+  shapeembed_cms, shapeembed_score_df = score_dataframe(shapeembed_df, pfx, tag_cols(params)+[(k, v.item()) for k, v in model.metrics.items()])
   logger.info(f'-- shapeembed on {params.dataset.name}, score\n{shapeembed_score_df}')
   shapeembed_score_df.to_csv(f"{params.output_dir}/{pfx}-shapeembed-score_df.csv")
-  logger.info(f'-- confusion matrix:\n{shapeembed_cm}')
-  confusion_matrix_plot(shapeembed_cm, f'{pfx}-shapeembed', params.output_dir)
+  for kind, shapeembed_cm in shapeembed_cms.items():
+    logger.info(f'-- {kind} confusion matrix:\n{shapeembed_cm}')
+    confusion_matrix_plot(shapeembed_cm, f'{pfx}-{kind}-shapeembed', params.output_dir)
   # XXX TODO move somewhere else if desired XXX
   ## combined shapeembed + efd + regionprops
   #logger.info(f'-- shapeembed + efd + regionprops --')

@@ -5,6 +5,7 @@ from skimage import measure
 from sklearn.cluster import KMeans
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import StandardScaler
 from sklearn import metrics
 from sklearn.metrics import make_scorer
@@ -67,37 +68,50 @@ def score_dataframe( df, name
   , "f1": make_scorer(metrics.f1_score, average="macro")
   #, "roc_auc": make_scorer(metrics.roc_auc_score, average="macro")
   }
-  # Create a random forest classifier
-  pipeline = Pipeline([
-    ("scaler", StandardScaler())
   #, ("pca", PCA(n_components=0.95, whiten=True, random_state=rand_seed))
-  , ("clf", RandomForestClassifier())
   #, ("clf", DummyClassifier())
+  # Create a linear classifier
+  lin_pipeline = Pipeline([
+    ("scaler", StandardScaler())
+  #, ("clf", LinearRegression())
+  , ("clf", LogisticRegression())
   ])
-  # build confusion matrix
-  clean_df.columns = clean_df.columns.astype(str) # only string column names
-  lbl_pred = cross_val_predict( pipeline
-                              , clean_df.drop('class', axis=1)
-                              , clean_df['class'])
-  conf_mat = confusion_matrix(clean_df['class'], lbl_pred)
-  # Perform k-fold cross-validation
-  cv_results = cross_validate(
-    estimator=pipeline
-  , X=clean_df.drop('class', axis=1)
-  , y=clean_df['class']
-  , cv=StratifiedKFold(n_splits=k_folds)
-  , scoring=scoring
-  , n_jobs=-1
-  , return_train_score=False
-  )
-  # Put the results into a DataFrame
-  df = pandas.DataFrame(cv_results)
-  df = df.drop(["fit_time", "score_time"], axis=1)
-  df.insert(loc=0, column='trial', value=name)
-  tag_columns.reverse()
-  for tag_col_name, tag_col_value in tag_columns:
-    df.insert(loc=0, column=tag_col_name, value=tag_col_value)
-  return conf_mat, df
+  # Create a random forest classifier
+  randforest_pipeline = Pipeline([
+    ("scaler", StandardScaler())
+  , ("clf", RandomForestClassifier())
+  ])
+  dfs = []
+  conf_mats = {}
+  for pipename, pipeline in [ (    'linear',        lin_pipeline)
+                            , ('randforest', randforest_pipeline) ]:
+  #for pipename, pipeline in [ ('randforest', randforest_pipeline) ]:
+    # build confusion matrix
+    clean_df.columns = clean_df.columns.astype(str) # only string column names
+    lbl_pred = cross_val_predict( pipeline
+                                , clean_df.drop('class', axis=1)
+                                , clean_df['class'])
+    conf_mat = confusion_matrix(clean_df['class'], lbl_pred)
+    # Perform k-fold cross-validation
+    cv_results = cross_validate(
+      estimator=pipeline
+    , X=clean_df.drop('class', axis=1)
+    , y=clean_df['class']
+    , cv=StratifiedKFold(n_splits=k_folds)
+    , scoring=scoring
+    , n_jobs=-1
+    , return_train_score=False
+    )
+    # Put the results into a DataFrame
+    df = pandas.DataFrame(cv_results)
+    df = df.drop(["fit_time", "score_time"], axis=1)
+    df.insert(loc=0, column='trial', value=f'{name}_{pipename}')
+    tag_columns.reverse()
+    for tag_col_name, tag_col_value in tag_columns:
+      df.insert(loc=0, column=tag_col_name, value=tag_col_value)
+    dfs.append(df)
+    conf_mats[pipename] = conf_mat
+  return conf_mats, pandas.concat(dfs)
 
 def confusion_matrix_plot( cm, name, outputdir
                          , figsize=(10,7) ):
