@@ -3,6 +3,7 @@
 import os
 import glob
 import copy
+import math
 import types
 import logging
 import tempfile
@@ -18,24 +19,24 @@ from common_helpers import *
 
 datasets_pfx = '/nfs/research/uhlmann/afoix/datasets/image_datasets'
 datasets = [
-#  ("synthetic_shapes", f"{datasets_pfx}/synthetic_shapes/", "mask")
+  ("synthetic_shapes", f"{datasets_pfx}/synthetic_shapes/", "mask", 1579)
 #  ("tiny_synthcell", f"{datasets_pfx}/tiny_synthcellshapes_dataset/", "mask")
 #  ("vampire", f"{datasets_pfx}/vampire/torchvision/Control/", "mask")
- ("mefs_cells", f"{datasets_pfx}/mefs_single_object_cell/", "mask")
-# ("vampire_nuclei", f"{datasets_pfx}/vampire_nuclei/", "mask")
-#, ("binary_vampire", f"{datasets_pfx}/binary_vampire/", "mask")
-#, ("bbbc010", f"{datasets_pfx}/bbbc010/BBBC010_v1_foreground_eachworm/", "mask")
+, ("mefs_cells", f"{datasets_pfx}/mefs_single_object_cell/", "mask", 83)
+, ("vampire_nuclei", f"{datasets_pfx}/vampire_nuclei/", "mask", 23)
+, ("binary_vampire", f"{datasets_pfx}/binary_vampire/", "mask", 291)
+, ("bbbc010", f"{datasets_pfx}/bbbc010/BBBC010_v1_foreground_eachworm/", "mask", 323)
 #, ("synthcell", f"{datasets_pfx}/synthcellshapes_dataset/", "mask")
-#, ("helakyoto", f"{datasets_pfx}/H2b_10x_MD_exp665/samples/", "mask")
+, ("helakyoto", f"{datasets_pfx}/H2b_10x_MD_exp665/samples/", "mask", 61)
 #, ("allen", f"{datasets_pfx}/allen_dataset/", "mask")
 ]
 
 models = [
   "resnet18_vqvae"
 #, "resnet50_vqvae"
-#, "resnet18_vae"
+# "resnet18_vae"
 #, "resnet50_vae"
-, "resnet18_beta_vae"
+#, "resnet18_beta_vae"
 #, "resnet50_beta_vae"
 #, "resnet18_vae_bolt"
 #, "resnet50_vae_bolt"
@@ -50,14 +51,14 @@ models = [
 
 model_params = {
   #"resnet18_beta_vae": {'beta': [2,5]}
-  "resnet18_beta_vae": {'beta': [0.0001]}
+#  "resnet18_beta_vae": {'beta': [0.01]}
 #, "resnet50_beta_vae": {'beta': [2,5]}
-, "resnet50_beta_vae": {'beta': [0.00001]}
+#, "resnet50_beta_vae": {'beta': [0.00001]}
 }
 
-compression_factors = [1,2,3,5,10]
+compression_factors = [2, 3]
 
-batch_sizes = [4, 8, 16]
+batch_sizes = [4]
 
 # XXX XXX XXX XXX XXX XXX XXX #
 # XXX ad-hoc one-off config XXX #
@@ -71,13 +72,19 @@ batch_sizes = [4, 8, 16]
 
 def gen_params_sweep_list():
   p_sweep_list = []
+  def dm_sizes(mode, n=3):
+    n = n // 2 # number of sizes to consider below and above
+    p = math.ceil(math.log2(mode))
+    return [2**i for i in range(p-n, p+n+1)]
   for params in [ { 'dataset': types.SimpleNamespace(name=ds[0], path=ds[1], type=ds[2])
                   , 'model_name': m
                   , 'compression_factor': cf
-                  , 'latent_dim': compressed_n_features(512, cf)
+                  , 'distance_matrix_size': dm_sz
+                  , 'latent_dim': compressed_n_features(dm_sz, cf)
                   , 'batch_size': bs
                   } for ds in datasets
                     for m in models
+                    for dm_sz in dm_sizes(ds[3]) # 4th tuple element (ds[3]) is the dataset contour size mode (most repeated value)
                     for cf in compression_factors
                     for bs in batch_sizes ]:
     # per model params:
@@ -121,7 +128,7 @@ dflt_slurm_dir=f'{os.getcwd()}/slurm_info_{datetime.datetime.now().strftime("%Y%
 dflt_out_dir=f'{os.getcwd()}/output_results_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}'
 
 slurm_time = '50:00:00'
-slurm_mem = '80G'
+slurm_mem = '100G'
 slurm_gpus = 'a100:1'
 
 shapeembed_script=f'{os.getcwd()}/shapeembed.py'
@@ -142,6 +149,7 @@ def spawn_slurm_job(slurm_out_dir, out_dir, ps, logger=logging.getLogger(__name_
          ]
   cmd += [ '--dataset', ps.dataset.name, ps.dataset.path, ps.dataset.type
          , '--model', ps.model_name
+         , '--distance-matrix-size', ps.distance_matrix_size
          , '--compression-factor', ps.compression_factor
          , '--batch-size', ps.batch_size
          ]
