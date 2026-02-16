@@ -1,0 +1,157 @@
+\subsection{Framework Architecture}
+
+The \texttt{bioimage\_embed} framework consists of four main components: data handling, model architectures, training infrastructure, and deployment tools (Figure~\ref{fig:architecture}). We describe each component below.
+
+\subsection{Data Handling}
+
+\subsubsection{File Format Support}
+
+We implement custom PyTorch \texttt{Dataset} classes for common microscopy formats:
+
+\begin{itemize}
+    \item \textbf{TiffDataset:} Handles multi-channel TIFF stacks with lazy loading
+    \item \textbf{NgffDataset:} Supports OME-NGFF (Next Generation File Format) with zarr backends
+    \item \textbf{DatasetGlob:} Flexible file-pattern matching for heterogeneous datasets
+\end{itemize}
+
+All datasets inherit from a common base class that provides:
+\begin{itemize}
+    \item Channel normalization (per-channel z-scoring or percentile-based)
+    \item Configurable augmentations via Albumentations
+    \item Metadata extraction and preservation
+\end{itemize}
+
+\subsubsection{Integration with Public Repositories}
+
+We provide pre-configured loaders for:
+\begin{itemize}
+    \item \textbf{BioImage Data Resource (IDR):} Direct access to curated microscopy datasets
+    \item \textbf{Cell Image Library:} Standardized cell and tissue images
+    \item \textbf{Cell Painting:} High-throughput phenotypic screening data
+\end{itemize}
+
+\subsection{Model Architectures}
+
+\subsubsection{Variational Autoencoders (VAE)}
+
+Our VAE implementation follows the standard formulation with encoder $q_\phi(z|x)$ and decoder $p_\theta(x|z)$:
+
+\begin{equation}
+\mathcal{L}_{\text{VAE}} = \mathbb{E}_{q_\phi(z|x)}[\log p_\theta(x|z)] - \beta \cdot D_{KL}(q_\phi(z|x) \| p(z))
+\end{equation}
+
+where $\beta$ controls the regularization strength ($\beta$-VAE variant).
+
+\textbf{Encoder backbones:}
+\begin{itemize}
+    \item ResNet18, ResNet50 (from torchvision)
+    \item Vision Transformer (ViT) with patch embeddings
+\end{itemize}
+
+\textbf{Decoder architectures:}
+\begin{itemize}
+    \item Transposed convolution decoder (symmetric to ResNet encoder)
+    \item ViT-based decoder with patch reconstruction
+\end{itemize}
+
+\subsubsection{Vector Quantized VAE (VQ-VAE)}
+
+We implement VQ-VAE with learnable codebook $\mathcal{C} = \{c_k\}_{k=1}^K$:
+
+\begin{equation}
+z_q = \argmin_{c_k \in \mathcal{C}} \|z_e - c_k\|_2
+\end{equation}
+
+where $z_e$ is the encoder output and $z_q$ is the quantized latent code.
+
+\subsubsection{Masked Autoencoders (MAE)}
+
+Following \citet{he2022masked}, we implement masked autoencoders with:
+\begin{itemize}
+    \item Random patch masking (75\% masking ratio)
+    \item ViT encoder operating only on visible patches
+    \item Lightweight decoder reconstructing masked patches
+\end{itemize}
+
+\subsubsection{Supervised Learning Mode}
+
+For datasets with labels, we support supervised and semi-supervised learning:
+
+\begin{equation}
+\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{reconstruction}} + \lambda \cdot \mathcal{L}_{\text{classification}}
+\end{equation}
+
+This enables joint optimization of reconstruction quality and downstream task performance.
+
+\subsection{Training Infrastructure}
+
+\subsubsection{Configuration Management}
+
+We use Hydra for hierarchical configuration with Pydantic dataclasses for type safety:
+
+\begin{verbatim}
+@dataclass
+class ModelConfig:
+    architecture: str  # "vae", "vqvae", "mae"
+    latent_dim: int
+    beta: float = 1.0
+    encoder_backbone: str = "resnet18"
+\end{verbatim}
+
+All hyperparameters are validated at runtime and saved with each checkpoint.
+
+\subsubsection{Reproducibility}
+
+Each training run saves:
+\begin{itemize}
+    \item Full resolved configuration (YAML)
+    \item Git commit SHA
+    \item Dataset version/hash
+    \item Random seeds (PyTorch, NumPy, Python)
+    \item Environment snapshot (conda/pip freeze)
+\end{itemize}
+
+\subsubsection{Logging and Monitoring}
+
+Integrated support for:
+\begin{itemize}
+    \item TensorBoard (local logging)
+    \item Weights \& Biases (cloud logging)
+    \item Custom callbacks for reconstruction visualization
+\end{itemize}
+
+\subsection{Deployment}
+
+\subsubsection{Model Export}
+
+Trained models can be exported to:
+\begin{itemize}
+    \item ONNX format for deployment in non-Python environments
+    \item HuggingFace Hub for sharing and versioning
+    \item PyTorch checkpoint with full training state
+\end{itemize}
+
+\subsubsection{Command-Line Interface}
+
+The CLI provides high-level commands:
+
+\begin{verbatim}
+# Train a VAE on Cell Painting data
+bioimage_embed train --data cellpainting \
+    --model vae --latent-dim 128
+
+# Encode new images
+bioimage_embed encode --checkpoint model.ckpt \
+    --input images/ --output embeddings.npy
+\end{verbatim}
+
+\subsection{Software Engineering}
+
+The codebase follows modern Python best practices:
+\begin{itemize}
+    \item Type hints throughout (mypy strict mode)
+    \item Pre-commit hooks (black, isort, flake8)
+    \item Unit tests with pytest
+    \item Continuous integration via GitHub Actions
+    \item Semantic versioning
+\end{itemize}

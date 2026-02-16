@@ -1,0 +1,73 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{cite}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{authblk}
+
+% Hyperref configuration
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    citecolor=blue,
+}
+
+% Title and authors
+\title{\textbf{bioimage\_embed: A Modular Framework for Self-Supervised Learning of Biological Image Embeddings}}
+
+\author[1]{Your Name}
+\author[2]{Co-author Name}
+\affil[1]{Institution 1}
+\affil[2]{Institution 2}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\input{sections/abstract}
+\end{abstract}
+
+\section{Introduction}
+\input{sections/introduction}
+
+\section{Methods}
+\input{sections/methods}
+
+\section{Experiments}
+\input{sections/experiments}
+
+\section{Results}
+\input{sections/results}
+
+\section{Discussion}
+\input{sections/discussion}
+
+\section{Conclusion}
+\input{sections/conclusion}
+
+\section*{Acknowledgements}
+We thank the contributors to the bioimage\_embed project and the broader open-source community.
+
+\section*{Data Availability}
+All code is available at \url{https://github.com/ctr26/bioimage_embed}. Pre-trained models and datasets are available on HuggingFace Hub.
+
+\section*{Code Availability}
+The bioimage\_embed package is available via PyPI (\texttt{pip install bioimage\_embed}) and GitHub.
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

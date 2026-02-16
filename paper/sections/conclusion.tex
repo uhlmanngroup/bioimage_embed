@@ -1,0 +1,7 @@
+We have presented \texttt{bioimage\_embed}, an open-source framework for self-supervised representation learning on biological images. By addressing domain-specific challenges in data handling, model architecture, and reproducibility, our tool enables computational biologists to leverage state-of-the-art deep learning methods without extensive machine learning expertise.
+
+Our benchmark experiments demonstrate that domain-specific autoencoders significantly outperform generic pretrained models, achieving up to 13\% improvement in downstream classification tasks. The modular design supports multiple architectures (VAE, VQ-VAE, MAE) and integrates with modern MLOps infrastructure (HuggingFace, W\&B), facilitating both research and production deployment.
+
+The framework is available at \url{https://github.com/ctr26/bioimage_embed} under an open-source license, with pre-trained models shared via HuggingFace Hub. We welcome contributions from the community and hope \texttt{bioimage\_embed} becomes a standard tool for bioimage representation learning, analogous to how scikit-learn serves machine learning practitioners.
+
+Future work will extend support to 3D imaging, expand the model zoo with generative models (GANs, diffusion), and develop bioimage-specific foundation models trained on large public corpora. We believe standardized embedding tools will accelerate discovery in cell biology, drug development, and precision medicine.
