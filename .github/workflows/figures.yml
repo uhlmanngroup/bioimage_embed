@@ -1,0 +1,33 @@
+name: Generate Figures
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'paper/figures/**'
+      - 'scripts/figures/**'
+      - 'Makefile'
+
+jobs:
+  figures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]" || pip install -e .
+          pip install matplotlib seaborn
+          
+      - name: Generate figures
+        run: make figures || python scripts/generate_figures.py
+        
+      - name: Upload figures
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-figures
+          path: paper/figures/
