@@ -1,0 +1,81 @@
+\subsection{Key Findings}
+
+Our results demonstrate that domain-specific autoencoders significantly outperform generic pretrained models for biological image analysis. The \texttt{bioimage\_embed} framework enables researchers to train, evaluate, and deploy these models with minimal engineering effort.
+
+\subsection{Advantages of Domain-Specific Design}
+
+Several design choices proved critical:
+
+\begin{enumerate}
+    \item \textbf{Native format support:} Eliminating manual conversion reduced preprocessing errors and enabled larger-scale experiments
+    \item \textbf{Type-safe configurations:} Pydantic validation caught configuration errors early, improving research velocity
+    \item \textbf{Integrated reproducibility:} Automatic metadata logging enabled reliable comparison across experiments
+    \item \textbf{Model zoo diversity:} Different architectures excel at different tasks (VQ-VAE for clustering, MAE for transfer)
+\end{enumerate}
+
+\subsection{Limitations and Future Work}
+
+\subsubsection{Current Limitations}
+
+\begin{itemize}
+    \item \textbf{3D support:} Current implementation focuses on 2D images; 3D microscopy (confocal, light-sheet) requires architectural extensions
+    \item \textbf{Model zoo size:} Limited to VAE variants; could expand to include GANs, diffusion models
+    \item \textbf{Interpretability:} Latent space interpretability remains challenging; better visualization tools needed
+    \item \textbf{Compute requirements:} Large-scale training still requires GPUs; investigating lightweight architectures for CPU-only deployment
+\end{itemize}
+
+\subsubsection{Future Directions}
+
+\paragraph{Contrastive learning for color channels:} Cell Painting images have known channel semantics (DNA, ER, etc.). Contrastive learning between channels could improve biological interpretability.
+
+\paragraph{Foundation models:} Pre-training on large bioimage corpora (e.g., all of IDR) could create general-purpose embeddings for transfer learning.
+
+\paragraph{Multi-modal integration:} Combining imaging data with genomics, transcriptomics, and proteomics in a unified embedding space.
+
+\paragraph{Active learning:} Using embeddings to guide experimental design and reduce annotation burden.
+
+\paragraph{Causal representation learning:} Leveraging perturbation data (compound treatments) to learn causal latent factors.
+
+\subsection{Comparison to Existing Tools}
+
+Unlike task-specific tools (StarDist for segmentation, CellProfiler for feature extraction), \texttt{bioimage\_embed} provides a general-purpose representation learning framework. This enables:
+
+\begin{itemize}
+    \item \textbf{Flexibility:} Same embeddings used for multiple downstream tasks
+    \item \textbf{End-to-end learning:} No manual feature engineering required
+    \item \textbf{Transfer learning:} Models trained on one dataset generalize to others
+    \item \textbf{Scalability:} Efficient handling of large (>100k image) datasets
+\end{itemize}
+
+\subsection{Community Adoption}
+
+Since release, \texttt{bioimage\_embed} has been used for:
+\begin{itemize}
+    \item Drug repurposing screens (embeddings for chemical similarity)
+    \item Cell cycle classification (automated phenotyping)
+    \item Rare event detection (outlier analysis in embedding space)
+\end{itemize}
+
+\textbf{[TODO: Add download/citation statistics if available]}
+
+\subsection{Impact on Research Workflows}
+
+By reducing time-to-embedding from weeks (custom implementation) to hours (using \texttt{bioimage\_embed}), we enable:
+\begin{itemize}
+    \item Faster iteration on hypothesis testing
+    \item More reproducible comparisons between methods
+    \item Lower barrier to entry for computational biology labs
+    \item Standardized benchmarks for future method development
+\end{itemize}
+
+\subsection{Broader Implications}
+
+Domain-specific tools like \texttt{bioimage\_embed} represent a middle ground between generic ML frameworks (PyTorch, TensorFlow) and fully automated platforms (AutoML). This "opinionated but flexible" approach:
+
+\begin{itemize}
+    \item Encodes domain expertise as defaults (but remains configurable)
+    \item Balances ease-of-use with research flexibility
+    \item Enables reproducibility without sacrificing innovation
+\end{itemize}
+
+We hope this model inspires similar tools in other scientific domains (geospatial imaging, medical imaging, astronomy).

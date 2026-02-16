@@ -1,0 +1,84 @@
+\subsection{Experimental Setup}
+
+We evaluate \texttt{bioimage\_embed} on three benchmark tasks: reconstruction quality, downstream classification, and transfer learning across imaging modalities.
+
+\subsection{Datasets}
+
+\subsubsection{Cell Painting}
+
+Cell Painting is a high-throughput imaging assay that labels cellular components with six fluorescent dyes. We use the public dataset from \citet{bray2017cell} containing:
+\begin{itemize}
+    \item 30,000 images (512×512 px)
+    \item 5 channels (DNA, ER, RNA, AGP, Mito)
+    \item 1,500 compound perturbations
+\end{itemize}
+
+\subsubsection{Image Data Resource (IDR)}
+
+We use curated datasets from IDR:
+\begin{itemize}
+    \item \textbf{idr0016:} Protein localization in human cells (HPA)
+    \item \textbf{idr0013:} Mitotic cell profiling
+\end{itemize}
+
+\subsubsection{Cell Image Library (CIL)}
+
+Subset of CIL containing diverse cell types and imaging modalities:
+\begin{itemize}
+    \item Brightfield, phase contrast, fluorescence
+    \item Multiple species (human, mouse, yeast)
+\end{itemize}
+
+\subsection{Baselines}
+
+We compare against:
+\begin{itemize}
+    \item \textbf{PCA:} Classical dimensionality reduction on flattened images
+    \item \textbf{Generic VAE:} Standard VAE trained on ImageNet, fine-tuned on bioimages
+    \item \textbf{SimCLR:} Contrastive learning baseline
+    \item \textbf{MAE (ImageNet):} Masked autoencoder pre-trained on ImageNet
+\end{itemize}
+
+\subsection{Evaluation Metrics}
+
+\subsubsection{Reconstruction Quality}
+\begin{itemize}
+    \item Mean Squared Error (MSE)
+    \item Structural Similarity Index (SSIM)
+    \item Fréchet Inception Distance (FID) using biological image statistics
+\end{itemize}
+
+\subsubsection{Downstream Tasks}
+\begin{itemize}
+    \item \textbf{Linear probe accuracy:} Train linear classifier on frozen embeddings
+    \item \textbf{k-NN classification:} Nearest-neighbor performance in embedding space
+    \item \textbf{Clustering quality:} Adjusted Rand Index (ARI) for compound grouping
+\end{itemize}
+
+\subsubsection{Transfer Learning}
+\begin{itemize}
+    \item Train on Cell Painting, evaluate on IDR datasets
+    \item Measure embedding transferability across imaging modalities
+\end{itemize}
+
+\subsection{Training Details}
+
+All models trained with:
+\begin{itemize}
+    \item Optimizer: AdamW ($\beta_1=0.9, \beta_2=0.999$)
+    \item Learning rate: $10^{-4}$ with cosine annealing
+    \item Batch size: 128
+    \item Epochs: 100 (early stopping with patience=10)
+    \item Data augmentation: Random crop, flip, rotate, brightness/contrast jitter
+\end{itemize}
+
+Latent dimensions: $\{32, 64, 128, 256\}$ (tuned via validation set).
+
+\subsection{Computational Resources}
+
+Experiments conducted on:
+\begin{itemize}
+    \item NVIDIA A100 GPUs (40GB VRAM)
+    \item Training time: 2-8 hours per model
+    \item Total compute: $\sim$500 GPU-hours
+\end{itemize}

@@ -1,0 +1,37 @@
+High-throughput microscopy has become a cornerstone of modern biological research, enabling large-scale phenotypic screening, drug discovery, and cellular profiling. The analysis of these datasets increasingly relies on learned representations that capture biologically meaningful features in a compact, low-dimensional space. While deep learning methods have demonstrated remarkable success in natural image analysis, their application to biological imaging presents unique challenges including specialized file formats, domain-specific preprocessing requirements, and the need for interpretable, biologically relevant embeddings.
+
+\subsection{Motivation}
+
+Existing deep learning frameworks are designed primarily for natural images (e.g., ImageNet), and adapting them to microscopy data requires substantial engineering effort. Researchers must address several domain-specific challenges:
+
+\begin{itemize}
+    \item \textbf{Format compatibility:} Biological images are stored in specialized formats (TIFF, OME-NGFF) that require custom data loaders
+    \item \textbf{Preprocessing pipelines:} Microscopy data demands domain-specific normalization, background correction, and augmentation strategies
+    \item \textbf{Model selection:} Choosing appropriate architectures (VAE, VQVAE, masked autoencoders) for different imaging modalities
+    \item \textbf{Reproducibility:} Ensuring experiments are reproducible across different labs and datasets
+    \item \textbf{Accessibility:} Providing tools that are accessible to biologists without deep machine learning expertise
+\end{itemize}
+
+\subsection{Contributions}
+
+We introduce \texttt{bioimage\_embed}, an open-source framework that addresses these challenges through:
+
+\begin{enumerate}
+    \item \textbf{Domain-specific data handling:} Native support for TIFF, OME-NGFF, and standard bioimage repositories (BioImage Data Resource, Cell Image Library)
+    \item \textbf{Modular architecture zoo:} Pre-configured implementations of VAE, $\beta$-VAE, VQ-VAE, and masked autoencoders with ResNet and Vision Transformer backbones
+    \item \textbf{Production-ready engineering:} Type-safe configurations via Pydantic, reproducible checkpointing with full metadata, and integration with modern MLOps tools (WandB, TensorBoard)
+    \item \textbf{Ecosystem integration:} Compatibility with HuggingFace Hub for model sharing and discovery
+    \item \textbf{User accessibility:} Command-line interface and Python API designed for both programmers and biologists
+\end{enumerate}
+
+\subsection{Related Work}
+
+Several tools address aspects of bioimage analysis:
+\begin{itemize}
+    \item \textbf{CellProfiler} and \textbf{ImageJ/Fiji} provide classical image analysis but lack modern deep learning integration
+    \item \textbf{DeepImageJ} enables running pre-trained models but does not support training
+    \item \textbf{StarDist} and \textbf{Cellpose} focus on segmentation rather than representation learning
+    \item \textbf{PyTorch} and \textbf{TensorFlow} provide general-purpose frameworks but require substantial domain expertise to adapt for bioimages
+\end{itemize}
+
+To our knowledge, \texttt{bioimage\_embed} is the first framework specifically designed for autoencoder-based representation learning on biological images with end-to-end support for data loading, model training, and deployment.
