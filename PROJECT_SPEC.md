@@ -1,208 +1,129 @@
 # bioimage_embed - Project Specification
 
-> Thin, maintainable wrapper for biological image embeddings using modern ML infrastructure.
+> Thin, maintainable wrapper for biological image embeddings. Library-first, CLI via Hydra-zen.
 
-## Problem Statement
+## Design Constraints
 
-Natural image models (ImageNet-pretrained) don't work well with biological images:
-- Different statistics (fluorescence, phase contrast, etc.)
-- Multi-channel (not RGB)
-- Scale/resolution matters (subcellular vs tissue)
-- Biologists need interpretable features, not just predictions
-
-## Vision
-
-A **minimal, opinionated CLI** that makes it trivial to:
-1. Extract embeddings from microscopy images
-2. Fine-tune foundation models on biological data
-3. Produce standard Python science objects (DataFrames, AnnData, zarr)
-
-## Design Principles
-
-1. **Thin wrapper** — delegate to HuggingFace, timm, not reinvent
-2. **Minimal config** — Hydra-zen, Python-defined schemas, almost no YAML
-3. **CLI-first** — all features accessible via command line
-4. **Standard outputs** — pandas DataFrame, AnnData, zarr arrays
-5. **Dask for scale** — tiling, sliding windows, lazy evaluation
-6. **Lightly maintainable** — <2000 LOC core, well-documented
-
-## Core Features
-
-### 1. Featurization (`bioimage-embed featurize`)
-```bash
-bioimage-embed featurize \
-  --input images/*.tif \
-  --model dinov2-vit-base \
-  --output features.parquet \
-  --tile-size 256 \
-  --stride 128 \
-  --batch-size 32
-```
-
-- **Tiling**: Dask-based sliding window for large images
-- **Multi-channel**: Handle arbitrary channel counts
-- **Output formats**: parquet, zarr, h5ad (AnnData)
-
-### 2. Pretraining (`bioimage-embed pretrain`)
-```bash
-bioimage-embed pretrain \
-  --data cellpaint/*.zarr \
-  --method simclr \
-  --backbone resnet50 \
-  --output model.pt
-```
-
-- **Methods**: SimCLR, DINO, MAE, BarlowTwins
-- **Backbones**: ResNet, ViT, ConvNeXt (via timm)
-
-### 3. Fine-tuning (`bioimage-embed finetune`)
-```bash
-bioimage-embed finetune \
-  --data train.csv \
-  --model pretrained.pt \
-  --task classification \
-  --output finetuned.pt
-```
-
-- **Tasks**: classification, regression, segmentation
-- **Few-shot**: support for small labeled datasets
-- **Transfer**: from natural or bio-pretrained models
-
-### 4. Analysis (`bioimage-embed analyze`)
-```bash
-bioimage-embed analyze \
-  --features features.parquet \
-  --method umap \
-  --output analysis.h5ad
-```
-
-- **Dimensionality reduction**: PCA, UMAP, t-SNE
-- **Clustering**: Leiden, k-means
-- **Bioinformatics-style**: differential expression analogues
+1. **Library-first** — importable modules, CLI emerges from schema
+2. **uv** — package management, no poetry
+3. **HuggingFace ecosystem** — Trainer, datasets, transformers (not Lightning)
+4. **Hydra-zen** — Python schemas define CLI automatically, minimal YAML
+5. **Lean on existing schemas** — HF TrainingArguments, timm configs, etc.
+6. **Atomic PRs** — small, testable, sanity-checked units
+7. **Worktrees for parallel work** — multiple workers simultaneously
 
 ## Architecture
 
 ```
 bioimage_embed/
-├── cli.py              # Typer CLI, minimal
-├── config.py           # Hydra-zen schemas (Python, not YAML)
-├── featurize/
-│   ├── models.py       # HuggingFace/timm wrapper
-│   ├── tiling.py       # Dask sliding window
-│   └── outputs.py      # DataFrame/AnnData/zarr writers
+├── __init__.py           # Public API
+├── config.py             # Hydra-zen schemas (Python, not YAML)
+├── models/
+│   └── backbones.py      # Thin wrapper: timm + transformers
+├── data/
+│   ├── datasets.py       # HF datasets integration
+│   └── transforms.py     # albumentations/torchvision
 ├── train/
-│   ├── ssl.py          # Self-supervised (SimCLR, DINO, etc.)
-│   ├── supervised.py   # Classification, regression
-│   └── fewshot.py      # Few-shot learning
-├── analyze/
-│   ├── embeddings.py   # UMAP, clustering
-│   └── cellpaint.py    # CellPaint-specific analysis
+│   └── trainer.py        # HF Trainer wrapper
+├── inference/
+│   └── embed.py          # Batch embedding extraction
 └── io/
-    ├── readers.py      # bioformats, tifffile, zarr
-    └── writers.py      # parquet, h5ad, zarr
+    └── formats.py        # parquet, zarr, h5ad writers
 ```
 
-## Config Philosophy (Hydra-zen)
+## Config Philosophy
 
-**No logic in YAML**. Config is Python with type hints:
+**CLI from schema, not manual argparse:**
 
 ```python
 # config.py
 from dataclasses import dataclass
-from hydra_zen import builds, make_config
+from hydra_zen import builds, store, zen
+from transformers import TrainingArguments
 
 @dataclass
-class FeaturizeConfig:
-    model: str = "dinov2-vit-base"
-    tile_size: int = 256
-    stride: int = 128
+class EmbedConfig:
+    model: str = "facebook/dinov2-base"
     batch_size: int = 32
-    output_format: str = "parquet"  # parquet | zarr | h5ad
+    output_format: str = "parquet"
 
-# Compose configs
-Config = make_config(
-    featurize=FeaturizeConfig,
-    # ...
-)
+# Reuse HF's schema
+TrainConfig = builds(TrainingArguments, populate_full_signature=True)
+
+# CLI auto-generated
+store(EmbedConfig, name="embed")
+store(TrainConfig, name="train")
 ```
 
-YAML only for overrides:
-```yaml
-# Override defaults (optional)
-featurize:
-  tile_size: 512
-```
-
-## Example Datasets
-
-### CellPainting (Broad)
+**Usage emerges automatically:**
 ```bash
-bioimage-embed featurize \
-  --input "s3://cellpainting-gallery/cpg0016-jump/..." \
-  --model dinov2-vit-base \
-  --channels DAPI,Tubulin,Actin,Mito,ER \
-  --output jump_features.parquet
+python -m bioimage_embed.embed model=dinov2 batch_size=64
+python -m bioimage_embed.train learning_rate=1e-4 num_train_epochs=10
 ```
-
-### JUMP Dataset Reference
-- Source: https://jump-cellpainting.broadinstitute.org/
-- ~150M images, 116k perturbations
-- Standard benchmark for biological embeddings
 
 ## Dependencies
 
 ```toml
 [project]
+requires-python = ">=3.10"
 dependencies = [
     "torch>=2.0",
-    "transformers",      # HuggingFace
-    "timm",              # Image models
+    "transformers>=4.35",
+    "datasets",
+    "timm",
     "hydra-core",
     "hydra-zen",
-    "dask[distributed]",
+    "albumentations",
     "pandas",
     "pyarrow",
-    "anndata",
     "zarr",
     "tifffile",
-    "typer",
-    "rich",
 ]
+
+[project.optional-dependencies]
+train = ["accelerate", "wandb"]
+bio = ["anndata", "scanpy"]
 ```
 
-## Milestones
+## Refactor Plan (Atomic Issues)
 
-### v0.1 - Featurization MVP
-- [ ] CLI with `featurize` command
-- [ ] DINOv2/CLIP/ResNet backbone support
-- [ ] Dask tiling for large images
-- [ ] Parquet output
+### Phase 1: Foundation
+- [ ] #4: Migrate poetry → uv, update pyproject.toml
+- [ ] #5: Remove Lightning, add HF Trainer skeleton
+- [ ] #6: Hydra-zen config schemas (reuse HF TrainingArguments)
+- [ ] #7: timm/transformers backbone wrapper
 
-### v0.2 - Training
-- [ ] SimCLR pretraining
-- [ ] Supervised fine-tuning
-- [ ] Few-shot support
+### Phase 2: Core Features  
+- [ ] #8: HF datasets integration for microscopy
+- [ ] #9: Embedding extraction with Dask batching
+- [ ] #10: Output writers (parquet, zarr, h5ad)
 
-### v0.3 - Analysis
-- [ ] UMAP/clustering
-- [ ] CellPaint morphology profiles
-- [ ] JUMP dataset examples
+### Phase 3: Training
+- [ ] #11: Self-supervised training (DINO/SimCLR via HF)
+- [ ] #12: Fine-tuning with HF Trainer
+- [ ] #13: Few-shot learning
 
-### v1.0 - Production
-- [ ] Full documentation
-- [ ] PyPI release
-- [ ] Docker image
+### Phase 4: Examples
+- [ ] #14: CellPaint example notebook
+- [ ] #15: JUMP dataset integration
+
+## HPC Considerations
+
+- **Dask** for tiling large images
+- **accelerate** for multi-GPU via HF
+- **SLURM** compatible (hydra submitit launcher)
+- **zarr** for chunked storage
 
 ## Non-Goals
 
-- ❌ Segmentation (use cellpose, stardist)
-- ❌ Full training framework (use lightning)
-- ❌ Complex YAML configs
+- ❌ Custom training loops (use HF Trainer)
 - ❌ GUI
+- ❌ Segmentation (use cellpose)
+- ❌ Complex YAML configs
 
 ## References
 
+- [HuggingFace Trainer](https://huggingface.co/docs/transformers/main_classes/trainer)
+- [Hydra-zen](https://mit-ll-responsible-ai.github.io/hydra-zen/)
+- [timm](https://huggingface.co/docs/timm/)
 - [JUMP Cell Painting](https://jump-cellpainting.broadinstitute.org/)
-- [pycytominer](https://github.com/cytomining/pycytominer) - morphology feature extraction
-- [DINOv2](https://github.com/facebookresearch/dinov2) - self-supervised vision
-- [BiomedCLIP](https://huggingface.co/microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224) - biomedical vision-language
