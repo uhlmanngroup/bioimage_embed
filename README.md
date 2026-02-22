@@ -82,3 +82,7 @@ bioimage_embed is licensed under the MIT License. Please refer to the [LICENSE](
 ---
 
 Happy Embedding! 🧬🔬
+
+
+## SUNSET
+Archived 2026-02-16. Deprioritized.
