@@ -1,81 +1,82 @@
-[tool.poetry]
+[project]
 name = "bioimage_embed"
 version = "0.0.0"
-description = ""
-authors = ["Craig <ctr26@ebi.ac.uk>"]
-packages = [{ include = "bioimage_embed" }]
+description = "Embedding tools for bioimage analysis"
+authors = [
+    { name = "Craig", email = "ctr26@ebi.ac.uk" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "setuptools<70",
+    "umap-learn[plot]>=0.5.3",
+    "jsonargparse[signatures]>=4.21.0",
+    "pytorch-lightning>=1.9.0,<2.0.0",
+    "torchinfo>=1.8.0",
+    "matplotlib>=3.7.2",
+    "pyro-ppl>=1.8.6",
+    "scikit-image>=0.21.0",
+    "iteround>=1.0.4",
+    "ipykernel>=6.25.1",
+    "nonechucks>=0.4.2",
+    "pythae @ git+https://github.com/clementchadebec/benchmark_VAE.git@main",
+    "pandas>=2.1.0",
+    "bokeh>=3.2.2",
+    "colorcet>=3.0.1",
+    "holoviews>=1.17.1",
+    "tensorboard>=2.14.0",
+    "albumentations>=1.3.1",
+    "timm>=0.9.6",
+    "hydra-core>=1.3.2",
+    "requests>=2.31.0",
+    "shapely>=2.0.1",
+    "pyefd>=1.6.0",
+    "tikzplotlib>=0.10.1",
+    "torchmetrics>=0.11.4",
+    "lightning-bolts>=0.7.0",
+    "Pillow>=9.5.0",
+    "onnx>=1.15.0",
+    "typer>=0.9.0",
+    "ray[all]>=2.8.1",
+    "pydantic>=2.6.4",
+    "numpy>=1.23",
+    "monai>=1.3.2",
+    "transformers>=4.42.4",
+    "torch>=2.3.1",
+    "torchvision>=0.18.1",
+    "wandb>=0.17.4",
+    "jupytext>=1.16.4",
+    "jupyter>=1.0.0",
+]
 
-[tool.poetry.scripts]
+[project.optional-dependencies]
+dev = [
+    "black>=24.4.2",
+    "mypy>=1.10.0",
+    "pytest>=8.2.0",
+    "pytest-cov>=5.0.0",
+    "flake8>=7.0.0",
+    "pre-commit>=3.7.1",
+    "isort>=5.13.2",
+    "jupytext>=1.16.2",
+]
+
+[project.scripts]
 bioimage_embed = "bioimage_embed:app"
 bie = "bioimage_embed.cli:app"
 bie_train = "bioimage_embed.cli:train"
 bie_infer = "bioimage_embed.cli:infer"
 bie_finetune = "bioimage_embed.cli:finetune"
 
-[tool.poetry.dependencies]
-python = "^3.9,<3.11"
-umap-learn = { extras = ["plot"], version = "^0.5.3" }
-jsonargparse = { extras = ["signatures"], version = "^4.21.0" }
-llvmlite = "0.40.1"
-torchinfo = "^1.8.0"
-matplotlib = "^3.7.2"
-pyro-ppl = "^1.8.6"
-scikit-image = "^0.21.0"
-iteround = "^1.0.4"
-ipykernel = "^6.25.1"
-nonechucks = "^0.4.2"
-pythae = { git = "https://github.com/clementchadebec/benchmark_VAE.git", branch = "main" }
-pandas = "^2.1.0"
-bokeh = "^3.2.2"
-colorcet = "^3.0.1"
-holoviews = "^1.17.1"
-tensorboard = "^2.14.0"
-albumentations = "^1.3.1"
-timm = "^0.9.6"
-pip = "^23.2.1"
-hydra-core = "^1.3.2"
-hydra-zen = "^0.13.0"
-# pyqt5 = "^5.15.9"
-requests = "^2.31.0"
-shapely = "^2.0.1"
-pyefd = "^1.6.0"
-tikzplotlib = "^0.10.1"
-# torchmetrics = "^1.1.1"
-torchmetrics = "0.11.4"
-# pytorch-lightning-bolts = "^0.3.2.post1"
-# lightning-bolts = "^0.7.0"  # Removed with Lightning migration
-Pillow = "9.5.0"
-onnx = "^1.15.0"
-typer = "^0.9.0"
-ray = { extras = ["all"], version = "^2.8.1" }
-pydantic = "^2.6.4"
-numpy = "1.23"
-monai = "^1.3.2"
-transformers = "^4.42.4"
-accelerate = "^0.34.0"
-torch = "^2.3.1"
-torchvision = "^0.18.1"
-wandb = "^0.17.4"
-jupytext = "^1.16.4"
-jupyter = "^1.0.0"
-
-
-[tool.poetry.group.dev.dependencies]
-black = "^24.4.2"
-mypy = "^1.10.0"
-pytest = "^8.2.0"
-pytest-cov = "^5.0.0"
-flake8 = "^7.0.0"
-pre-commit = "^3.7.1"
-isort = "^5.13.2"
-poetry-dynamic-versioning = "^1.0.0"
-# torch = {version = "^2.3.1+cpu", source = "pytorch-cpu"}
-# torchvision="0.18.1+cpu"
-jupytext = "^1.16.2"
-
 [build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
-build-backend = "poetry_dynamic_versioning.backend"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["bioimage_embed"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -83,14 +84,9 @@ addopts = "-ra -q --ignore=env"
 pythonpath = ["bioimage_embed"]
 timeout = 180
 
-# [flake8]
-# max-line-length = 80
-
 [tool.black]
 line-length = 80
 
-# [[tool.poetry.source]]
-# name = "pytorch-cpu"
-# url = "https://download.pytorch.org/whl/cpu"
-# default = false
-# secondary = true
+[tool.isort]
+profile = "black"
+line_length = 80
