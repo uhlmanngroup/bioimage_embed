@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+**⚠️ Read this file FIRST before making any changes.**
+
+**Parent Context**: See `~/projects/ctr26/research/CLAUDE.md` for research domain rules and `~/projects/craggles/AGENTS.md` for workspace orchestration.
+
 ## Project
 Autoencoders for biological image data — all-in-one Python package for embedding microscopy datasets using variational autoencoders and self-supervised learning (pytorch-lightning).
 
@@ -36,6 +40,22 @@ make figures                    # Regenerate figures
 - Commits: conventional (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`)
 - PRs required — no direct push to `main`
 - `make test` must pass before opening PR
+
+## Relevant Skills
+
+**See**: `~/projects/craggles/memory/skill-index.md` for full descriptions
+
+### For This Project
+- **research-engineering-review** - Use for PR review checklist (#research)
+- **parallel-git** - Multi-agent workflows if needed (#research)
+- **biopython** - If working with biological sequences (#research)
+- **anndata** - For single-cell data formats (related) (#research)
+- **exploratory-data-analysis** - Initial data exploration (#research)
+- **dask** - If parallelizing large image datasets (#research)
+- **citation-management** - For paper references (#research)
+- **llm-budget** - Manage API costs during development (#meta)
+
+**When to use**: Check skill-index.md before starting new features. For microscopy-specific ML, combine pytorch with exploratory-data-analysis patterns.
 
 ## Review (mandatory)
 - **Principle Engineer** reviews code quality, types, test coverage
