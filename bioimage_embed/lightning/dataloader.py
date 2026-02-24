@@ -85,71 +85,18 @@ class DataModule(pl.LightningDataModule):
         """
         super().__init__()
         self.dataset = dataset
-        self.collator = Collator()
-        self.sampler = sampler
-        self.dataloader = partial(
-            DataLoader,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            pin_memory=pin_memory,
-            drop_last=drop_last,
-            collate_fn=self.collator,
-        )
-
-        self.train_dataset = None
-        self.val_dataset = None
-        self.test_dataset = None
-        self.setup()
-
-    def setup(self, stage=None):
-        """
-        Sets up the datasets by splitting the main dataset into train, validation, and test sets.
-
-        Args:
-            stage: The stage of the setup. Default is None.
-        """
-        (
-            self.train_dataset,
-            self.val_dataset,
-            self.test_dataset,
-        ) = self.splitting(self.dataset)
-
-    def splitting(
-        self, dataset: Dataset, split_train=0.8, split_val=0.1, seed=42
-    ) -> Tuple[Dataset, Dataset, Dataset]:
-        """
-        Splits the dataset into train, validation, and test sets.
-
-        Args:
-            dataset: The dataset to be split.
-            split_train: The proportion of the dataset to be used for training. Default is 0.8.
-            split_val: The proportion of the dataset to be used for validation. Default is 0.1.
-            seed: The random seed for splitting the dataset. Default is 42.
-
-        Returns:
-            A tuple containing the train, validation, and test datasets.
-        """
-        dataset_size = len(dataset)
-        indices = list(range(dataset_size))
-        train_size = int(split_train * dataset_size)
-        val_size = int(split_val * dataset_size)
-        test_size = dataset_size - train_size - val_size
-
-        if train_size + val_size + test_size != dataset_size:
-            raise ValueError(
-                "The splitting ratios do not add up to the length of the dataset"
-            )
-
-        torch.manual_seed(seed)
-        train_indices, val_indices, test_indices = random_split(
-            indices, [train_size, val_size, test_size]
-        )
-
-        train_dataset = torch.utils.data.Subset(dataset, train_indices)
-        val_dataset = torch.utils.data.Subset(dataset, val_indices)
-        test_dataset = torch.utils.data.Subset(dataset, test_indices)
-
-        return train_dataset, val_dataset, test_dataset
+        # TODO this is a hack to get the dataset to work with the dataloader
+        self.data_loader_settings = {
+            "batch_size": batch_size,
+            # batch_size:32,
+            "num_workers": num_workers,
+            "pin_memory": True,
+            "shuffle": False,
+            "sampler": sampler,
+            "drop_last": True,
+            # "collate_fn": self.collate_wrapper(self.collate_filter_for_none),
+            # "collate_fn": self.collate_filter_for_none,
+        }
 
     def get_dataset(self):
         return self.dataset
